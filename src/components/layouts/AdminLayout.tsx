@@ -97,7 +97,7 @@ const AdminLayout = ({ authContext }: AdminLayoutProps) => {
       </div>
 
       {/* Main content */}
-      <div className="flex flex-1 flex-col md:ml-64">
+      <div className="flex flex-1 flex-col">
         {/* Mobile header */}
         <div className="flex h-16 items-center border-b border-gray-200 bg-white px-4 md:hidden">
           <Button
@@ -111,8 +111,8 @@ const AdminLayout = ({ authContext }: AdminLayoutProps) => {
         </div>
 
         <main className="flex-1 overflow-y-auto">
-          <div className="py-6">
-            <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
+          <div className="h-full">
+            <div className="h-full px-4 py-6 sm:px-6 lg:px-8">
               <Outlet />
             </div>
           </div>
