@@ -19,6 +19,8 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import StallConfiguration from "./pages/admin/StallConfiguration";
 import AdminBookings from "./pages/admin/AdminBookings";
 import Settings from "./pages/admin/Settings";
+import { KYCPage } from "./pages/vendor/KYCPage";
+import { KYCReview } from "./pages/admin/KYCReview";
 
 const queryClient = new QueryClient();
 
@@ -87,7 +89,8 @@ const App = () => {
                 <Route index element={<VendorDashboard />} />
                 <Route path="bookings" element={<MyBookings />} />
                 <Route path="bookings/:id" element={<BookingDetails />} />
-                <Route path="book-stall" element={<StallBooking />} />
+                <Route path="booking" element={<StallBooking />} />
+                <Route path="kyc" element={<KYCPage />} />
                 <Route path="profile" element={<VendorProfile />} />
                 <Route path="invoice/:id" element={<InvoiceView />} />
               </Route>
@@ -97,6 +100,7 @@ const App = () => {
                 <Route index element={<AdminDashboard />} />
                 <Route path="stalls" element={<StallConfiguration />} />
                 <Route path="bookings" element={<AdminBookings />} />
+                <Route path="kyc" element={<KYCReview />} />
                 <Route path="settings" element={<Settings />} />
               </Route>
               

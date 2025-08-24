@@ -1,10 +1,15 @@
 
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { AuthContextType } from "../../App";
 import { useState } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, X, MapPin, FileText, User, Calendar, ShieldCheck } from "lucide-react";
+import { kycStorage } from '@/lib/localStorage';
+
+// Mock vendor ID - in real app this would come from auth context  
+const mockVendorId = 'vendor-1';
 
 interface VendorLayoutProps {
   authContext: AuthContextType;
@@ -14,11 +19,27 @@ const VendorLayout = ({ authContext }: VendorLayoutProps) => {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Check KYC status
+  const kycData = kycStorage.getByVendorId(mockVendorId);
+  const isKYCApproved = kycData?.status === 'APPROVED';
+
   const navigation = [
-    { name: 'Dashboard', href: '/vendor', icon: '📊' },
-    { name: 'Book Stalls', href: '/vendor/book-stall', icon: '🏪' },
-    { name: 'My Bookings', href: '/vendor/bookings', icon: '📋' },
-    { name: 'Profile', href: '/vendor/profile', icon: '👤' },
+    { name: 'Dashboard', href: '/vendor', icon: Calendar },
+    { 
+      name: 'Book Stalls', 
+      href: '/vendor/booking', 
+      icon: MapPin, 
+      disabled: !isKYCApproved,
+      tooltip: !isKYCApproved ? 'Complete business verification to book stalls' : undefined
+    },
+    { name: 'My Bookings', href: '/vendor/bookings', icon: FileText },
+    { 
+      name: 'Business Verification', 
+      href: '/vendor/kyc', 
+      icon: ShieldCheck,
+      badge: !isKYCApproved ? (kycData?.status === 'PENDING' ? 'Pending' : 'Required') : 'Approved'
+    },
+    { name: 'Profile', href: '/vendor/profile', icon: User },
   ];
 
   return (
@@ -52,22 +73,56 @@ const VendorLayout = ({ authContext }: VendorLayoutProps) => {
           </div>
           
           <nav className="flex-1 space-y-1 px-2 py-4">
-            {navigation.map((item) => (
-              <Link
-                key={item.name}
-                to={item.href}
-                onClick={() => setSidebarOpen(false)}
-                className={cn(
-                  "group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-all duration-200",
-                  location.pathname === item.href
-                    ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-md"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                )}
-              >
-                <span className="mr-3 text-lg">{item.icon}</span>
-                {item.name}
-              </Link>
-            ))}
+            {navigation.map((item) => {
+              const Icon = item.icon;
+              const isDisabled = item.disabled;
+              const isActive = location.pathname === item.href;
+              
+              return (
+                <div key={item.name} className="relative">
+                  {isDisabled ? (
+                    <div 
+                      className="group flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-400 cursor-not-allowed"
+                      title={item.tooltip}
+                    >
+                      <Icon className="mr-3 h-5 w-5" />
+                      <span className="flex-1">{item.name}</span>
+                      {item.badge && (
+                        <Badge variant="secondary" className="ml-2 text-xs">
+                          {item.badge}
+                        </Badge>
+                      )}
+                    </div>
+                  ) : (
+                    <Link
+                      to={item.href}
+                      onClick={() => setSidebarOpen(false)}
+                      className={cn(
+                        "group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-all duration-200",
+                        isActive
+                          ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-md"
+                          : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                      )}
+                    >
+                      <Icon className="mr-3 h-5 w-5" />
+                      <span className="flex-1">{item.name}</span>
+                      {item.badge && (
+                        <Badge 
+                          variant={
+                            item.badge === 'Required' ? "destructive" : 
+                            item.badge === 'Pending' ? "secondary" : 
+                            "default"
+                          } 
+                          className="ml-2 text-xs"
+                        >
+                          {item.badge}
+                        </Badge>
+                      )}
+                    </Link>
+                  )}
+                </div>
+              );
+            })}
           </nav>
           
           <div className="flex-shrink-0 border-t border-gray-200 p-4">

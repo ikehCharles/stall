@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AuthContextType } from "../../App";
 import { useState } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, X, BarChart3, Map, FileText, Settings, ShieldCheck } from "lucide-react";
 
 interface AdminLayoutProps {
   authContext: AuthContextType;
@@ -15,10 +15,11 @@ const AdminLayout = ({ authContext }: AdminLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const navigation = [
-    { name: 'Dashboard', href: '/admin', icon: '📊' },
-    { name: 'Stall Configuration', href: '/admin/stalls', icon: '🗺️' },
-    { name: 'All Bookings', href: '/admin/bookings', icon: '📋' },
-    { name: 'Settings', href: '/admin/settings', icon: '⚙️' },
+    { name: 'Dashboard', href: '/admin', icon: BarChart3 },
+    { name: 'Stall Configuration', href: '/admin/stalls', icon: Map },
+    { name: 'All Bookings', href: '/admin/bookings', icon: FileText },
+    { name: 'KYC Review', href: '/admin/kyc', icon: ShieldCheck },
+    { name: 'Settings', href: '/admin/settings', icon: Settings },
   ];
 
   return (
@@ -55,22 +56,27 @@ const AdminLayout = ({ authContext }: AdminLayoutProps) => {
           </div>
           
           <nav className="flex-1 space-y-1 px-2 py-4">
-            {navigation.map((item) => (
-              <Link
-                key={item.name}
-                to={item.href}
-                onClick={() => setSidebarOpen(false)}
-                className={cn(
-                  "group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-all duration-200",
-                  location.pathname === item.href
-                    ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-md"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                )}
-              >
-                <span className="mr-3 text-lg">{item.icon}</span>
-                {item.name}
-              </Link>
-            ))}
+            {navigation.map((item) => {
+              const Icon = item.icon;
+              const isActive = location.pathname === item.href;
+              
+              return (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  onClick={() => setSidebarOpen(false)}
+                  className={cn(
+                    "group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-all duration-200",
+                    isActive
+                      ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-md"
+                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                  )}
+                >
+                  <Icon className="mr-3 h-5 w-5" />
+                  {item.name}
+                </Link>
+              );
+            })}
           </nav>
           
           <div className="flex-shrink-0 border-t border-gray-200 p-4">
