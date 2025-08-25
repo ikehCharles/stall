@@ -1,49 +1,37 @@
 
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "@/hooks/use-toast";
-import { AuthContextType } from "../../App";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { toast } from "sonner";
+import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
-interface LoginProps {
-  authContext: AuthContextType;
-}
-
-const Login = ({ authContext }: LoginProps) => {
+const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const { signIn } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError("");
 
-    try {
-      const success = authContext.login(email, password);
-      if (!success) {
-        toast({
-          title: "Login Failed",
-          description: "Invalid email or password. Try admin@example.com or vendor@example.com with password 'password'",
-          variant: "destructive"
-        });
-      } else {
-        toast({
-          title: "Login Successful",
-          description: "Welcome back!"
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "An error occurred during login",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
+    const { error } = await signIn(email, password);
+
+    if (error) {
+      setError(error.message);
+      toast.error("Login failed: " + error.message);
+    } else {
+      toast.success("Welcome back!");
     }
+
+    setIsLoading(false);
   };
 
   return (
@@ -99,6 +87,12 @@ const Login = ({ authContext }: LoginProps) => {
                 {isLoading ? "Signing in..." : "Sign in"}
               </Button>
               
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
               <div className="text-center">
                 <Link 
                   to="/forgot-password" 
@@ -109,12 +103,11 @@ const Login = ({ authContext }: LoginProps) => {
               </div>
             </form>
             
-            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-              <p className="text-sm text-blue-700 font-medium mb-2">Demo Accounts:</p>
-              <div className="space-y-1 text-xs text-blue-600">
-                <p><strong>Vendor:</strong> vendor@example.com / password</p>
-                <p><strong>Admin:</strong> admin@example.com / password</p>
-              </div>
+            <div className="text-center text-sm mt-4">
+              Don't have an account?{" "}
+              <Link to="/register" className="text-primary hover:underline">
+                Create account
+              </Link>
             </div>
           </CardContent>
         </Card>

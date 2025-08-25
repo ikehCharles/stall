@@ -3,25 +3,17 @@ import { Outlet, Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { AuthContextType } from "../../App";
+import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
 import { Menu, X, MapPin, FileText, User, Calendar, ShieldCheck } from "lucide-react";
-import { kycStorage } from '@/lib/localStorage';
 
-// Mock vendor ID - in real app this would come from auth context  
-const mockVendorId = 'vendor-1';
-
-interface VendorLayoutProps {
-  authContext: AuthContextType;
-}
-
-const VendorLayout = ({ authContext }: VendorLayoutProps) => {
+const VendorLayout = () => {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { userProfile, signOut } = useAuth();
 
-  // Check KYC status
-  const kycData = kycStorage.getByVendorId(mockVendorId);
-  const isKYCApproved = kycData?.status === 'APPROVED';
+  // Check KYC status from user profile
+  const isKYCApproved = userProfile?.kyc_status === 'APPROVED';
 
   const navigation = [
     { name: 'Dashboard', href: '/vendor', icon: Calendar },
@@ -37,7 +29,7 @@ const VendorLayout = ({ authContext }: VendorLayoutProps) => {
       name: 'Business Verification', 
       href: '/vendor/kyc', 
       icon: ShieldCheck,
-      badge: !isKYCApproved ? (kycData?.status === 'PENDING' ? 'Pending' : 'Required') : 'Approved'
+      badge: !isKYCApproved ? (userProfile?.kyc_status === 'PENDING' ? 'Pending' : 'Required') : 'Approved'
     },
     { name: 'Profile', href: '/vendor/profile', icon: User },
   ];
@@ -129,16 +121,16 @@ const VendorLayout = ({ authContext }: VendorLayoutProps) => {
             <div className="flex items-center w-full">
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-900">
-                  {authContext.user?.name}
+                  {userProfile?.full_name || 'Vendor'}
                 </p>
                 <p className="text-xs text-gray-500">
-                  {authContext.user?.email}
+                  {userProfile?.email}
                 </p>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={authContext.logout}
+                onClick={signOut}
                 className="ml-3 text-gray-500 hover:text-gray-700"
               >
                 Sign out

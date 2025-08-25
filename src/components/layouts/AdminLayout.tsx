@@ -2,17 +2,14 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { AuthContextType } from "../../App";
+import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
 import { Menu, X, BarChart3, Map, FileText, Settings, ShieldCheck } from "lucide-react";
 
-interface AdminLayoutProps {
-  authContext: AuthContextType;
-}
-
-const AdminLayout = ({ authContext }: AdminLayoutProps) => {
+const AdminLayout = () => {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { userProfile, signOut } = useAuth();
 
   const navigation = [
     { name: 'Dashboard', href: '/admin', icon: BarChart3 },
@@ -83,16 +80,16 @@ const AdminLayout = ({ authContext }: AdminLayoutProps) => {
             <div className="flex items-center w-full">
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-900">
-                  {authContext.user?.name}
+                  {userProfile?.full_name || 'Admin'}
                 </p>
                 <p className="text-xs text-gray-500">
-                  {authContext.user?.email}
+                  {userProfile?.email}
                 </p>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={authContext.logout}
+                onClick={signOut}
                 className="ml-3 text-gray-500 hover:text-gray-700"
               >
                 Sign out
