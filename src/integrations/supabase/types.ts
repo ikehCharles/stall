@@ -98,6 +98,44 @@ export type Database = {
         }
         Relationships: []
       }
+      kyc_audit_log: {
+        Row: {
+          created_at: string
+          from_status: Database["public"]["Enums"]["kyc_status"] | null
+          id: string
+          kyc_id: string
+          reason: string | null
+          reviewed_by: string | null
+          to_status: Database["public"]["Enums"]["kyc_status"]
+        }
+        Insert: {
+          created_at?: string
+          from_status?: Database["public"]["Enums"]["kyc_status"] | null
+          id?: string
+          kyc_id: string
+          reason?: string | null
+          reviewed_by?: string | null
+          to_status: Database["public"]["Enums"]["kyc_status"]
+        }
+        Update: {
+          created_at?: string
+          from_status?: Database["public"]["Enums"]["kyc_status"] | null
+          id?: string
+          kyc_id?: string
+          reason?: string | null
+          reviewed_by?: string | null
+          to_status?: Database["public"]["Enums"]["kyc_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kyc_audit_log_kyc_id_fkey"
+            columns: ["kyc_id"]
+            isOneToOne: false
+            referencedRelation: "kyc_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
