@@ -29,10 +29,10 @@ import { PageLoader } from "./components/ui/page-loader";
 const queryClient = new QueryClient();
 
 const AppContent = () => {
-  const { user, userProfile, loading } = useAuth();
+  const { user, userProfile, loading, profileLoading } = useAuth();
   const { isLoading } = useLoading();
 
-  if (loading) {
+  if (loading || (user && profileLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
         <div className="text-center">

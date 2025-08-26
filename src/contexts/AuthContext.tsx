@@ -18,6 +18,7 @@ interface AuthContextType {
   session: Session | null;
   userProfile: UserProfile | null;
   loading: boolean;
+  profileLoading: boolean;
   signUp: (email: string, password: string, fullName: string, phoneNumber: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -41,8 +42,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(false);
 
   const fetchUserProfile = async (userId: string) => {
+    setProfileLoading(true);
     try {
       // Get user profile
       const { data: profile, error: profileError } = await supabase
@@ -90,6 +93,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
     } catch (error) {
       console.error('Error fetching user profile:', error);
+    } finally {
+      setProfileLoading(false);
     }
   };
 
@@ -107,12 +112,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Fetch user profile data after a short delay to allow triggers to complete
+          // Fetch user profile data with minimal delay to allow triggers to complete
           setTimeout(() => {
             fetchUserProfile(session.user.id);
-          }, 500);
+          }, 100);
         } else {
           setUserProfile(null);
+          setProfileLoading(false);
         }
         
         setLoading(false);
@@ -243,6 +249,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     session,
     userProfile,
     loading,
+    profileLoading,
     signUp,
     signIn,
     signOut,
