@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { parsePhoneNumber, isValidPhoneNumber } from 'libphonenumber-js';
 
 export interface UserProfile {
   id: string;
@@ -135,6 +136,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signUp = async (email: string, password: string, fullName: string, phoneNumber: string) => {
     try {
+      // Ensure phone number is in E.164 format
+      let formattedPhone = phoneNumber;
+      if (phoneNumber && !phoneNumber.startsWith('+')) {
+        // If no country code, assume US (+1) for backwards compatibility
+        formattedPhone = `+1${phoneNumber.replace(/\D/g, '')}`;
+      }
+      
+      // Validate the formatted phone number
+      if (!isValidPhoneNumber(formattedPhone)) {
+        return { error: new Error('Invalid phone number format') };
+      }
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -142,7 +154,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           emailRedirectTo: `${window.location.origin}/`,
           data: {
             full_name: fullName,
-            phone_number: phoneNumber,
+            phone_number: formattedPhone,
           },
         },
       });
@@ -151,7 +163,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // If user is created but not confirmed, send OTP
       if (data.user && !data.user.email_confirmed_at) {
-        const otpResult = await sendOTP(email, fullName, phoneNumber);
+        const otpResult = await sendOTP(email, fullName, formattedPhone);
         if (otpResult.error) {
           console.error('Failed to send OTP:', otpResult.error);
           // Don't return error here as signup was successful

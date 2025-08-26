@@ -23,11 +23,14 @@ import Settings from "./pages/admin/Settings";
 import { KYCPage } from "./pages/vendor/KYCPage";
 import { KYCReview } from "./pages/admin/KYCReview";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { LoadingProvider, useLoading } from "./contexts/LoadingContext";
+import { PageLoader } from "./components/ui/page-loader";
 
 const queryClient = new QueryClient();
 
 const AppContent = () => {
   const { user, userProfile, loading } = useAuth();
+  const { isLoading } = useLoading();
 
   if (loading) {
     return (
@@ -49,6 +52,7 @@ const AppContent = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+      <PageLoader visible={isLoading} />
       <Routes>
         {/* Authentication Routes */}
         <Route path="/login" element={!user ? <Login /> : <Navigate to={userProfile?.role === 'admin' ? '/admin' : '/vendor'} />} />
@@ -98,9 +102,11 @@ const App = () => {
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <AuthProvider>
-            <AppContent />
-          </AuthProvider>
+          <LoadingProvider>
+            <AuthProvider>
+              <AppContent />
+            </AuthProvider>
+          </LoadingProvider>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>

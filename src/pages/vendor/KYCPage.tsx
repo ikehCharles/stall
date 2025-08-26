@@ -94,7 +94,10 @@ export const KYCPage = () => {
 
         {showForm && (
           <div className="flex justify-center">
-            <KYCForm onSubmit={handleKYCSubmit} />
+            <KYCForm 
+              onSubmit={handleKYCSubmit} 
+              existingKYC={kycData}
+            />
           </div>
         )}
 

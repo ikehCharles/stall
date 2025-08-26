@@ -1,8 +1,11 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { KYCBanner } from "@/components/kyc/KYCBanner";
+import { useAuth } from "@/contexts/AuthContext";
 import { mockBookings } from "../../data/mockData";
 
 const VendorDashboard = () => {
+  const { userProfile } = useAuth();
   // Calculate metrics from mock data
   const totalStalls = mockBookings.reduce((sum, booking) => sum + booking.stalls.length, 0);
   const totalPaid = mockBookings.reduce((sum, booking) => sum + booking.paidAmount, 0);
@@ -39,6 +42,9 @@ const VendorDashboard = () => {
 
   return (
     <div className="space-y-8">
+      {/* KYC Banner */}
+      <KYCBanner status={userProfile?.kyc_status || 'NOT_STARTED'} />
+      
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>

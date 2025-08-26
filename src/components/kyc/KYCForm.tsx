@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,12 +9,14 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { isValidPhoneNumber } from 'libphonenumber-js';
 
 interface KYCFormProps {
   onSubmit?: () => void;
+  existingKYC?: any;
 }
 
-export const KYCForm = ({ onSubmit }: KYCFormProps) => {
+export const KYCForm = ({ onSubmit, existingKYC }: KYCFormProps) => {
   const [formData, setFormData] = useState({
     businessName: "",
     contactEmail: "",
@@ -26,7 +28,29 @@ export const KYCForm = ({ onSubmit }: KYCFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
+
+  // Initialize form with existing KYC data or user profile defaults
+  useEffect(() => {
+    if (existingKYC) {
+      // Load existing KYC data (draft or pending)
+      setFormData({
+        businessName: existingKYC.business_name || "",
+        contactEmail: existingKYC.contact_email || "",
+        contactPhone: existingKYC.contact_phone || "",
+        businessType: existingKYC.business_type || "",
+        businessAddress: existingKYC.business_address || "",
+        taxId: existingKYC.tax_id || ""
+      });
+    } else if (userProfile) {
+      // Pre-populate with profile data for first-time users
+      setFormData(prev => ({
+        ...prev,
+        contactEmail: userProfile.email || "",
+        contactPhone: userProfile.phone_number || ""
+      }));
+    }
+  }, [existingKYC, userProfile]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -40,6 +64,25 @@ export const KYCForm = ({ onSubmit }: KYCFormProps) => {
     
     if (!user) {
       setError("You must be logged in to submit verification");
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.contactEmail)) {
+      setError("Please enter a valid email address");
+      return;
+    }
+
+    // Validate phone number if provided
+    if (formData.contactPhone && !isValidPhoneNumber(formData.contactPhone)) {
+      setError("Please enter a valid phone number");
+      return;
+    }
+
+    // Check if KYC is approved (view-only mode)
+    if (existingKYC?.status === 'APPROVED') {
+      setError("Your KYC is already approved and cannot be modified");
       return;
     }
 
@@ -113,10 +156,41 @@ export const KYCForm = ({ onSubmit }: KYCFormProps) => {
       <CardHeader>
         <CardTitle>Business Verification (KYC)</CardTitle>
         <CardDescription>
-          Please provide your business information to start booking stalls. All information will be verified before approval.
+          {existingKYC?.status === 'APPROVED' ? 
+            'Your business verification has been approved.' :
+            'Please provide your business information to start booking stalls. All information will be verified before approval.'
+          }
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {existingKYC?.status === 'APPROVED' ? (
+          <div className="space-y-4">
+            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+              <h3 className="font-medium text-green-800">Verification Complete</h3>
+              <p className="text-sm text-green-700 mt-1">
+                Your business information has been verified and approved.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <Label className="text-muted-foreground">Business Name</Label>
+                <p className="font-medium">{existingKYC.business_name}</p>
+              </div>
+              <div>
+                <Label className="text-muted-foreground">Contact Email</Label>
+                <p className="font-medium">{existingKYC.contact_email}</p>
+              </div>
+              <div>
+                <Label className="text-muted-foreground">Phone Number</Label>
+                <p className="font-medium">{existingKYC.contact_phone}</p>
+              </div>
+              <div>
+                <Label className="text-muted-foreground">Business Type</Label>
+                <p className="font-medium">{existingKYC.business_type || 'Not specified'}</p>
+              </div>
+            </div>
+          </div>
+        ) : (
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="businessName">Business Name *</Label>
@@ -156,7 +230,10 @@ export const KYCForm = ({ onSubmit }: KYCFormProps) => {
 
           <div className="space-y-2">
             <Label htmlFor="businessType">Business Type</Label>
-            <Select onValueChange={(value) => handleInputChange('businessType', value)}>
+            <Select 
+              value={formData.businessType}
+              onValueChange={(value) => handleInputChange('businessType', value)}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select business type" />
               </SelectTrigger>
@@ -201,6 +278,7 @@ export const KYCForm = ({ onSubmit }: KYCFormProps) => {
             {isSubmitting ? "Submitting..." : "Submit for Verification"}
           </Button>
         </form>
+        )}
       </CardContent>
     </Card>
   );

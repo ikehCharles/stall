@@ -1,12 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLoading } from "@/contexts/LoadingContext";
 import { toast } from "sonner";
 import { Link, useNavigate } from "react-router-dom";
+import { isValidPhoneNumber } from 'libphonenumber-js';
 
 const Register = () => {
   const [email, setEmail] = useState("");
@@ -19,11 +22,20 @@ const Register = () => {
   const [error, setError] = useState("");
 
   const { signUp, verifyOTP } = useAuth();
+  const { startLoading, stopLoading } = useLoading();
   const navigate = useNavigate();
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate phone number format
+    if (!isValidPhoneNumber(phoneNumber)) {
+      setError("Please enter a valid phone number");
+      return;
+    }
+    
     setIsLoading(true);
+    startLoading();
     setError("");
 
     const { error } = await signUp(email, password, fullName, phoneNumber);
@@ -37,11 +49,13 @@ const Register = () => {
     }
 
     setIsLoading(false);
+    stopLoading();
   };
 
   const handleVerifyOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    startLoading();
     setError("");
 
     const { error } = await verifyOTP(email, otpCode);
@@ -55,6 +69,7 @@ const Register = () => {
     }
 
     setIsLoading(false);
+    stopLoading();
   };
 
   if (needsVerification) {
@@ -135,12 +150,11 @@ const Register = () => {
 
             <div className="space-y-2">
               <Label htmlFor="phoneNumber">Phone Number</Label>
-              <Input
+              <PhoneInput
                 id="phoneNumber"
-                type="tel"
-                placeholder="Enter your phone number"
                 value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
+                onChange={(value) => setPhoneNumber(value)}
+                placeholder="Enter your phone number"
                 required
               />
             </div>
