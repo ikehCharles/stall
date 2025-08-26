@@ -91,7 +91,7 @@ export const KYCForm = ({ onSubmit, existingKYC }: KYCFormProps) => {
 
     try {
       // Check if KYC application already exists
-      const { data: existingKYC, error: fetchError } = await supabase
+      const { data: existingKYCData, error: fetchError } = await supabase
         .from('kyc_applications')
         .select('id')
         .eq('user_id', user.id)
@@ -102,7 +102,7 @@ export const KYCForm = ({ onSubmit, existingKYC }: KYCFormProps) => {
         throw new Error('Failed to check existing verification data');
       }
 
-      if (existingKYC) {
+      if (existingKYCData) {
         // Update existing record
         const { error: updateError } = await supabase
           .from('kyc_applications')
@@ -115,7 +115,7 @@ export const KYCForm = ({ onSubmit, existingKYC }: KYCFormProps) => {
             tax_id: formData.taxId || null,
             status: 'PENDING'
           })
-          .eq('id', existingKYC.id);
+          .eq('id', existingKYCData.id);
 
         if (updateError) {
           console.error('Error updating KYC data:', updateError);
