@@ -1,12 +1,24 @@
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, Clock, XCircle, AlertTriangle } from 'lucide-react';
-import { type KYCData } from '@/lib/localStorage';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { CheckCircle, Clock, XCircle, AlertTriangle } from "lucide-react";
+
+interface KYCApplication {
+  id: string;
+  business_name: string;
+  contact_email: string;
+  contact_phone: string;
+  business_type?: string;
+  business_address?: string;
+  tax_id?: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  review_notes?: string;
+  submitted_at: string;
+}
 
 interface KYCStatusProps {
-  kycData: KYCData | null;
+  kycData: KYCApplication | null;
   onStartKYC?: () => void;
 }
 
@@ -16,7 +28,7 @@ export const KYCStatus = ({ kycData, onStartKYC }: KYCStatusProps) => {
       <Alert>
         <AlertTriangle className="h-4 w-4" />
         <AlertDescription className="flex items-center justify-between">
-          <span>Business verification required to start booking stalls</span>
+          <span>Business verification is required to access all features.</span>
           <Button onClick={onStartKYC} size="sm">
             Start Verification
           </Button>
@@ -25,94 +37,93 @@ export const KYCStatus = ({ kycData, onStartKYC }: KYCStatusProps) => {
     );
   }
 
-  const getStatusConfig = (status: KYCData['status']) => {
+  const getStatusConfig = (status: KYCApplication['status']) => {
     switch (status) {
       case 'APPROVED':
         return {
           icon: CheckCircle,
           color: 'text-green-600',
-          bgColor: 'bg-green-50',
-          badgeVariant: 'default' as const,
           title: 'Verification Approved',
-          description: 'Your business has been verified. You can now book stalls.',
+          description: 'Your business has been successfully verified. You now have full access to all platform features.',
+          badgeVariant: 'default' as const
         };
       case 'PENDING':
         return {
           icon: Clock,
           color: 'text-yellow-600',
-          bgColor: 'bg-yellow-50',
-          badgeVariant: 'secondary' as const,
-          title: 'Under Review',
-          description: 'Your submission is being reviewed. This usually takes 1-2 business days.',
+          title: 'Verification Under Review',
+          description: 'Your business verification is currently being reviewed by our team. We will notify you once the review is complete.',
+          badgeVariant: 'secondary' as const
         };
       case 'REJECTED':
         return {
           icon: XCircle,
           color: 'text-red-600',
-          bgColor: 'bg-red-50',
-          badgeVariant: 'destructive' as const,
           title: 'Verification Rejected',
-          description: 'Please review the notes below and resubmit your information.',
+          description: 'Your business verification was rejected. Please review the feedback below and submit updated information.',
+          badgeVariant: 'destructive' as const
         };
     }
   };
 
   const config = getStatusConfig(kycData.status);
-  const StatusIcon = config.icon;
+  const Icon = config.icon;
 
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
-            <StatusIcon className={`h-5 w-5 ${config.color}`} />
+            <Icon className={`h-5 w-5 ${config.color}`} />
             Business Verification Status
           </CardTitle>
           <Badge variant={config.badgeVariant}>
             {kycData.status}
           </Badge>
         </div>
-        <CardDescription>
-          {config.description}
-        </CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="font-medium">Business Name:</span>
-              <div className="text-muted-foreground">{kycData.businessName}</div>
-            </div>
-            <div>
-              <span className="font-medium">Contact Email:</span>
-              <div className="text-muted-foreground">{kycData.contactDetails.email}</div>
-            </div>
-            <div>
-              <span className="font-medium">Phone:</span>
-              <div className="text-muted-foreground">{kycData.contactDetails.phone}</div>
-            </div>
-            <div>
-              <span className="font-medium">Submitted:</span>
-              <div className="text-muted-foreground">
-                {new Date(kycData.submittedAt).toLocaleDateString()}
-              </div>
-            </div>
-          </div>
-
-          {kycData.reviewNotes && (
-            <Alert>
-              <AlertDescription>
-                <strong>Review Notes:</strong> {kycData.reviewNotes}
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {kycData.status === 'REJECTED' && (
-            <Button onClick={onStartKYC} className="w-full">
-              Update Information
-            </Button>
-          )}
+      <CardContent className="space-y-4">
+        <div>
+          <h3 className="font-semibold text-lg">{config.title}</h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            {config.description}
+          </p>
         </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
+          <div>
+            <p className="text-sm font-medium">Business Name</p>
+            <p className="text-sm text-muted-foreground">{kycData.business_name}</p>
+          </div>
+          <div>
+            <p className="text-sm font-medium">Contact Email</p>
+            <p className="text-sm text-muted-foreground">{kycData.contact_email}</p>
+          </div>
+          <div>
+            <p className="text-sm font-medium">Phone Number</p>
+            <p className="text-sm text-muted-foreground">{kycData.contact_phone}</p>
+          </div>
+          <div>
+            <p className="text-sm font-medium">Submitted</p>
+            <p className="text-sm text-muted-foreground">
+              {new Date(kycData.submitted_at).toLocaleDateString()}
+            </p>
+          </div>
+        </div>
+
+        {kycData.review_notes && (
+          <Alert>
+            <AlertDescription>
+              <strong>Review Notes:</strong> {kycData.review_notes}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {kycData.status === 'REJECTED' && (
+          <Button onClick={onStartKYC} className="w-full">
+            Update Information
+          </Button>
+        )}
       </CardContent>
     </Card>
   );

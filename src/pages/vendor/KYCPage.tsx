@@ -1,35 +1,79 @@
-import { useState, useEffect } from 'react';
-import { KYCForm } from '@/components/kyc/KYCForm';
-import { KYCStatus } from '@/components/kyc/KYCStatus';
-import { kycStorage, type KYCData } from '@/lib/localStorage';
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { KYCStatus } from "@/components/kyc/KYCStatus";
+import { KYCForm } from "@/components/kyc/KYCForm";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
-// Mock user context - in real app this would come from auth
-const mockVendorId = 'vendor-1';
+interface KYCApplication {
+  id: string;
+  business_name: string;
+  contact_email: string;
+  contact_phone: string;
+  business_type?: string;
+  business_address?: string;
+  tax_id?: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  review_notes?: string;
+  submitted_at: string;
+}
 
 export const KYCPage = () => {
-  const [kycData, setKycData] = useState<KYCData | null>(null);
+  const [kycData, setKycData] = useState<KYCApplication | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [loading, setLoading] = useState(true);
+  
+  const { user, refreshProfile } = useAuth();
+
+  const loadKYCData = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('kyc_applications')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error loading KYC data:', error);
+        toast.error('Failed to load verification status');
+        return;
+      }
+
+      setKycData(data);
+      setShowForm(!data);
+    } catch (error) {
+      console.error('Error loading KYC data:', error);
+      toast.error('Failed to load verification status');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const loadKYCData = () => {
-      const data = kycStorage.getByVendorId(mockVendorId);
-      setKycData(data || null);
-      setShowForm(!data);
-    };
-
     loadKYCData();
-  }, []);
+  }, [user]);
 
-  const handleKYCSubmit = () => {
-    // Reload KYC data after submission
-    const updatedData = kycStorage.getByVendorId(mockVendorId);
-    setKycData(updatedData || null);
+  const handleKYCSubmit = async () => {
+    await loadKYCData();
+    await refreshProfile();
     setShowForm(false);
+    toast.success('Business verification submitted successfully!');
   };
 
   const handleStartKYC = () => {
     setShowForm(true);
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-6 max-w-4xl">
@@ -50,11 +94,7 @@ export const KYCPage = () => {
 
         {showForm && (
           <div className="flex justify-center">
-            <KYCForm 
-              vendorId={mockVendorId}
-              existingKYC={kycData || undefined}
-              onSubmit={handleKYCSubmit}
-            />
+            <KYCForm onSubmit={handleKYCSubmit} />
           </div>
         )}
 

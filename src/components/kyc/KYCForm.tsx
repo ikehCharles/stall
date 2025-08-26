@@ -1,113 +1,112 @@
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/hooks/use-toast';
-import { kycStorage, type KYCData } from '@/lib/localStorage';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 interface KYCFormProps {
-  vendorId: string;
-  existingKYC?: KYCData;
   onSubmit?: () => void;
 }
 
-export const KYCForm = ({ vendorId, existingKYC, onSubmit }: KYCFormProps) => {
-  const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+export const KYCForm = ({ onSubmit }: KYCFormProps) => {
   const [formData, setFormData] = useState({
-    businessName: existingKYC?.businessName || '',
-    email: existingKYC?.contactDetails.email || '',
-    phone: existingKYC?.contactDetails.phone || '',
-    address: existingKYC?.contactDetails.address || '',
-    idDocument: null as File | null,
+    businessName: "",
+    contactEmail: "",
+    contactPhone: "",
+    businessType: "",
+    businessAddress: "",
+    taxId: ""
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  const { user } = useAuth();
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        toast({
-          title: "File too large",
-          description: "Please upload a file smaller than 5MB",
-          variant: "destructive",
-        });
-        return;
-      }
-      setFormData(prev => ({ ...prev, idDocument: file }));
-    }
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.businessName || !formData.email || !formData.phone || !formData.address) {
-      toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      });
+    if (!user) {
+      setError("You must be logged in to submit verification");
       return;
     }
 
     setIsSubmitting(true);
+    setError("");
 
     try {
-      // Convert file to base64 for storage
-      let idDocumentBase64 = '';
-      if (formData.idDocument) {
-        const reader = new FileReader();
-        idDocumentBase64 = await new Promise((resolve) => {
-          reader.onload = () => resolve(reader.result as string);
-          reader.readAsDataURL(formData.idDocument!);
-        });
+      // Check if KYC application already exists
+      const { data: existingKYC, error: fetchError } = await supabase
+        .from('kyc_applications')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        console.error('Error checking existing KYC:', fetchError);
+        throw new Error('Failed to check existing verification data');
       }
 
-      const kycData = {
-        vendorId,
-        businessName: formData.businessName,
-        contactDetails: {
-          email: formData.email,
-          phone: formData.phone,
-          address: formData.address,
-        },
-        idDocumentUpload: idDocumentBase64,
-        status: 'PENDING' as const,
-        submittedAt: new Date().toISOString(),
-      };
-
       if (existingKYC) {
-        kycStorage.update(existingKYC.id, kycData);
-        toast({
-          title: "KYC Updated",
-          description: "Your business information has been updated and is under review",
-        });
+        // Update existing record
+        const { error: updateError } = await supabase
+          .from('kyc_applications')
+          .update({
+            business_name: formData.businessName,
+            contact_email: formData.contactEmail,
+            contact_phone: formData.contactPhone,
+            business_type: formData.businessType || null,
+            business_address: formData.businessAddress || null,
+            tax_id: formData.taxId || null,
+            status: 'PENDING'
+          })
+          .eq('id', existingKYC.id);
+
+        if (updateError) {
+          console.error('Error updating KYC data:', updateError);
+          throw new Error('Failed to update verification data');
+        }
       } else {
-        kycStorage.add(kycData);
-        toast({
-          title: "KYC Submitted",
-          description: "Your business information has been submitted for review",
-        });
+        // Insert new record
+        const { error: insertError } = await supabase
+          .from('kyc_applications')
+          .insert({
+            user_id: user.id,
+            business_name: formData.businessName,
+            contact_email: formData.contactEmail,
+            contact_phone: formData.contactPhone,
+            business_type: formData.businessType || null,
+            business_address: formData.businessAddress || null,
+            tax_id: formData.taxId || null,
+            status: 'PENDING'
+          });
+
+        if (insertError) {
+          console.error('Error inserting KYC data:', insertError);
+          throw new Error('Failed to submit verification data');
+        }
       }
 
       onSubmit?.();
-    } catch (error) {
-      toast({
-        title: "Submission Failed",
-        description: "There was an error submitting your information. Please try again.",
-        variant: "destructive",
-      });
+    } catch (error: any) {
+      setError(error.message || "Failed to submit verification");
+      toast.error(error.message || "Failed to submit verification");
     } finally {
       setIsSubmitting(false);
     }
   };
-
-  const isReadOnly = existingKYC?.status === 'APPROVED' || existingKYC?.status === 'PENDING';
 
   return (
     <Card className="w-full max-w-2xl">
@@ -125,85 +124,82 @@ export const KYCForm = ({ vendorId, existingKYC, onSubmit }: KYCFormProps) => {
               id="businessName"
               value={formData.businessName}
               onChange={(e) => handleInputChange('businessName', e.target.value)}
-              disabled={isReadOnly}
               placeholder="Enter your business name"
+              required
             />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Business Email *</Label>
+              <Label htmlFor="contactEmail">Contact Email *</Label>
               <Input
-                id="email"
+                id="contactEmail"
                 type="email"
-                value={formData.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
-                disabled={isReadOnly}
+                value={formData.contactEmail}
+                onChange={(e) => handleInputChange('contactEmail', e.target.value)}
                 placeholder="business@example.com"
+                required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number *</Label>
+              <Label htmlFor="contactPhone">Phone Number *</Label>
               <Input
-                id="phone"
+                id="contactPhone"
                 type="tel"
-                value={formData.phone}
-                onChange={(e) => handleInputChange('phone', e.target.value)}
-                disabled={isReadOnly}
+                value={formData.contactPhone}
+                onChange={(e) => handleInputChange('contactPhone', e.target.value)}
                 placeholder="+1 (555) 123-4567"
+                required
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="address">Business Address *</Label>
+            <Label htmlFor="businessType">Business Type</Label>
+            <Select onValueChange={(value) => handleInputChange('businessType', value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select business type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="retail">Retail</SelectItem>
+                <SelectItem value="food_beverage">Food & Beverage</SelectItem>
+                <SelectItem value="services">Services</SelectItem>
+                <SelectItem value="crafts">Arts & Crafts</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="businessAddress">Business Address</Label>
             <Textarea
-              id="address"
-              value={formData.address}
-              onChange={(e) => handleInputChange('address', e.target.value)}
-              disabled={isReadOnly}
+              id="businessAddress"
+              value={formData.businessAddress}
+              onChange={(e) => handleInputChange('businessAddress', e.target.value)}
               placeholder="Enter your complete business address"
               rows={3}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="idDocument">ID Document Upload</Label>
+            <Label htmlFor="taxId">Tax ID / Registration Number</Label>
             <Input
-              id="idDocument"
-              type="file"
-              accept="image/*,.pdf"
-              onChange={handleFileChange}
-              disabled={isReadOnly}
+              id="taxId"
+              value={formData.taxId}
+              onChange={(e) => handleInputChange('taxId', e.target.value)}
+              placeholder="Enter your tax ID or business registration number"
             />
-            <p className="text-sm text-muted-foreground">
-              Upload a business license, tax ID, or government-issued business registration (Max 5MB)
-            </p>
           </div>
 
-          {existingKYC && (
-            <div className="p-4 rounded-lg bg-muted">
-              <h4 className="font-medium mb-2">Submission Status</h4>
-              <div className="flex items-center gap-2">
-                <div className={`w-3 h-3 rounded-full ${
-                  existingKYC.status === 'APPROVED' ? 'bg-green-500' :
-                  existingKYC.status === 'PENDING' ? 'bg-yellow-500' : 'bg-red-500'
-                }`} />
-                <span className="capitalize font-medium">{existingKYC.status.toLowerCase()}</span>
-              </div>
-              {existingKYC.reviewNotes && (
-                <p className="text-sm text-muted-foreground mt-2">
-                  <strong>Review Notes:</strong> {existingKYC.reviewNotes}
-                </p>
-              )}
-            </div>
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           )}
 
-          {!isReadOnly && (
-            <Button type="submit" disabled={isSubmitting} className="w-full">
-              {isSubmitting ? 'Submitting...' : existingKYC ? 'Update Information' : 'Submit for Review'}
-            </Button>
-          )}
+          <Button type="submit" disabled={isSubmitting} className="w-full">
+            {isSubmitting ? "Submitting..." : "Submit for Verification"}
+          </Button>
         </form>
       </CardContent>
     </Card>
