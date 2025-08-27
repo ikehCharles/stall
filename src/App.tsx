@@ -65,7 +65,7 @@ const AppContent = () => {
         <Route path="/vendor" element={
           user && userProfile?.role === 'vendor' ? 
             <VendorLayout /> : 
-            <Navigate to="/login" />
+            <Navigate to="/login?next=/vendor" />
         }>
           <Route index element={needsKYC ? <Navigate to="/vendor/kyc" /> : <VendorDashboard />} />
           <Route path="bookings" element={needsKYC ? <Navigate to="/vendor/kyc" /> : <MyBookings />} />
@@ -80,7 +80,7 @@ const AppContent = () => {
         <Route path="/admin" element={
           user && userProfile?.role === 'admin' ? 
             <AdminLayout /> : 
-            <Navigate to="/login" />
+            <Navigate to="/login?next=/admin" />
         }>
           <Route index element={<AdminDashboard />} />
           <Route path="stalls" element={<StallConfiguration />} />

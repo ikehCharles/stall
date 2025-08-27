@@ -21,6 +21,7 @@ const Register = () => {
   const [needsVerification, setNeedsVerification] = useState(false);
   const [otpCode, setOtpCode] = useState("");
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<{email?: string; phone?: string}>({});
 
   const { signUp, verifyOTP } = useAuth();
   const { startLoading, stopLoading } = useLoading();
@@ -38,12 +39,26 @@ const Register = () => {
     setIsLoading(true);
     startLoading();
     setError("");
+    setFieldErrors({});
 
-    const { error } = await signUp(email, password, fullName, phoneNumber);
+    // Normalize inputs
+    const normalizedEmail = email.toLowerCase().trim();
+    const normalizedPhone = phoneNumber.trim();
+
+    const { error } = await signUp(normalizedEmail, password, fullName, normalizedPhone);
 
     if (error) {
-      setError(error.message);
-      toast.error("Registration failed: " + error.message);
+      // Handle unique constraint violations
+      if (error.message.includes('profiles_email_unique') || error.message.includes('duplicate') && error.message.includes('email')) {
+        setFieldErrors({ email: "This email is already registered." });
+        setError("");
+      } else if (error.message.includes('profiles_phone_number_unique') || error.message.includes('duplicate') && error.message.includes('phone')) {
+        setFieldErrors({ phone: "This phone number is already registered." });
+        setError("");
+      } else {
+        setError(error.message);
+        toast.error("Registration failed: " + error.message);
+      }
     } else {
       setNeedsVerification(true);
       const verificationMode = import.meta.env.AUTH_VERIFICATION_MODE || 'magic-link';
@@ -158,18 +173,37 @@ const Register = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                className={fieldErrors.email ? "border-destructive" : ""}
               />
+              {fieldErrors.email && (
+                <p className="text-sm text-destructive">
+                  {fieldErrors.email}{" "}
+                  <Link to="/login" className="underline font-medium">
+                    Log in instead
+                  </Link>
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="phoneNumber">Phone Number</Label>
-              <PhoneInput
-                id="phoneNumber"
-                value={phoneNumber}
-                onChange={(value) => setPhoneNumber(value)}
-                placeholder="Enter your phone number"
-                required
-              />
+              <div className={fieldErrors.phone ? "border border-destructive rounded-md" : ""}>
+                <PhoneInput
+                  id="phoneNumber"
+                  value={phoneNumber}
+                  onChange={(value) => setPhoneNumber(value)}
+                  placeholder="Enter your phone number"
+                  required
+                />
+              </div>
+              {fieldErrors.phone && (
+                <p className="text-sm text-destructive">
+                  {fieldErrors.phone}{" "}
+                  <Link to="/login" className="underline font-medium">
+                    Log in instead
+                  </Link>
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">

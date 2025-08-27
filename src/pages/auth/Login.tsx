@@ -1,12 +1,12 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
 const Login = () => {
@@ -15,7 +15,10 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const { signIn } = useAuth();
+  const { signIn, userProfile } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const nextUrl = searchParams.get('next');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,6 +36,30 @@ const Login = () => {
 
     setIsLoading(false);
   };
+
+  // Handle redirect after successful login
+  useEffect(() => {
+    if (userProfile) {
+      // Prevent login loop - never redirect back to login
+      if (nextUrl && nextUrl !== '/login' && !nextUrl.includes('/login')) {
+        // Check if user has permission for the next URL
+        if (nextUrl.startsWith('/admin') && userProfile.role !== 'admin') {
+          // Non-admin trying to access admin route - redirect to vendor dashboard
+          navigate('/vendor');
+          toast.error("Access denied. Redirected to vendor dashboard.");
+        } else if (nextUrl.startsWith('/vendor') && userProfile.role !== 'vendor') {
+          // Non-vendor trying to access vendor route - redirect to admin dashboard  
+          navigate('/admin');
+        } else {
+          // Valid destination
+          navigate(nextUrl);
+        }
+      } else {
+        // Default redirect based on role
+        navigate(userProfile.role === 'admin' ? '/admin' : '/vendor');
+      }
+    }
+  }, [userProfile, navigate, nextUrl]);
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">

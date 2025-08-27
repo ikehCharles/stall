@@ -55,6 +55,7 @@ export const KYCReview = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [stats, setStats] = useState<KYCStats>({ pending: 0, approved: 0, rejected: 0, total: 0 });
   const [error, setError] = useState<string | null>(null);
+  const [auditHistoryKey, setAuditHistoryKey] = useState(0);
   
   // Pagination and filtering
   const [currentPage, setCurrentPage] = useState(1);
@@ -242,6 +243,9 @@ export const KYCReview = () => {
       setIsReviewDialogOpen(false);
       setSelectedKYC(null);
       setReviewNotes('');
+      
+      // Refresh audit history
+      setAuditHistoryKey(prev => prev + 1);
     } catch (err) {
       console.error('Error approving KYC:', err);
       toast({
@@ -295,6 +299,9 @@ export const KYCReview = () => {
       setIsReviewDialogOpen(false);
       setSelectedKYC(null);
       setReviewNotes('');
+      
+      // Refresh audit history
+      setAuditHistoryKey(prev => prev + 1);
     } catch (err) {
       console.error('Error rejecting KYC:', err);
       toast({
@@ -572,7 +579,7 @@ export const KYCReview = () => {
               </div>
 
               <div className="lg:col-span-1">
-                <KYCAuditHistory kycId={selectedKYC.id} />
+                <KYCAuditHistory key={auditHistoryKey} kycId={selectedKYC.id} />
               </div>
             </div>
           )}
