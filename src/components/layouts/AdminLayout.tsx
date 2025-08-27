@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
-import { Menu, X, BarChart3, Map, FileText, Settings, ShieldCheck } from "lucide-react";
+import { Menu, X, BarChart3, Map, FileText, Settings, ShieldCheck, Square } from "lucide-react";
 
 const AdminLayout = () => {
   const location = useLocation();
@@ -13,7 +13,8 @@ const AdminLayout = () => {
 
   const navigation = [
     { name: 'Dashboard', href: '/admin', icon: BarChart3 },
-    { name: 'Stall Configuration', href: '/admin/stalls', icon: Map },
+    { name: 'Markets', href: '/admin/markets', icon: Map },
+    { name: 'Templates', href: '/admin/templates', icon: Square },
     { name: 'All Bookings', href: '/admin/bookings', icon: FileText },
     { name: 'KYC Review', href: '/admin/kyc', icon: ShieldCheck },
     { name: 'Settings', href: '/admin/settings', icon: Settings },

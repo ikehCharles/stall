@@ -144,6 +144,80 @@ export type Database = {
           },
         ]
       }
+      market_layouts: {
+        Row: {
+          canvas_height: number
+          canvas_width: number
+          grid_size: number
+          id: string
+          market_id: string
+          unit: string
+        }
+        Insert: {
+          canvas_height?: number
+          canvas_width?: number
+          grid_size?: number
+          id?: string
+          market_id: string
+          unit?: string
+        }
+        Update: {
+          canvas_height?: number
+          canvas_width?: number
+          grid_size?: number
+          id?: string
+          market_id?: string
+          unit?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_market_layouts_market"
+            columns: ["market_id"]
+            isOneToOne: true
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      markets: {
+        Row: {
+          banner_url: string | null
+          created_at: string
+          created_by: string
+          end_at: string
+          id: string
+          name: string
+          start_at: string
+          status: Database["public"]["Enums"]["market_status"]
+          theme: string
+          updated_at: string
+        }
+        Insert: {
+          banner_url?: string | null
+          created_at?: string
+          created_by: string
+          end_at: string
+          id?: string
+          name: string
+          start_at: string
+          status?: Database["public"]["Enums"]["market_status"]
+          theme?: string
+          updated_at?: string
+        }
+        Update: {
+          banner_url?: string | null
+          created_at?: string
+          created_by?: string
+          end_at?: string
+          id?: string
+          name?: string
+          start_at?: string
+          status?: Database["public"]["Enums"]["market_status"]
+          theme?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           address: string | null
@@ -177,6 +251,108 @@ export type Database = {
           id?: string
           phone_number?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      stall_instances: {
+        Row: {
+          height: number
+          id: string
+          label: string
+          market_id: string
+          price_override: number | null
+          rotation: number
+          status: Database["public"]["Enums"]["stall_status"]
+          template_id: string
+          width: number
+          x: number
+          y: number
+        }
+        Insert: {
+          height: number
+          id?: string
+          label: string
+          market_id: string
+          price_override?: number | null
+          rotation?: number
+          status?: Database["public"]["Enums"]["stall_status"]
+          template_id: string
+          width: number
+          x: number
+          y: number
+        }
+        Update: {
+          height?: number
+          id?: string
+          label?: string
+          market_id?: string
+          price_override?: number | null
+          rotation?: number
+          status?: Database["public"]["Enums"]["stall_status"]
+          template_id?: string
+          width?: number
+          x?: number
+          y?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_stall_instances_market"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_stall_instances_template"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "stall_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stall_templates: {
+        Row: {
+          capacity: number | null
+          created_at: string
+          fill_color: string
+          height: number
+          id: string
+          name: string
+          price: number
+          radius: number | null
+          shape: Database["public"]["Enums"]["stall_shape"]
+          stroke_color: string
+          tags: string[] | null
+          width: number
+        }
+        Insert: {
+          capacity?: number | null
+          created_at?: string
+          fill_color?: string
+          height?: number
+          id?: string
+          name: string
+          price?: number
+          radius?: number | null
+          shape?: Database["public"]["Enums"]["stall_shape"]
+          stroke_color?: string
+          tags?: string[] | null
+          width?: number
+        }
+        Update: {
+          capacity?: number | null
+          created_at?: string
+          fill_color?: string
+          height?: number
+          id?: string
+          name?: string
+          price?: number
+          radius?: number | null
+          shape?: Database["public"]["Enums"]["stall_shape"]
+          stroke_color?: string
+          tags?: string[] | null
+          width?: number
         }
         Relationships: []
       }
@@ -214,6 +390,9 @@ export type Database = {
     Enums: {
       app_role: "vendor" | "admin"
       kyc_status: "PENDING" | "APPROVED" | "REJECTED"
+      market_status: "DRAFT" | "PUBLISHED" | "ARCHIVED"
+      stall_shape: "RECT" | "CIRCLE" | "POLY"
+      stall_status: "AVAILABLE" | "BOOKED" | "BLOCKED"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -343,6 +522,9 @@ export const Constants = {
     Enums: {
       app_role: ["vendor", "admin"],
       kyc_status: ["PENDING", "APPROVED", "REJECTED"],
+      market_status: ["DRAFT", "PUBLISHED", "ARCHIVED"],
+      stall_shape: ["RECT", "CIRCLE", "POLY"],
+      stall_status: ["AVAILABLE", "BOOKED", "BLOCKED"],
     },
   },
 } as const

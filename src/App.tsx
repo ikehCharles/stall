@@ -18,9 +18,11 @@ import BookingDetails from "./pages/vendor/BookingDetails";
 import InvoiceView from "./pages/vendor/InvoiceView";
 import VendorProfile from "./pages/vendor/VendorProfile";
 import AdminDashboard from "./pages/admin/AdminDashboard";
-import StallConfiguration from "./pages/admin/StallConfiguration";
 import AdminBookings from "./pages/admin/AdminBookings";
 import Settings from "./pages/admin/Settings";
+import Markets from "./pages/admin/Markets";
+import MarketCanvas from "./pages/admin/MarketCanvas";
+import StallTemplates from "./pages/admin/StallTemplates";
 import { KYCPage } from "./pages/vendor/KYCPage";
 import { KYCReview } from "./pages/admin/KYCReview";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
@@ -83,7 +85,9 @@ const AppContent = () => {
             <Navigate to="/login?next=/admin" />
         }>
           <Route index element={<AdminDashboard />} />
-          <Route path="stalls" element={<StallConfiguration />} />
+          <Route path="markets" element={<Markets />} />
+          <Route path="markets/:marketId/canvas" element={<MarketCanvas />} />
+          <Route path="templates" element={<StallTemplates />} />
           <Route path="bookings" element={<AdminBookings />} />
           <Route path="kyc" element={<KYCReview />} />
           <Route path="settings" element={<Settings />} />
