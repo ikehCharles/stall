@@ -8,6 +8,7 @@ import { useEffect } from "react";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import ForgotPassword from "./pages/auth/ForgotPassword";
+import AuthCallback from "./pages/auth/AuthCallback";
 import VendorLayout from "./components/layouts/VendorLayout";
 import AdminLayout from "./components/layouts/AdminLayout";
 import VendorDashboard from "./pages/vendor/VendorDashboard";
@@ -58,6 +59,7 @@ const AppContent = () => {
         <Route path="/login" element={!user ? <Login /> : <Navigate to={userProfile?.role === 'admin' ? '/admin' : '/vendor'} />} />
         <Route path="/register" element={!user ? <Register /> : <Navigate to={userProfile?.role === 'admin' ? '/admin' : '/vendor'} />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
         
         {/* Vendor Routes */}
         <Route path="/vendor" element={

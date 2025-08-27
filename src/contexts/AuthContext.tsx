@@ -142,6 +142,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signUp = async (email: string, password: string, fullName: string, phoneNumber: string) => {
     try {
+      // Check verification mode from environment
+      const verificationMode = import.meta.env.AUTH_VERIFICATION_MODE || 'magic-link';
+      
       // Ensure phone number is in E.164 format
       let formattedPhone = phoneNumber;
       if (phoneNumber && !phoneNumber.startsWith('+')) {
@@ -153,11 +156,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!isValidPhoneNumber(formattedPhone)) {
         return { error: new Error('Invalid phone number format') };
       }
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/`,
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
           data: {
             full_name: fullName,
             phone_number: formattedPhone,
@@ -167,8 +171,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) return { error };
 
-      // If user is created but not confirmed, send OTP
-      if (data.user && !data.user.email_confirmed_at) {
+      // For backward compatibility with OTP mode
+      if (verificationMode === 'otp' && data.user && !data.user.email_confirmed_at) {
         const otpResult = await sendOTP(email, fullName, formattedPhone);
         if (otpResult.error) {
           console.error('Failed to send OTP:', otpResult.error);

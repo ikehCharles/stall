@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLoading } from "@/contexts/LoadingContext";
+import { EmailVerificationPending } from "@/components/auth/EmailVerificationPending";
 import { toast } from "sonner";
 import { Link, useNavigate } from "react-router-dom";
 import { isValidPhoneNumber } from 'libphonenumber-js';
@@ -45,7 +46,12 @@ const Register = () => {
       toast.error("Registration failed: " + error.message);
     } else {
       setNeedsVerification(true);
-      toast.success("Registration successful! Please check your email for verification code.");
+      const verificationMode = import.meta.env.AUTH_VERIFICATION_MODE || 'magic-link';
+      if (verificationMode === 'magic-link') {
+        toast.success("Registration successful! Please check your email for the verification link.");
+      } else {
+        toast.success("Registration successful! Please check your email for verification code.");
+      }
     }
 
     setIsLoading(false);
@@ -73,6 +79,13 @@ const Register = () => {
   };
 
   if (needsVerification) {
+    const verificationMode = import.meta.env.AUTH_VERIFICATION_MODE || 'magic-link';
+    
+    if (verificationMode === 'magic-link') {
+      return <EmailVerificationPending email={email} />;
+    }
+
+    // Fallback to OTP verification for backward compatibility
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
         <Card className="w-full max-w-md">
