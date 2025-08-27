@@ -9,6 +9,9 @@ export interface UserProfile {
   email: string;
   full_name: string | null;
   phone_number: string | null;
+  company_name: string | null;
+  address: string | null;
+  business_logo_url: string | null;
   role: 'vendor' | 'admin' | null;
   kyc_status: 'PENDING' | 'APPROVED' | 'REJECTED' | null;
 }
@@ -88,6 +91,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: profile?.email || '',
         full_name: profile?.full_name || null,
         phone_number: profile?.phone_number || null,
+        company_name: profile?.company_name || null,
+        address: profile?.address || null,
+        business_logo_url: profile?.business_logo_url || null,
         role: roleData?.role || null,
         kyc_status: kycData?.status || null,
       });

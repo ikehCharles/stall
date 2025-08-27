@@ -146,6 +146,9 @@ export type Database = {
       }
       profiles: {
         Row: {
+          address: string | null
+          business_logo_url: string | null
+          company_name: string | null
           created_at: string
           email: string
           full_name: string | null
@@ -154,6 +157,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          address?: string | null
+          business_logo_url?: string | null
+          company_name?: string | null
           created_at?: string
           email: string
           full_name?: string | null
@@ -162,6 +168,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          address?: string | null
+          business_logo_url?: string | null
+          company_name?: string | null
           created_at?: string
           email?: string
           full_name?: string | null
