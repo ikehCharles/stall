@@ -14,6 +14,89 @@ export type Database = {
   }
   public: {
     Tables: {
+      booking_stalls: {
+        Row: {
+          booking_id: string
+          created_at: string
+          id: string
+          price_at_booking: number
+          stall_instance_id: string
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          id?: string
+          price_at_booking: number
+          stall_instance_id: string
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          id?: string
+          price_at_booking?: number
+          stall_instance_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_stalls_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_stalls_stall_instance_id_fkey"
+            columns: ["stall_instance_id"]
+            isOneToOne: false
+            referencedRelation: "stall_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bookings: {
+        Row: {
+          created_at: string
+          id: string
+          invoice_number: string
+          market_id: string
+          paid_amount: number
+          status: Database["public"]["Enums"]["booking_status"]
+          total_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invoice_number: string
+          market_id: string
+          paid_amount?: number
+          status?: Database["public"]["Enums"]["booking_status"]
+          total_amount?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invoice_number?: string
+          market_id?: string
+          paid_amount?: number
+          status?: Database["public"]["Enums"]["booking_status"]
+          total_amount?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_verifications: {
         Row: {
           created_at: string
@@ -382,13 +465,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_invoice_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_user_role: {
         Args: { user_uuid: string }
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      is_stall_available: {
+        Args: { market_id: string; stall_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "vendor" | "admin"
+      booking_status: "pending" | "paid" | "partial" | "cancelled"
       kyc_status: "PENDING" | "APPROVED" | "REJECTED"
       market_status: "DRAFT" | "PUBLISHED" | "ARCHIVED"
       stall_shape: "RECT" | "CIRCLE" | "POLY"
@@ -521,6 +613,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["vendor", "admin"],
+      booking_status: ["pending", "paid", "partial", "cancelled"],
       kyc_status: ["PENDING", "APPROVED", "REJECTED"],
       market_status: ["DRAFT", "PUBLISHED", "ARCHIVED"],
       stall_shape: ["RECT", "CIRCLE", "POLY"],
