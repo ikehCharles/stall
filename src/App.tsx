@@ -13,6 +13,7 @@ import VendorLayout from "./components/layouts/VendorLayout";
 import AdminLayout from "./components/layouts/AdminLayout";
 import VendorDashboard from "./pages/vendor/VendorDashboard";
 import StallBooking from "./pages/vendor/StallBooking";
+import MarketSelection from "./pages/vendor/MarketSelection";
 import MyBookings from "./pages/vendor/MyBookings";
 import BookingDetails from "./pages/vendor/BookingDetails";
 import InvoiceView from "./pages/vendor/InvoiceView";
@@ -72,7 +73,8 @@ const AppContent = () => {
           <Route index element={needsKYC ? <Navigate to="/vendor/kyc" /> : <VendorDashboard />} />
           <Route path="bookings" element={needsKYC ? <Navigate to="/vendor/kyc" /> : <MyBookings />} />
           <Route path="bookings/:id" element={needsKYC ? <Navigate to="/vendor/kyc" /> : <BookingDetails />} />
-          <Route path="booking" element={needsKYC ? <Navigate to="/vendor/kyc" /> : <StallBooking />} />
+          <Route path="markets" element={needsKYC ? <Navigate to="/vendor/kyc" /> : <MarketSelection />} />
+          <Route path="book-stall/:marketId" element={needsKYC ? <Navigate to="/vendor/kyc" /> : <StallBooking />} />
           <Route path="kyc" element={<KYCPage />} />
           <Route path="profile" element={<VendorProfile />} />
           <Route path="invoice/:id" element={needsKYC ? <Navigate to="/vendor/kyc" /> : <InvoiceView />} />

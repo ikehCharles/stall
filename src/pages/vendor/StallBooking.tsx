@@ -1,23 +1,60 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { mockStalls, mockEvents, Stall } from "../../data/mockData";
+import { useMarkets } from "@/hooks/useMarkets";
+import { useStallInstances } from "@/hooks/useStallInstances";
+import { useCreateBooking, CreateBookingData } from "@/hooks/useBookings";
+import type { Database } from "@/integrations/supabase/types";
+
+type StallInstance = Database['public']['Tables']['stall_instances']['Row'] & {
+  stall_templates?: {
+    name: string;
+    shape: Database['public']['Enums']['stall_shape'];
+    fill_color: string;
+    stroke_color: string;
+    price: number;
+    capacity: number;
+  };
+  isBooked?: boolean;
+};
 
 const StallBooking = () => {
-  const [selectedStalls, setSelectedStalls] = useState<Stall[]>([]);
-  const [selectedStall, setSelectedStall] = useState<Stall | null>(null);
+  const { marketId } = useParams<{ marketId: string }>();
+  const [selectedStalls, setSelectedStalls] = useState<StallInstance[]>([]);
+  const [selectedStall, setSelectedStall] = useState<StallInstance | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [bookedStallIds, setBookedStallIds] = useState<Set<string>>(new Set());
 
-  const currentEvent = mockEvents[1]; // Winter Holiday Market
-  const availableStalls = mockStalls.filter(stall => !stall.isBooked);
+  const { data: markets } = useMarkets();
+  const { data: stallInstances, isLoading: stallsLoading } = useStallInstances(marketId || '');
+  const createBooking = useCreateBooking();
 
-  const handleStallClick = (stall: Stall) => {
-    if (stall.isBooked) {
+  const currentMarket = markets?.find(m => m.id === marketId);
+  
+  // Create enhanced stall instances with booking status
+  const stalls: StallInstance[] = stallInstances?.map(stall => ({
+    ...stall,
+    isBooked: bookedStallIds.has(stall.id)
+  })) || [];
+
+  // Simulate fetching booked stalls (in real app, this would come from bookings data)
+  useEffect(() => {
+    // This is a simplified version - in reality you'd query existing bookings
+    // For now, we'll use the stall status from the database
+    const bookedIds = new Set(
+      stallInstances?.filter(stall => stall.status === 'BOOKED').map(stall => stall.id) || []
+    );
+    setBookedStallIds(bookedIds);
+  }, [stallInstances]);
+
+  const handleStallClick = (stall: StallInstance) => {
+    if (stall.isBooked || stall.status === 'BOOKED') {
       toast({
         title: "Stall Unavailable",
         description: "This stall is already booked",
@@ -44,22 +81,91 @@ const StallBooking = () => {
     setSelectedStalls(selectedStalls.filter(s => s.id !== stallId));
   };
 
-  const totalCost = selectedStalls.reduce((sum, stall) => sum + stall.price, 0);
+  const totalCost = selectedStalls.reduce((sum, stall) => sum + (stall.price_override || stall.stall_templates?.price || 0), 0);
 
-  const handleCheckout = () => {
-    toast({
-      title: "Booking Confirmed!",
-      description: `Successfully booked ${selectedStalls.length} stall(s) for $${totalCost}`
-    });
-    setSelectedStalls([]);
-    setIsCheckoutOpen(false);
+  const handleCheckout = async () => {
+    if (!marketId || selectedStalls.length === 0) return;
+    
+    try {
+      const bookingData: CreateBookingData = {
+        marketId,
+        stallIds: selectedStalls.map(stall => stall.id),
+        totalAmount: totalCost
+      };
+
+      await createBooking.mutateAsync(bookingData);
+      
+      toast({
+        title: "Booking Confirmed!",
+        description: `Successfully booked ${selectedStalls.length} stall(s) for $${totalCost}`
+      });
+      
+      setSelectedStalls([]);
+      setIsCheckoutOpen(false);
+    } catch (error) {
+      toast({
+        title: "Booking Failed",
+        description: "There was an error processing your booking. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
+
+  if (stallsLoading) {
+    return (
+      <div className="space-y-8">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/3 mb-2"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2">
+            <Card>
+              <CardHeader>
+                <div className="h-6 bg-gray-200 rounded w-1/2"></div>
+              </CardHeader>
+              <CardContent>
+                <div className="h-96 bg-gray-200 rounded"></div>
+              </CardContent>
+            </Card>
+          </div>
+          <div>
+            <Card>
+              <CardHeader>
+                <div className="h-6 bg-gray-200 rounded w-2/3"></div>
+              </CardHeader>
+              <CardContent>
+                <div className="h-32 bg-gray-200 rounded"></div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!currentMarket) {
+    return (
+      <div className="space-y-8">
+        <div>
+          <Button asChild variant="ghost" className="mb-4">
+            <Link to="/vendor/markets">← Back to Markets</Link>
+          </Button>
+          <h1 className="text-3xl font-bold">Market Not Found</h1>
+          <p className="text-muted-foreground mt-1">The selected market could not be found.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Book Stalls</h1>
-        <p className="text-gray-600 mt-1">Select your stalls for {currentEvent.name}</p>
+        <Button asChild variant="ghost" className="mb-4">
+          <Link to="/vendor/markets">← Back to Markets</Link>
+        </Button>
+        <h1 className="text-3xl font-bold">Book Stalls</h1>
+        <p className="text-muted-foreground mt-1">Select your stalls for {currentMarket.name}</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -69,7 +175,7 @@ const StallBooking = () => {
             <CardHeader>
               <CardTitle className="flex items-center">
                 <span className="mr-2">🗺️</span>
-                Stall Layout - {currentEvent.name}
+                Stall Layout - {currentMarket.name}
               </CardTitle>
               <div className="flex items-center space-x-4 text-sm">
                 <div className="flex items-center">
@@ -88,11 +194,13 @@ const StallBooking = () => {
             </CardHeader>
             <CardContent>
               <div className="relative bg-gray-100 rounded-lg p-8 min-h-[400px]">
-                <svg width="100%" height="350" viewBox="0 0 500 300">
-                  {mockStalls.map((stall) => {
+                <svg width="100%" height="350" viewBox="0 0 800 600">
+                  {stalls.map((stall) => {
                     const isSelected = selectedStalls.find(s => s.id === stall.id);
-                    let fillColor = stall.isBooked ? '#ef4444' : '#22c55e'; // red : green
+                    let fillColor = stall.isBooked || stall.status === 'BOOKED' ? '#ef4444' : '#22c55e'; // red : green
                     if (isSelected) fillColor = '#3b82f6'; // blue
+
+                    const stallPrice = stall.price_override || stall.stall_templates?.price || 0;
 
                     return (
                       <g key={stall.id}>
@@ -127,7 +235,7 @@ const StallBooking = () => {
                           fill="white"
                           fontSize="10"
                         >
-                          ${stall.price}
+                          ${stallPrice}
                         </text>
                       </g>
                     );
@@ -157,7 +265,7 @@ const StallBooking = () => {
                       <div key={stall.id} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
                         <div>
                           <div className="font-medium">Stall {stall.label}</div>
-                          <div className="text-sm text-gray-600">${stall.price}</div>
+                          <div className="text-sm text-gray-600">${stall.price_override || stall.stall_templates?.price || 0}</div>
                         </div>
                         <Button
                           variant="ghost"
@@ -179,10 +287,11 @@ const StallBooking = () => {
                   </div>
                   
                   <Button 
-                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                    className="w-full"
                     onClick={() => setIsCheckoutOpen(true)}
+                    disabled={createBooking.isPending}
                   >
-                    Proceed to Checkout
+                    {createBooking.isPending ? 'Processing...' : 'Proceed to Checkout'}
                   </Button>
                 </>
               )}
@@ -197,7 +306,7 @@ const StallBooking = () => {
           <DialogHeader>
             <DialogTitle>Stall {selectedStall?.label}</DialogTitle>
             <DialogDescription>
-              {selectedStall?.description}
+              Stall information and booking details
             </DialogDescription>
           </DialogHeader>
           {selectedStall && (
@@ -205,13 +314,17 @@ const StallBooking = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <h4 className="font-medium">Price</h4>
-                  <p className="text-2xl font-bold text-green-600">${selectedStall.price}</p>
+                  <p className="text-2xl font-bold text-green-600">${selectedStall.price_override || selectedStall.stall_templates?.price || 0}</p>
                 </div>
                 <div>
                   <h4 className="font-medium">Status</h4>
                   <Badge variant="secondary" className="bg-green-100 text-green-800">
                     Available
                   </Badge>
+                </div>
+                <div className="col-span-2">
+                  <h4 className="font-medium">Template</h4>
+                  <p className="text-sm text-muted-foreground">{selectedStall.stall_templates?.name}</p>
                 </div>
               </div>
               <div className="flex space-x-2">
@@ -233,7 +346,7 @@ const StallBooking = () => {
           <DialogHeader>
             <DialogTitle>Checkout</DialogTitle>
             <DialogDescription>
-              Review your booking for {currentEvent.name}
+              Review your booking for {currentMarket.name}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -241,7 +354,7 @@ const StallBooking = () => {
               {selectedStalls.map((stall) => (
                 <div key={stall.id} className="flex justify-between">
                   <span>Stall {stall.label}</span>
-                  <span>${stall.price}</span>
+                  <span>${stall.price_override || stall.stall_templates?.price || 0}</span>
                 </div>
               ))}
             </div>
@@ -250,8 +363,12 @@ const StallBooking = () => {
               <span>${totalCost}</span>
             </div>
             <div className="flex space-x-2">
-              <Button onClick={handleCheckout} className="flex-1">
-                Proceed to Pay
+              <Button 
+                onClick={handleCheckout} 
+                className="flex-1"
+                disabled={createBooking.isPending}
+              >
+                {createBooking.isPending ? 'Processing...' : 'Proceed to Pay'}
               </Button>
               <Button variant="outline" onClick={() => setIsCheckoutOpen(false)}>
                 Cancel
