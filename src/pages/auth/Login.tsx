@@ -40,24 +40,9 @@ const Login = () => {
   // Handle redirect after successful login
   useEffect(() => {
     if (userProfile) {
-      // Prevent login loop - never redirect back to login
-      if (nextUrl && nextUrl !== '/login' && !nextUrl.includes('/login')) {
-        // Check if user has permission for the next URL
-        if (nextUrl.startsWith('/admin') && userProfile.role !== 'admin') {
-          // Non-admin trying to access admin route - redirect to vendor dashboard
-          navigate('/vendor');
-          toast.error("Access denied. Redirected to vendor dashboard.");
-        } else if (nextUrl.startsWith('/vendor') && userProfile.role !== 'vendor') {
-          // Non-vendor trying to access vendor route - redirect to admin dashboard  
-          navigate('/admin');
-        } else {
-          // Valid destination
-          navigate(nextUrl);
-        }
-      } else {
-        // Default redirect based on role
-        navigate(userProfile.role === 'admin' ? '/admin' : '/vendor');
-      }
+      // Redirect to appropriate dashboard based on role
+      const defaultPath = userProfile.role === 'admin' ? '/admin' : '/vendor';
+      navigate(nextUrl && nextUrl !== '/login' ? nextUrl : defaultPath);
     }
   }, [userProfile, navigate, nextUrl]);
 

@@ -29,6 +29,7 @@ import { KYCReview } from "./pages/admin/KYCReview";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { LoadingProvider, useLoading } from "./contexts/LoadingContext";
 import { PageLoader } from "./components/ui/page-loader";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -66,9 +67,9 @@ const AppContent = () => {
         
         {/* Vendor Routes */}
         <Route path="/vendor" element={
-          user && userProfile?.role === 'vendor' ? 
-            <VendorLayout /> : 
-            <Navigate to="/login?next=/vendor" />
+          <ProtectedRoute requiredRole="vendor">
+            <VendorLayout />
+          </ProtectedRoute>
         }>
           <Route index element={needsKYC ? <Navigate to="/vendor/kyc" /> : <VendorDashboard />} />
           <Route path="bookings" element={needsKYC ? <Navigate to="/vendor/kyc" /> : <MyBookings />} />
@@ -82,9 +83,9 @@ const AppContent = () => {
         
         {/* Admin Routes */}
         <Route path="/admin" element={
-          user && userProfile?.role === 'admin' ? 
-            <AdminLayout /> : 
-            <Navigate to="/login?next=/admin" />
+          <ProtectedRoute requiredRole="admin">
+            <AdminLayout />
+          </ProtectedRoute>
         }>
           <Route index element={<AdminDashboard />} />
           <Route path="markets" element={<Markets />} />

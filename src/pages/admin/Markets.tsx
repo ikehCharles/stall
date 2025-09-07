@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Calendar, Eye, Edit, Archive } from 'lucide-react';
+import { Plus, Calendar, Eye, Edit, Archive, Play, Pause } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -104,6 +104,26 @@ const Markets = () => {
                             <Eye className="h-4 w-4" />
                           </Link>
                         </Button>
+                        {market.status === 'DRAFT' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleStatusChange(market.id, 'PUBLISHED')}
+                            title="Publish market"
+                          >
+                            <Play className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {market.status === 'PUBLISHED' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleStatusChange(market.id, 'DRAFT')}
+                            title="Unpublish market"
+                          >
+                            <Pause className="h-4 w-4" />
+                          </Button>
+                        )}
                         {market.status !== 'ARCHIVED' ? (
                           <Button
                             variant="ghost"
