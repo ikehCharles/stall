@@ -137,6 +137,14 @@ export const CanvasEditor = ({
   // Handle key events for stall manipulation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't handle keyboard events if user is typing in an input field
+      if (e.target instanceof HTMLInputElement || 
+          e.target instanceof HTMLTextAreaElement || 
+          e.target instanceof HTMLSelectElement ||
+          (e.target instanceof HTMLElement && e.target.contentEditable === 'true')) {
+        return;
+      }
+      
       if (!selectedStallId) return;
       
       const selectedStall = stalls.find(s => s.id === selectedStallId);

@@ -76,7 +76,11 @@ const MarketCanvas = () => {
               <Settings className="h-4 w-4 mr-2" />
               Canvas Settings
             </Button>
-            <Button size="sm">
+            <Button 
+              size="sm"
+              onClick={() => handleSaveLayout(layout || {})}
+              disabled={upsertLayout.isPending}
+            >
               <Save className="h-4 w-4 mr-2" />
               Save
             </Button>

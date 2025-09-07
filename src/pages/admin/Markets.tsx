@@ -104,11 +104,21 @@ const Markets = () => {
                             <Eye className="h-4 w-4" />
                           </Link>
                         </Button>
-                        {market.status !== 'ARCHIVED' && (
+                        {market.status !== 'ARCHIVED' ? (
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => handleStatusChange(market.id, 'ARCHIVED')}
+                            title="Archive market"
+                          >
+                            <Archive className="h-4 w-4" />
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleStatusChange(market.id, 'DRAFT')}
+                            title="Unarchive market"
                           >
                             <Archive className="h-4 w-4" />
                           </Button>

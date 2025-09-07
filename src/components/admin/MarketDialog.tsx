@@ -113,7 +113,7 @@ export const MarketDialog = ({ open, onOpenChange, market, onSuccess }: MarketDi
         theme: data.theme,
         start_at: data.start_at.toISOString(),
         end_at: data.end_at.toISOString(),
-        banner_url: data.banner_url || null,
+        banner_url: bannerUrl || data.banner_url || null,
       };
 
       if (market) {
