@@ -11,8 +11,13 @@ export const useBookingDates = (marketId: string) => {
       const { data, error } = await supabase
         .from('booking_dates')
         .select(`
-          *,
+          id,
+          booking_id,
+          stall_instance_id,
+          booking_date,
+          created_at,
           bookings!inner(
+            id,
             market_id,
             status,
             user_id
