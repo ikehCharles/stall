@@ -93,6 +93,8 @@ export interface CreateBookingData {
   marketId: string;
   stallIds: string[];
   totalAmount: number;
+  selectedDates?: string[];
+  pricePerDay?: number;
 }
 
 export const useCreateBooking = () => {
@@ -109,6 +111,9 @@ export const useCreateBooking = () => {
       
       if (invoiceError) throw invoiceError;
 
+      const daysCount = bookingData.selectedDates?.length || 1;
+      const pricePerDay = bookingData.pricePerDay || (bookingData.totalAmount / daysCount);
+
       // Create the booking
       const { data: booking, error: bookingError } = await supabase
         .from('bookings')
@@ -116,8 +121,12 @@ export const useCreateBooking = () => {
           user_id: user.id,
           market_id: bookingData.marketId,
           total_amount: bookingData.totalAmount,
+          paid_amount: 0,
+          status: 'pending' as const,
           invoice_number: invoiceNumber,
-          status: 'pending'
+          selected_dates: bookingData.selectedDates,
+          days_count: daysCount,
+          price_per_day: pricePerDay
         })
         .select()
         .single();
@@ -125,23 +134,54 @@ export const useCreateBooking = () => {
       if (bookingError) throw bookingError;
 
       // Create booking_stalls entries
-      const stallEntries = bookingData.stallIds.map(stallId => ({
+      const bookingStalls = bookingData.stallIds.map(stallId => ({
         booking_id: booking.id,
         stall_instance_id: stallId,
-        price_at_booking: bookingData.totalAmount / bookingData.stallIds.length // Simple division for now
+        price_at_booking: pricePerDay
       }));
 
       const { error: stallsError } = await supabase
         .from('booking_stalls')
-        .insert(stallEntries);
+        .insert(bookingStalls);
 
       if (stallsError) throw stallsError;
+
+      // If dates are specified, create booking_dates entries
+      if (bookingData.selectedDates && bookingData.selectedDates.length > 0) {
+        const bookingDates = [];
+        for (const stallId of bookingData.stallIds) {
+          for (const date of bookingData.selectedDates) {
+            bookingDates.push({
+              booking_id: booking.id,
+              stall_instance_id: stallId,
+              booking_date: date
+            });
+          }
+        }
+
+        const { error: datesError } = await supabase
+          .from('booking_dates')
+          .insert(bookingDates);
+
+        if (datesError) throw datesError;
+      }
+
+      // Clean up any holds for this user and these stalls
+      const { error: holdError } = await supabase
+        .from('stall_holds')
+        .delete()
+        .eq('user_id', user.id)
+        .in('stall_instance_id', bookingData.stallIds);
+
+      if (holdError) console.warn('Failed to clean up holds:', holdError);
 
       return booking;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vendor-bookings'] });
       queryClient.invalidateQueries({ queryKey: ['stall-instances'] });
+      queryClient.invalidateQueries({ queryKey: ['booking-dates'] });
+      queryClient.invalidateQueries({ queryKey: ['stall-holds'] });
     },
   });
 };

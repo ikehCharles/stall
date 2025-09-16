@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      booking_dates: {
+        Row: {
+          booking_date: string
+          booking_id: string
+          created_at: string
+          id: string
+          stall_instance_id: string
+        }
+        Insert: {
+          booking_date: string
+          booking_id: string
+          created_at?: string
+          id?: string
+          stall_instance_id: string
+        }
+        Update: {
+          booking_date?: string
+          booking_id?: string
+          created_at?: string
+          id?: string
+          stall_instance_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_dates_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_dates_stall_instance_id_fkey"
+            columns: ["stall_instance_id"]
+            isOneToOne: false
+            referencedRelation: "stall_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_stalls: {
         Row: {
           booking_id: string
@@ -56,10 +95,13 @@ export type Database = {
       bookings: {
         Row: {
           created_at: string
+          days_count: number | null
           id: string
           invoice_number: string
           market_id: string
           paid_amount: number
+          price_per_day: number | null
+          selected_dates: string[] | null
           status: Database["public"]["Enums"]["booking_status"]
           total_amount: number
           updated_at: string
@@ -67,10 +109,13 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          days_count?: number | null
           id?: string
           invoice_number: string
           market_id: string
           paid_amount?: number
+          price_per_day?: number | null
+          selected_dates?: string[] | null
           status?: Database["public"]["Enums"]["booking_status"]
           total_amount?: number
           updated_at?: string
@@ -78,10 +123,13 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          days_count?: number | null
           id?: string
           invoice_number?: string
           market_id?: string
           paid_amount?: number
+          price_per_day?: number | null
+          selected_dates?: string[] | null
           status?: Database["public"]["Enums"]["booking_status"]
           total_amount?: number
           updated_at?: string
@@ -337,6 +385,51 @@ export type Database = {
         }
         Relationships: []
       }
+      stall_holds: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          market_id: string
+          selected_dates: string[]
+          stall_instance_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          market_id: string
+          selected_dates: string[]
+          stall_instance_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          market_id?: string
+          selected_dates?: string[]
+          stall_instance_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stall_holds_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stall_holds_stall_instance_id_fkey"
+            columns: ["stall_instance_id"]
+            isOneToOne: false
+            referencedRelation: "stall_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stall_instances: {
         Row: {
           height: number
@@ -465,6 +558,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_stall_date_availability: {
+        Args: { dates: string[]; market_id: string; stall_id: string }
+        Returns: boolean
+      }
+      cleanup_expired_holds: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      create_stall_hold: {
+        Args: { dates: string[]; market_id: string; stall_id: string }
+        Returns: string
+      }
       generate_invoice_number: {
         Args: Record<PropertyKey, never>
         Returns: string

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -8,13 +9,7 @@ import { toast } from "@/hooks/use-toast";
 import { useMarkets } from "@/hooks/useMarkets";
 import { useStallInstances } from "@/hooks/useStallInstances";
 import { useCreateBooking, CreateBookingData } from "@/hooks/useBookings";
-import { useStallHolds, useCleanupExpiredHolds } from "@/hooks/useStallHolds";
-import { useBookingDates } from "@/hooks/useBookingDates";
-import { EnhancedStallModal } from "@/components/vendor/EnhancedStallModal";
-import { StallHoldTimer } from "@/components/vendor/StallHoldTimer";
-import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
-import { format } from "date-fns";
 
 type StallInstance = Database['public']['Tables']['stall_instances']['Row'] & {
   stall_templates?: {
@@ -26,55 +21,43 @@ type StallInstance = Database['public']['Tables']['stall_instances']['Row'] & {
     capacity: number;
   };
   isBooked?: boolean;
-  isHeld?: boolean;
-  selectedDates?: Date[];
 };
 
-interface StallSelection {
-  stall: StallInstance;
-  selectedDates: Date[];
-  totalCost: number;
-}
-
-const EnhancedStallBooking = () => {
+const StallBooking = () => {
   const { marketId } = useParams<{ marketId: string }>();
-  const [selectedStalls, setSelectedStalls] = useState<StallSelection[]>([]);
+  const [selectedStalls, setSelectedStalls] = useState<StallInstance[]>([]);
   const [selectedStall, setSelectedStall] = useState<StallInstance | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [bookedStallIds, setBookedStallIds] = useState<Set<string>>(new Set());
 
   const { data: markets } = useMarkets();
   const { data: stallInstances, isLoading: stallsLoading } = useStallInstances(marketId || '');
-  const { data: currentStallHolds = [] } = useStallHolds(marketId || '');
-  const { data: bookedDates = [] } = useBookingDates(marketId || '');
   const createBooking = useCreateBooking();
-  const cleanupHolds = useCleanupExpiredHolds();
 
   const currentMarket = markets?.find(m => m.id === marketId);
+  
+  // Create enhanced stall instances with booking status
+  const stalls: StallInstance[] = stallInstances?.map(stall => ({
+    ...stall,
+    isBooked: bookedStallIds.has(stall.id)
+  })) || [];
 
-  // Create enhanced stall instances with booking and hold status
-  const stalls: StallInstance[] = stallInstances?.map(stall => {
-    const stallBookedDates = bookedDates.filter(bd => 
-      bd.stall_instance_id === stall.id
-    ).map(bd => bd.booking_date);
-
-    const activeHolds = currentStallHolds.filter(hold => 
-      hold.stall_instance_id === stall.id &&
-      new Date(hold.expires_at) > new Date()
+  // Simulate fetching booked stalls (in real app, this would come from bookings data)
+  useEffect(() => {
+    // This is a simplified version - in reality you'd query existing bookings
+    // For now, we'll use the stall status from the database
+    const bookedIds = new Set(
+      stallInstances?.filter(stall => stall.status === 'BOOKED').map(stall => stall.id) || []
     );
-
-    return {
-      ...stall,
-      isBooked: stallBookedDates.length > 0,
-      isHeld: activeHolds.length > 0
-    };
-  }) || [];
+    setBookedStallIds(bookedIds);
+  }, [stallInstances]);
 
   const handleStallClick = (stall: StallInstance) => {
-    if (stall.status !== 'AVAILABLE') {
+    if (stall.isBooked || stall.status === 'BOOKED') {
       toast({
         title: "Stall Unavailable",
-        description: "This stall is not available for booking",
+        description: "This stall is already booked",
         variant: "destructive"
       });
       return;
@@ -83,64 +66,38 @@ const EnhancedStallBooking = () => {
     setIsModalOpen(true);
   };
 
-  const handleSelectStall = (stall: StallInstance, selectedDates: Date[]) => {
-    const pricePerDay = stall.price_override || stall.stall_templates?.price || 0;
-    const totalCost = pricePerDay * selectedDates.length;
-
-    const newSelection: StallSelection = {
-      stall,
-      selectedDates,
-      totalCost
-    };
-
-    setSelectedStalls(prev => {
-      // Remove any existing selection for this stall
-      const filtered = prev.filter(s => s.stall.id !== stall.id);
-      return [...filtered, newSelection];
-    });
-
-    toast({
-      title: "Stall Selected",
-      description: `Stall ${stall.label} selected for ${selectedDates.length} day${selectedDates.length > 1 ? 's' : ''}`
-    });
+  const handleSelectStall = () => {
+    if (selectedStall && !selectedStalls.find(s => s.id === selectedStall.id)) {
+      setSelectedStalls([...selectedStalls, selectedStall]);
+      toast({
+        title: "Stall Selected",
+        description: `Stall ${selectedStall.label} added to your selection`
+      });
+    }
+    setIsModalOpen(false);
   };
 
   const handleRemoveStall = (stallId: string) => {
-    setSelectedStalls(prev => prev.filter(s => s.stall.id !== stallId));
+    setSelectedStalls(selectedStalls.filter(s => s.id !== stallId));
   };
 
-  const getTotalCost = () => {
-    return selectedStalls.reduce((sum, selection) => sum + selection.totalCost, 0);
-  };
-
-  const getTotalDays = () => {
-    return selectedStalls.reduce((sum, selection) => sum + selection.selectedDates.length, 0);
-  };
+  const totalCost = selectedStalls.reduce((sum, stall) => sum + (stall.price_override || stall.stall_templates?.price || 0), 0);
 
   const handleCheckout = async () => {
     if (!marketId || selectedStalls.length === 0) return;
     
     try {
-      // Prepare booking data with all selected dates
-      const allDates = Array.from(new Set(
-        selectedStalls.flatMap(selection => 
-          selection.selectedDates.map(date => date.toISOString().split('T')[0])
-        )
-      ));
-
       const bookingData: CreateBookingData = {
         marketId,
-        stallIds: selectedStalls.map(selection => selection.stall.id),
-        totalAmount: getTotalCost(),
-        selectedDates: allDates,
-        pricePerDay: selectedStalls[0]?.stall.price_override || selectedStalls[0]?.stall.stall_templates?.price || 0
+        stallIds: selectedStalls.map(stall => stall.id),
+        totalAmount: totalCost
       };
 
       await createBooking.mutateAsync(bookingData);
       
       toast({
         title: "Booking Confirmed!",
-        description: `Successfully booked ${selectedStalls.length} stall(s) for ${getTotalDays()} day(s) - Total: $${getTotalCost()}`
+        description: `Successfully booked ${selectedStalls.length} stall(s) for $${totalCost}`
       });
       
       setSelectedStalls([]);
@@ -151,43 +108,34 @@ const EnhancedStallBooking = () => {
         description: "There was an error processing your booking. Please try again.",
         variant: "destructive"
       });
-      console.error('Booking error:', error);
     }
-  };
-
-  const getStallColor = (stall: StallInstance) => {
-    const selection = selectedStalls.find(s => s.stall.id === stall.id);
-    if (selection) return '#3b82f6'; // blue - selected
-    if (stall.isBooked) return '#ef4444'; // red - booked
-    if (stall.isHeld) return '#f97316'; // orange - held
-    return '#22c55e'; // green - available
   };
 
   if (stallsLoading) {
     return (
       <div className="space-y-8">
         <div className="animate-pulse">
-          <div className="h-8 bg-muted rounded w-1/3 mb-2"></div>
-          <div className="h-4 bg-muted rounded w-1/2"></div>
+          <div className="h-8 bg-gray-200 rounded w-1/3 mb-2"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
             <Card>
               <CardHeader>
-                <div className="h-6 bg-muted rounded w-1/2"></div>
+                <div className="h-6 bg-gray-200 rounded w-1/2"></div>
               </CardHeader>
               <CardContent>
-                <div className="h-96 bg-muted rounded"></div>
+                <div className="h-96 bg-gray-200 rounded"></div>
               </CardContent>
             </Card>
           </div>
           <div>
             <Card>
               <CardHeader>
-                <div className="h-6 bg-muted rounded w-2/3"></div>
+                <div className="h-6 bg-gray-200 rounded w-2/3"></div>
               </CardHeader>
               <CardContent>
-                <div className="h-32 bg-muted rounded"></div>
+                <div className="h-32 bg-gray-200 rounded"></div>
               </CardContent>
             </Card>
           </div>
@@ -217,9 +165,7 @@ const EnhancedStallBooking = () => {
           <Link to="/vendor/markets">← Back to Markets</Link>
         </Button>
         <h1 className="text-3xl font-bold">Book Stalls</h1>
-        <p className="text-muted-foreground mt-1">
-          Select your stalls and dates for {currentMarket.name}
-        </p>
+        <p className="text-muted-foreground mt-1">Select your stalls for {currentMarket.name}</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -241,20 +187,19 @@ const EnhancedStallBooking = () => {
                   Booked
                 </div>
                 <div className="flex items-center">
-                  <div className="w-4 h-4 bg-orange-500 rounded mr-2"></div>
-                  Held
-                </div>
-                <div className="flex items-center">
                   <div className="w-4 h-4 bg-blue-500 rounded mr-2"></div>
                   Selected
                 </div>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="relative bg-muted/20 rounded-lg p-8 min-h-[400px]">
+              <div className="relative bg-gray-100 rounded-lg p-8 min-h-[400px]">
                 <svg width="100%" height="350" viewBox="0 0 800 600">
                   {stalls.map((stall) => {
-                    const fillColor = getStallColor(stall);
+                    const isSelected = selectedStalls.find(s => s.id === stall.id);
+                    let fillColor = stall.isBooked || stall.status === 'BOOKED' ? '#ef4444' : '#22c55e'; // red : green
+                    if (isSelected) fillColor = '#3b82f6'; // blue
+
                     const stallPrice = stall.price_override || stall.stall_templates?.price || 0;
 
                     return (
@@ -290,7 +235,7 @@ const EnhancedStallBooking = () => {
                           fill="white"
                           fontSize="10"
                         >
-                          ${stallPrice}/day
+                          ${stallPrice}
                         </text>
                       </g>
                     );
@@ -312,52 +257,32 @@ const EnhancedStallBooking = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               {selectedStalls.length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">No stalls selected</p>
+                <p className="text-gray-500 text-center py-8">No stalls selected</p>
               ) : (
                 <>
-                  <div className="space-y-3">
-                    {selectedStalls.map((selection) => (
-                      <div key={selection.stall.id} className="p-3 bg-primary/5 rounded-lg border">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="font-medium">Stall {selection.stall.label}</div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRemoveStall(selection.stall.id)}
-                            className="text-destructive hover:text-destructive/80 h-auto p-1"
-                          >
-                            Remove
-                          </Button>
+                  <div className="space-y-2">
+                    {selectedStalls.map((stall) => (
+                      <div key={stall.id} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                        <div>
+                          <div className="font-medium">Stall {stall.label}</div>
+                          <div className="text-sm text-gray-600">${stall.price_override || stall.stall_templates?.price || 0}</div>
                         </div>
-                        <div className="text-sm text-muted-foreground">
-                          {selection.selectedDates.length} day{selection.selectedDates.length > 1 ? 's' : ''} × ${selection.stall.price_override || selection.stall.stall_templates?.price || 0}/day
-                        </div>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {selection.selectedDates.map(date => (
-                            <Badge key={date.toISOString()} variant="outline" className="text-xs">
-                              {format(date, 'MMM d')}
-                            </Badge>
-                          ))}
-                        </div>
-                        <div className="font-semibold text-primary mt-2">
-                          ${selection.totalCost}
-                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveStall(stall.id)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          Remove
+                        </Button>
                       </div>
                     ))}
                   </div>
                   
-                  <div className="border-t pt-4 space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Total Stalls:</span>
-                      <span>{selectedStalls.length}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span>Total Days:</span>
-                      <span>{getTotalDays()}</span>
-                    </div>
+                  <div className="border-t pt-4">
                     <div className="flex justify-between items-center text-lg font-bold">
-                      <span>Total Cost:</span>
-                      <span>${getTotalCost()}</span>
+                      <span>Total:</span>
+                      <span>${totalCost}</span>
                     </div>
                   </div>
                   
@@ -375,14 +300,45 @@ const EnhancedStallBooking = () => {
         </div>
       </div>
 
-      {/* Enhanced Stall Modal */}
-      <EnhancedStallModal
-        stall={selectedStall}
-        market={currentMarket}
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSelectStall={handleSelectStall}
-      />
+      {/* Stall Details Modal */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Stall {selectedStall?.label}</DialogTitle>
+            <DialogDescription>
+              Stall information and booking details
+            </DialogDescription>
+          </DialogHeader>
+          {selectedStall && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h4 className="font-medium">Price</h4>
+                  <p className="text-2xl font-bold text-green-600">${selectedStall.price_override || selectedStall.stall_templates?.price || 0}</p>
+                </div>
+                <div>
+                  <h4 className="font-medium">Status</h4>
+                  <Badge variant="secondary" className="bg-green-100 text-green-800">
+                    Available
+                  </Badge>
+                </div>
+                <div className="col-span-2">
+                  <h4 className="font-medium">Template</h4>
+                  <p className="text-sm text-muted-foreground">{selectedStall.stall_templates?.name}</p>
+                </div>
+              </div>
+              <div className="flex space-x-2">
+                <Button onClick={handleSelectStall} className="flex-1">
+                  Select Stall
+                </Button>
+                <Button variant="outline" onClick={() => setIsModalOpen(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Checkout Modal */}
       <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
@@ -394,37 +350,17 @@ const EnhancedStallBooking = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-3">
-              {selectedStalls.map((selection) => (
-                <div key={selection.stall.id} className="border rounded p-3">
-                  <div className="font-medium">Stall {selection.stall.label}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {selection.selectedDates.length} day{selection.selectedDates.length > 1 ? 's' : ''}
-                  </div>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {selection.selectedDates.map(date => (
-                      <Badge key={date.toISOString()} variant="outline" className="text-xs">
-                        {format(date, 'MMM d')}
-                      </Badge>
-                    ))}
-                  </div>
-                  <div className="text-right font-semibold">${selection.totalCost}</div>
+            <div className="space-y-2">
+              {selectedStalls.map((stall) => (
+                <div key={stall.id} className="flex justify-between">
+                  <span>Stall {stall.label}</span>
+                  <span>${stall.price_override || stall.stall_templates?.price || 0}</span>
                 </div>
               ))}
             </div>
-            <div className="border-t pt-4 space-y-1">
-              <div className="flex justify-between text-sm">
-                <span>Total Stalls:</span>
-                <span>{selectedStalls.length}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span>Total Days:</span>
-                <span>{getTotalDays()}</span>
-              </div>
-              <div className="flex justify-between font-bold text-lg">
-                <span>Total:</span>
-                <span>${getTotalCost()}</span>
-              </div>
+            <div className="border-t pt-2 flex justify-between font-bold text-lg">
+              <span>Total:</span>
+              <span>${totalCost}</span>
             </div>
             <div className="flex space-x-2">
               <Button 
@@ -432,7 +368,7 @@ const EnhancedStallBooking = () => {
                 className="flex-1"
                 disabled={createBooking.isPending}
               >
-                {createBooking.isPending ? 'Processing...' : 'Confirm Booking'}
+                {createBooking.isPending ? 'Processing...' : 'Proceed to Pay'}
               </Button>
               <Button variant="outline" onClick={() => setIsCheckoutOpen(false)}>
                 Cancel
@@ -445,4 +381,7 @@ const EnhancedStallBooking = () => {
   );
 };
 
-export default EnhancedStallBooking;
+export default StallBooking;
+
+// Enhanced version with date-based booking - uncomment to replace
+// export { default } from './EnhancedStallBooking';
