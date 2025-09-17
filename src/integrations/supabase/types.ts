@@ -96,6 +96,7 @@ export type Database = {
         Row: {
           created_at: string
           days_count: number | null
+          hold_expires_at: string | null
           id: string
           invoice_number: string
           market_id: string
@@ -110,6 +111,7 @@ export type Database = {
         Insert: {
           created_at?: string
           days_count?: number | null
+          hold_expires_at?: string | null
           id?: string
           invoice_number: string
           market_id: string
@@ -124,6 +126,7 @@ export type Database = {
         Update: {
           created_at?: string
           days_count?: number | null
+          hold_expires_at?: string | null
           id?: string
           invoice_number?: string
           market_id?: string
@@ -573,6 +576,10 @@ export type Database = {
         Args: { p_dates: string[]; p_market_id: string; p_stall_id: string }
         Returns: Json
       }
+      expire_booking: {
+        Args: { booking_id: string }
+        Returns: Json
+      }
       generate_invoice_number: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -585,10 +592,25 @@ export type Database = {
         Args: { market_id: string; stall_id: string }
         Returns: boolean
       }
+      simulate_payment_failure: {
+        Args: { booking_id: string }
+        Returns: Json
+      }
+      simulate_payment_success: {
+        Args: { booking_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "vendor" | "admin"
-      booking_status: "pending" | "paid" | "partial" | "cancelled"
+      booking_status:
+        | "pending"
+        | "paid"
+        | "partial"
+        | "cancelled"
+        | "expired"
+        | "completed"
+        | "failed"
       kyc_status: "PENDING" | "APPROVED" | "REJECTED"
       market_status: "DRAFT" | "PUBLISHED" | "ARCHIVED"
       stall_shape: "RECT" | "CIRCLE" | "POLY"
@@ -721,7 +743,15 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["vendor", "admin"],
-      booking_status: ["pending", "paid", "partial", "cancelled"],
+      booking_status: [
+        "pending",
+        "paid",
+        "partial",
+        "cancelled",
+        "expired",
+        "completed",
+        "failed",
+      ],
       kyc_status: ["PENDING", "APPROVED", "REJECTED"],
       market_status: ["DRAFT", "PUBLISHED", "ARCHIVED"],
       stall_shape: ["RECT", "CIRCLE", "POLY"],

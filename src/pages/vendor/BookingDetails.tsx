@@ -1,15 +1,23 @@
 
 import { useParams, Link } from "react-router-dom";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useBookingDetails } from "@/hooks/useBookings";
+import { useBookingDatesForBooking } from "@/hooks/useBookingDatesForBooking";
+import { useStallInstances } from "@/hooks/useStallInstances";
+import { PaymentModal } from "@/components/vendor/PaymentModal";
+import { BookingHoldTimer } from "@/components/vendor/BookingHoldTimer";
 import { format } from "date-fns";
 
 const BookingDetails = () => {
   const { id } = useParams<{ id: string }>();
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const { data: booking, isLoading, error } = useBookingDetails(id || '');
+  const { data: bookingDates = [] } = useBookingDatesForBooking(id || '');
+  const { data: allStalls = [] } = useStallInstances(booking?.market_id || '');
 
   if (isLoading) {
     return (
@@ -62,12 +70,53 @@ const BookingDetails = () => {
   const getStatusBadge = (status: string) => {
     const variants = {
       paid: "bg-green-100 text-green-800",
+      completed: "bg-green-100 text-green-800",
       partial: "bg-yellow-100 text-yellow-800",
       pending: "bg-blue-100 text-blue-800",
-      cancelled: "bg-red-100 text-red-800"
+      cancelled: "bg-red-100 text-red-800",
+      expired: "bg-gray-100 text-gray-800",
+      failed: "bg-red-100 text-red-800"
     };
     return variants[status as keyof typeof variants] || variants.pending;
   };
+
+  const formatBookingDates = (dates: string[]) => {
+    if (dates.length === 0) return 'No dates selected';
+    
+    const sortedDates = dates.sort();
+    const formattedDates = sortedDates.map(date => format(new Date(date), 'MMM d'));
+    
+    if (formattedDates.length <= 3) {
+      return formattedDates.join(', ');
+    }
+    
+    // Group consecutive dates
+    let groups: string[] = [];
+    let start = 0;
+    
+    for (let i = 1; i <= formattedDates.length; i++) {
+      if (i === formattedDates.length || 
+          new Date(sortedDates[i]).getTime() - new Date(sortedDates[i-1]).getTime() > 24 * 60 * 60 * 1000) {
+        if (i - start === 1) {
+          groups.push(formattedDates[start]);
+        } else if (i - start === 2) {
+          groups.push(`${formattedDates[start]}, ${formattedDates[i-1]}`);
+        } else {
+          groups.push(`${formattedDates[start]}-${formattedDates[i-1]}`);
+        }
+        start = i;
+      }
+    }
+    
+    return groups.join(', ');
+  };
+
+  const isPaymentAvailable = booking && 
+    ['pending', 'partial'].includes(booking.status) && 
+    booking.paid_amount < booking.total_amount &&
+    (!booking.hold_expires_at || new Date(booking.hold_expires_at) > new Date());
+
+  const bookedStallIds = booking?.booking_stalls?.map(bs => bs.stall_instance_id) || [];
 
   return (
     <div className="space-y-8">
@@ -83,8 +132,8 @@ const BookingDetails = () => {
           <Button asChild variant="outline">
             <Link to={`/vendor/invoice/${booking.id}`}>View Invoice</Link>
           </Button>
-          {booking.status !== 'paid' && (
-            <Button>
+          {isPaymentAvailable && (
+            <Button onClick={() => setPaymentModalOpen(true)}>
               Make Payment
             </Button>
           )}
@@ -105,9 +154,15 @@ const BookingDetails = () => {
                   <p className="text-lg">{booking.markets?.name}</p>
                 </div>
                 <div>
-                  <h4 className="font-medium text-muted-foreground">Market Date</h4>
+                  <h4 className="font-medium text-muted-foreground">Market Start Date</h4>
                   <p className="text-lg">
-                    {booking.markets?.start_at ? format(new Date(booking.markets.start_at), "PPP") : 'N/A'}
+                    {booking.markets?.start_at ? format(new Date(booking.markets.start_at), "PPPP") : 'N/A'}
+                  </p>
+                </div>
+                <div>
+                  <h4 className="font-medium text-muted-foreground">Market End Date</h4>
+                  <p className="text-lg">
+                    {booking.markets?.end_at ? format(new Date(booking.markets.end_at), "PPPP") : 'N/A'}
                   </p>
                 </div>
                 <div>
@@ -118,7 +173,20 @@ const BookingDetails = () => {
                   <h4 className="font-medium text-muted-foreground">Invoice Number</h4>
                   <p className="text-lg">{booking.invoice_number}</p>
                 </div>
+                <div>
+                  <h4 className="font-medium text-muted-foreground">Selected Dates</h4>
+                  <p className="text-lg">{formatBookingDates(bookingDates)}</p>
+                </div>
               </div>
+              
+              {booking.hold_expires_at && ['pending', 'partial'].includes(booking.status) && (
+                <div className="pt-2">
+                  <BookingHoldTimer 
+                    bookingId={booking.id}
+                    expiresAt={booking.hold_expires_at}
+                  />
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -127,21 +195,21 @@ const BookingDetails = () => {
               <CardTitle>Stall Layout</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="bg-gray-100 rounded-lg p-8">
+              <div className="bg-muted/30 rounded-lg p-8">
                 <svg width="100%" height="300" viewBox="0 0 800 600">
-                  {booking.booking_stalls?.map((bs, i) => {
-                    const stall = bs.stall_instances;
-                    if (!stall) return null;
+                  {/* Render all stalls */}
+                  {allStalls.map((stall) => {
+                    const isBooked = bookedStallIds.includes(stall.id);
                     
                     return (
-                      <g key={bs.id}>
+                      <g key={stall.id}>
                         <rect
                           x={stall.x}
                           y={stall.y}
                           width={stall.width}
                           height={stall.height}
-                          fill="#3b82f6"
-                          stroke="#ffffff"
+                          fill={isBooked ? "hsl(var(--primary))" : "hsl(var(--muted))"}
+                          stroke={isBooked ? "hsl(var(--primary-foreground))" : "hsl(var(--border))"}
                           strokeWidth="2"
                           rx="4"
                         />
@@ -150,9 +218,9 @@ const BookingDetails = () => {
                           y={stall.y + stall.height / 2}
                           textAnchor="middle"
                           dominantBaseline="middle"
-                          fill="white"
+                          fill={isBooked ? "hsl(var(--primary-foreground))" : "hsl(var(--muted-foreground))"}
                           fontSize="14"
-                          fontWeight="bold"
+                          fontWeight={isBooked ? "bold" : "normal"}
                         >
                           {stall.label}
                         </text>
@@ -162,11 +230,11 @@ const BookingDetails = () => {
                 </svg>
                 <div className="mt-4 flex items-center space-x-4 text-sm">
                   <div className="flex items-center">
-                    <div className="w-4 h-4 bg-blue-500 rounded mr-2"></div>
+                    <div className="w-4 h-4 rounded mr-2" style={{ backgroundColor: "hsl(var(--primary))" }}></div>
                     Your Stalls
                   </div>
                   <div className="flex items-center">
-                    <div className="w-4 h-4 bg-gray-300 rounded mr-2"></div>
+                    <div className="w-4 h-4 rounded mr-2" style={{ backgroundColor: "hsl(var(--muted))" }}></div>
                     Other Stalls
                   </div>
                 </div>
@@ -224,6 +292,15 @@ const BookingDetails = () => {
           </Card>
         </div>
       </div>
+      
+      {/* Payment Modal */}
+      {booking && (
+        <PaymentModal 
+          booking={booking}
+          isOpen={paymentModalOpen}
+          onClose={() => setPaymentModalOpen(false)}
+        />
+      )}
     </div>
   );
 };

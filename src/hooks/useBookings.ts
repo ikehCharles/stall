@@ -114,7 +114,7 @@ export const useCreateBooking = () => {
       const daysCount = bookingData.selectedDates?.length || 1;
       const pricePerDay = bookingData.pricePerDay || (bookingData.totalAmount / daysCount);
 
-      // Create the booking
+      // Create the booking with hold expiry
       const { data: booking, error: bookingError } = await supabase
         .from('bookings')
         .insert({
@@ -126,7 +126,8 @@ export const useCreateBooking = () => {
           invoice_number: invoiceNumber,
           selected_dates: bookingData.selectedDates,
           days_count: daysCount,
-          price_per_day: pricePerDay
+          price_per_day: pricePerDay,
+          hold_expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString() // 15-minute hold
         })
         .select()
         .single();
