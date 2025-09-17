@@ -47,7 +47,7 @@ const EnhancedStallBooking = () => {
 
   const { data: markets } = useMarkets();
   const { data: stallInstances, isLoading: stallsLoading } = useStallInstances(marketId || '');
-  const { data: currentStallHolds = [] } = useStallHolds(marketId || '');
+  const { data: currentStallHolds = {} } = useStallHolds(marketId || '');
   const { data: bookedDates = [] } = useBookingDates(marketId || '');
   const createBooking = useCreateBooking();
   const cleanupHolds = useCleanupExpiredHolds();
@@ -60,15 +60,13 @@ const EnhancedStallBooking = () => {
       bd.stall_instance_id === stall.id
     ).map(bd => bd.booking_date);
 
-    const activeHolds = currentStallHolds.filter(hold => 
-      hold.stall_instance_id === stall.id &&
-      new Date(hold.expires_at) > new Date()
-    );
+    // Check if this stall has any active holds
+    const stallHeldDates = currentStallHolds[stall.id] || [];
 
     return {
       ...stall,
       isBooked: stallBookedDates.length > 0,
-      isHeld: activeHolds.length > 0
+      isHeld: stallHeldDates.length > 0
     };
   }) || [];
 

@@ -33,7 +33,7 @@ export function BookingCalendar({
   const [hoveredDate, setHoveredDate] = useState<Date | null>(null);
   
   const { data: bookedDates = [] } = useStallBookingDates(stallInstanceId);
-  const { data: stallHolds = [] } = useStallHolds(marketId);
+  const { data: stallHoldsData = {} } = useStallHolds(marketId);
   
   const marketStart = parseISO(marketStartDate);
   const marketEnd = parseISO(marketEndDate);
@@ -41,15 +41,9 @@ export function BookingCalendar({
   // Convert booked dates to Date objects
   const bookedDateObjects = bookedDates.map(dateStr => parseISO(dateStr));
   
-  // Get dates that are held by others
-  const heldDates = stallHolds
-    .filter(hold => 
-      hold.stall_instance_id === stallInstanceId && 
-      new Date(hold.expires_at) > new Date()
-    )
-    .flatMap(hold => 
-      hold.selected_dates?.map(dateStr => parseISO(dateStr)) || []
-    );
+  // Get dates that are held by others for this specific stall
+  const heldDateStrings = stallHoldsData[stallInstanceId] || [];
+  const heldDates = heldDateStrings.map(dateStr => parseISO(dateStr));
 
   const handleDateClick = (date: Date) => {
     if (disabled) return;

@@ -389,6 +389,7 @@ export type Database = {
         Row: {
           created_at: string
           expires_at: string
+          hold_date: string | null
           id: string
           market_id: string
           selected_dates: string[]
@@ -398,6 +399,7 @@ export type Database = {
         Insert: {
           created_at?: string
           expires_at: string
+          hold_date?: string | null
           id?: string
           market_id: string
           selected_dates: string[]
@@ -407,6 +409,7 @@ export type Database = {
         Update: {
           created_at?: string
           expires_at?: string
+          hold_date?: string | null
           id?: string
           market_id?: string
           selected_dates?: string[]
@@ -567,8 +570,8 @@ export type Database = {
         Returns: number
       }
       create_stall_hold: {
-        Args: { dates: string[]; market_id: string; stall_id: string }
-        Returns: string
+        Args: { p_dates: string[]; p_market_id: string; p_stall_id: string }
+        Returns: Json
       }
       generate_invoice_number: {
         Args: Record<PropertyKey, never>

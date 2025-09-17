@@ -49,6 +49,11 @@ export function EnhancedStallModal({
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [holdExpiry, setHoldExpiry] = useState<string | null>(null);
   const [isHolding, setIsHolding] = useState(false);
+  const [holdResponse, setHoldResponse] = useState<{
+    days: number;
+    price_per_day: number;
+    total: number;
+  } | null>(null);
   
   const createHold = useCreateStallHold();
 
@@ -57,6 +62,7 @@ export function EnhancedStallModal({
       setSelectedDates([]);
       setHoldExpiry(null);
       setIsHolding(false);
+      setHoldResponse(null);
     }
   }, [isOpen]);
 
@@ -78,11 +84,20 @@ export function EnhancedStallModal({
         setIsHolding(true);
         const dateStrings = dates.map(d => d.toISOString().split('T')[0]);
         
-        await createHold.mutateAsync({
+        const response = await createHold.mutateAsync({
           stallId: stall.id,
           marketId: market.id,
           dates: dateStrings
         });
+        
+        // Store the pricing information from the response
+        if (response.days && response.price_per_day && response.total) {
+          setHoldResponse({
+            days: response.days,
+            price_per_day: response.price_per_day,
+            total: response.total
+          });
+        }
         
         // Set hold expiry to 5 minutes from now
         const expiry = new Date(Date.now() + 5 * 60 * 1000).toISOString();
@@ -90,7 +105,7 @@ export function EnhancedStallModal({
         
         toast({
           title: "Stall Reserved",
-          description: `Stall ${stall.label} is held for 5 minutes while you complete your selection.`
+          description: `Stall ${stall.label} is held for 5 minutes. Total: $${response.total?.toFixed(2) || '0.00'}`
         });
       } catch (error: any) {
         console.error('Hold creation error:', error);
@@ -100,8 +115,10 @@ export function EnhancedStallModal({
         
         if (error?.message?.includes("Authentication required")) {
           errorMessage = "Please log in to reserve a stall.";
-        } else if (error?.message?.includes("not available")) {
-          errorMessage = "Selected dates are not available for this stall.";
+        } else if (error?.message?.includes("not available") || error?.message?.includes("conflict") || error?.message?.includes("already booked")) {
+          errorMessage = "Selected dates are not available for this stall. Please choose different dates.";
+        } else if (error?.message?.includes("not found")) {
+          errorMessage = "This stall is no longer available.";
         } else if (error?.message?.includes("network") || error?.message?.includes("connection")) {
           errorMessage = "Network error. Please check your connection and try again.";
         }
@@ -128,6 +145,7 @@ export function EnhancedStallModal({
   const handleHoldExpired = () => {
     setHoldExpiry(null);
     setSelectedDates([]);
+    setHoldResponse(null);
     toast({
       title: "Hold Expired",
       description: "Your stall reservation has expired. Please select dates again.",
@@ -137,8 +155,10 @@ export function EnhancedStallModal({
 
   if (!stall || !market) return null;
 
-  const pricePerDay = stall.price_override || stall.stall_templates?.price || 0;
-  const totalPrice = pricePerDay * selectedDates.length;
+  // Use pricing from hold response if available, otherwise calculate from stall data
+  const pricePerDay = holdResponse?.price_per_day || stall.price_override || stall.stall_templates?.price || 0;
+  const totalPrice = holdResponse?.total || (pricePerDay * selectedDates.length);
+  const daysCount = holdResponse?.days || selectedDates.length;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -196,11 +216,16 @@ export function EnhancedStallModal({
                   <div className="col-span-2 pt-2 border-t">
                     <div className="flex justify-between items-center">
                       <span className="font-medium">Total Cost:</span>
-                      <span className="text-xl font-bold text-primary">${totalPrice}</span>
+                      <span className="text-xl font-bold text-primary">${totalPrice.toFixed(2)}</span>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {selectedDates.length} day{selectedDates.length > 1 ? 's' : ''} × ${pricePerDay}/day
+                      {daysCount} day{daysCount > 1 ? 's' : ''} × ${pricePerDay.toFixed(2)}/day
                     </p>
+                    {holdResponse && (
+                      <p className="text-xs text-green-600 mt-1">
+                        ✓ Pricing confirmed from server
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
