@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link, Navigate } from "react-router-dom";
+import { useParams, Link, Navigate, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -40,6 +40,7 @@ interface StallSelection {
 const EnhancedStallBooking = () => {
   const { marketId } = useParams<{ marketId: string }>();
   const { user: currentUser, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
   const [selectedStalls, setSelectedStalls] = useState<StallSelection[]>([]);
   const [selectedStall, setSelectedStall] = useState<StallInstance | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -136,15 +137,15 @@ const EnhancedStallBooking = () => {
         pricePerDay: selectedStalls[0]?.stall.price_override || selectedStalls[0]?.stall.stall_templates?.price || 0
       };
 
-      await createBooking.mutateAsync(bookingData);
+      const booking = await createBooking.mutateAsync(bookingData);
       
       toast({
-        title: "Booking Confirmed!",
-        description: `Successfully booked ${selectedStalls.length} stall(s) for ${getTotalDays()} day(s) - Total: $${getTotalCost()}`
+        title: "Booking Created!",
+        description: "Redirecting to booking details to complete payment..."
       });
       
-      setSelectedStalls([]);
-      setIsCheckoutOpen(false);
+      // Navigate to booking details page
+      navigate(`/vendor/bookings/${booking.id}`);
     } catch (error) {
       toast({
         title: "Booking Failed",
