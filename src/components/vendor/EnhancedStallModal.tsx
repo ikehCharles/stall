@@ -4,11 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import type { Database } from "@/integrations/supabase/types";
 import { BookingCalendar } from "./BookingCalendar";
 import { StallHoldTimer } from "./StallHoldTimer";
 import { useCreateStallHold } from "@/hooks/useStallHolds";
-import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 
 type StallInstance = Database['public']['Tables']['stall_instances']['Row'] & {
@@ -45,11 +45,11 @@ export function EnhancedStallModal({
   onClose,
   onSelectStall
 }: EnhancedStallModalProps) {
+  const { user } = useAuth();
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [holdExpiry, setHoldExpiry] = useState<string | null>(null);
   const [isHolding, setIsHolding] = useState(false);
   
-  const { user } = useAuth();
   const createHold = useCreateStallHold();
 
   useEffect(() => {

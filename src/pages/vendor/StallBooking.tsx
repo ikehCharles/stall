@@ -39,12 +39,11 @@ interface StallSelection {
 
 const EnhancedStallBooking = () => {
   const { marketId } = useParams<{ marketId: string }>();
+  const { user: currentUser, loading: authLoading } = useAuth();
   const [selectedStalls, setSelectedStalls] = useState<StallSelection[]>([]);
   const [selectedStall, setSelectedStall] = useState<StallInstance | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-
-  const { user, loading: authLoading } = useAuth();
 
   const { data: markets } = useMarkets();
   const { data: stallInstances, isLoading: stallsLoading } = useStallInstances(marketId || '');
@@ -179,12 +178,12 @@ const EnhancedStallBooking = () => {
   }
 
   // Redirect to login if not authenticated
-  if (!user) {
-    const currentPath = window.location.pathname;
+  if (!authLoading && !currentUser) {
+    const currentPath = `/vendor/book-stall/${marketId}`;
     return <Navigate to={`/login?next=${currentPath}`} replace />;
   }
 
-  if (stallsLoading) {
+  if (authLoading || stallsLoading) {
     return (
       <div className="space-y-8">
         <div className="animate-pulse">
