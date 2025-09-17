@@ -19,7 +19,7 @@ const VendorLayout = () => {
     { name: 'Dashboard', href: '/vendor', icon: Calendar },
     { 
       name: 'Book Stalls', 
-      href: '/vendor/booking', 
+      href: '/vendor/book/new', 
       icon: MapPin, 
       disabled: !isKYCApproved,
       tooltip: !isKYCApproved ? 'Complete business verification to book stalls' : undefined
