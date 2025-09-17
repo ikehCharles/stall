@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -191,8 +192,8 @@ const AdminBookings = () => {
                               </Button>
                             </>
                           )}
-                          <Button variant="outline" size="sm">
-                            View
+                          <Button variant="outline" size="sm" asChild>
+                            <Link to={`/admin/bookings/${booking.id}`}>View</Link>
                           </Button>
                         </div>
                       </TableCell>
