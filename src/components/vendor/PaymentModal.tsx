@@ -29,7 +29,7 @@ export function PaymentModal({ booking, isOpen, onClose }: PaymentModalProps) {
   const paymentSuccessMutation = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.rpc('simulate_payment_success', {
-        booking_id: booking.id
+        p_booking_id: booking.id
       });
       if (error) throw error;
       return data;
@@ -55,7 +55,7 @@ export function PaymentModal({ booking, isOpen, onClose }: PaymentModalProps) {
   const paymentFailureMutation = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.rpc('simulate_payment_failure', {
-        booking_id: booking.id
+        p_booking_id: booking.id
       });
       if (error) throw error;
       return data;

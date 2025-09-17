@@ -577,7 +577,7 @@ export type Database = {
         Returns: Json
       }
       expire_booking: {
-        Args: { booking_id: string }
+        Args: { p_booking_id: string }
         Returns: Json
       }
       generate_invoice_number: {
@@ -593,11 +593,11 @@ export type Database = {
         Returns: boolean
       }
       simulate_payment_failure: {
-        Args: { booking_id: string }
+        Args: { p_booking_id: string }
         Returns: Json
       }
       simulate_payment_success: {
-        Args: { booking_id: string }
+        Args: { p_booking_id: string }
         Returns: Json
       }
     }

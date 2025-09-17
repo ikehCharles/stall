@@ -19,9 +19,9 @@ export function BookingHoldTimer({ bookingId, expiresAt, onExpired }: BookingHol
 
   const expireBookingMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.rpc('expire_booking', {
-        booking_id: bookingId
-      });
+        const { data, error } = await supabase.rpc('expire_booking', {
+          p_booking_id: bookingId
+        });
       if (error) throw error;
       return data;
     },
