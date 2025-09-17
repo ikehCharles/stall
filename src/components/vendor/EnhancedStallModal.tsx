@@ -8,6 +8,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { BookingCalendar } from "./BookingCalendar";
 import { StallHoldTimer } from "./StallHoldTimer";
 import { useCreateStallHold } from "@/hooks/useStallHolds";
+import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 
 type StallInstance = Database['public']['Tables']['stall_instances']['Row'] & {
@@ -48,6 +49,7 @@ export function EnhancedStallModal({
   const [holdExpiry, setHoldExpiry] = useState<string | null>(null);
   const [isHolding, setIsHolding] = useState(false);
   
+  const { user } = useAuth();
   const createHold = useCreateStallHold();
 
   useEffect(() => {
@@ -62,6 +64,16 @@ export function EnhancedStallModal({
     setSelectedDates(dates);
     
     if (dates.length > 0 && stall && market) {
+      // Check authentication before proceeding
+      if (!user) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to reserve a stall.",
+          variant: "destructive"
+        });
+        return;
+      }
+
       try {
         setIsHolding(true);
         const dateStrings = dates.map(d => d.toISOString().split('T')[0]);
@@ -80,10 +92,23 @@ export function EnhancedStallModal({
           title: "Stall Reserved",
           description: `Stall ${stall.label} is held for 5 minutes while you complete your selection.`
         });
-      } catch (error) {
+      } catch (error: any) {
+        console.error('Hold creation error:', error);
+        
+        // Provide specific error messages based on the error
+        let errorMessage = "Could not reserve this stall for the selected dates.";
+        
+        if (error?.message?.includes("Authentication required")) {
+          errorMessage = "Please log in to reserve a stall.";
+        } else if (error?.message?.includes("not available")) {
+          errorMessage = "Selected dates are not available for this stall.";
+        } else if (error?.message?.includes("network") || error?.message?.includes("connection")) {
+          errorMessage = "Network error. Please check your connection and try again.";
+        }
+        
         toast({
           title: "Reservation Failed",
-          description: "Could not reserve this stall for the selected dates. They may no longer be available.",
+          description: errorMessage,
           variant: "destructive"
         });
         setSelectedDates([]);

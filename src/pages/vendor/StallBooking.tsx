@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -12,6 +12,7 @@ import { useStallHolds, useCleanupExpiredHolds } from "@/hooks/useStallHolds";
 import { useBookingDates } from "@/hooks/useBookingDates";
 import { EnhancedStallModal } from "@/components/vendor/EnhancedStallModal";
 import { StallHoldTimer } from "@/components/vendor/StallHoldTimer";
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { format } from "date-fns";
@@ -42,6 +43,8 @@ const EnhancedStallBooking = () => {
   const [selectedStall, setSelectedStall] = useState<StallInstance | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+
+  const { user, loading: authLoading } = useAuth();
 
   const { data: markets } = useMarkets();
   const { data: stallInstances, isLoading: stallsLoading } = useStallInstances(marketId || '');
@@ -162,6 +165,24 @@ const EnhancedStallBooking = () => {
     if (stall.isHeld) return '#f97316'; // orange - held
     return '#22c55e'; // green - available
   };
+
+  // Show loading state while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-lg text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect to login if not authenticated
+  if (!user) {
+    const currentPath = window.location.pathname;
+    return <Navigate to={`/login?next=${currentPath}`} replace />;
+  }
 
   if (stallsLoading) {
     return (
