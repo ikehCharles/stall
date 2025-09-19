@@ -1,5 +1,5 @@
 
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation } from "react-router-dom";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,14 +10,23 @@ import { useBookingDatesForBooking } from "@/hooks/useBookingDatesForBooking";
 import { useStallInstances } from "@/hooks/useStallInstances";
 import { PaymentModal } from "@/components/vendor/PaymentModal";
 import { BookingHoldTimer } from "@/components/vendor/BookingHoldTimer";
+import { useAdminApproveBooking, useAdminDeclineBooking } from "@/hooks/useAdminBookings";
+import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
+import { Check, X } from "lucide-react";
 
 const BookingDetails = () => {
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
+  const { userProfile } = useAuth();
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const { data: booking, isLoading, error } = useBookingDetails(id || '');
   const { data: bookingDates = [] } = useBookingDatesForBooking(id || '');
   const { data: allStalls = [] } = useStallInstances(booking?.market_id || '');
+  const approveBooking = useAdminApproveBooking();
+  const declineBooking = useAdminDeclineBooking();
+
+  const isAdminView = location.pathname.includes('/admin/');
 
   if (isLoading) {
     return (
@@ -61,23 +70,39 @@ const BookingDetails = () => {
         <h2 className="text-2xl font-bold">Booking not found</h2>
         <p className="text-muted-foreground mt-2">The booking you're looking for could not be found.</p>
         <Button asChild className="mt-4">
-          <Link to="/vendor/bookings">Back to Bookings</Link>
+          <Link to={isAdminView ? "/admin/bookings" : "/vendor/bookings"}>
+            Back to Bookings
+          </Link>
         </Button>
       </div>
     );
   }
 
   const getStatusBadge = (status: string) => {
-    const variants = {
-      paid: "bg-green-100 text-green-800",
-      completed: "bg-green-100 text-green-800",
-      partial: "bg-yellow-100 text-yellow-800",
-      pending: "bg-blue-100 text-blue-800",
-      cancelled: "bg-red-100 text-red-800",
-      expired: "bg-gray-100 text-gray-800",
-      failed: "bg-red-100 text-red-800"
-    };
-    return variants[status as keyof typeof variants] || variants.pending;
+    switch (status) {
+      case 'completed':
+        return "bg-green-100 text-green-800";
+      case 'approved':
+        return "bg-green-100 text-green-800";
+      case 'awaiting_admin':
+        return "bg-yellow-100 text-yellow-800";
+      case 'declined':
+        return "bg-red-100 text-red-800";
+      case 'pending':
+        return "bg-blue-100 text-blue-800";
+      case 'partial':
+        return "bg-yellow-100 text-yellow-800";
+      case 'cancelled':
+        return "bg-red-100 text-red-800";
+      case 'expired':
+        return "bg-gray-100 text-gray-800";
+      case 'failed':
+        return "bg-red-100 text-red-800";
+      case 'success':
+        return "bg-green-100 text-green-800";
+      default:
+        return "bg-blue-100 text-blue-800";
+    }
   };
 
   const formatBookingDates = (dates: string[]) => {
@@ -123,19 +148,43 @@ const BookingDetails = () => {
       <div className="flex items-center justify-between">
         <div>
           <Button asChild variant="ghost" className="mb-4">
-            <Link to="/vendor/bookings">← Back to Bookings</Link>
+            <Link to={isAdminView ? "/admin/bookings" : "/vendor/bookings"}>
+              ← Back to Bookings
+            </Link>
           </Button>
           <h1 className="text-3xl font-bold">Booking Details</h1>
           <p className="text-muted-foreground mt-1">{booking.markets?.name}</p>
         </div>
         <div className="space-x-2">
-          <Button asChild variant="outline">
-            <Link to={`/vendor/invoice/${booking.id}`}>View Invoice</Link>
-          </Button>
-          {isPaymentAvailable && (
+          {!isAdminView && (
+            <Button asChild variant="outline">
+              <Link to={`/vendor/invoice/${booking.id}`}>View Invoice</Link>
+            </Button>
+          )}
+          {!isAdminView && isPaymentAvailable && (
             <Button onClick={() => setPaymentModalOpen(true)}>
               Make Payment
             </Button>
+          )}
+          {isAdminView && booking?.status === 'awaiting_admin' && (
+            <>
+              <Button 
+                onClick={() => approveBooking.mutate(booking.id)}
+                disabled={approveBooking.isPending}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <Check className="w-4 h-4 mr-1" />
+                Approve
+              </Button>
+              <Button 
+                variant="destructive"
+                onClick={() => declineBooking.mutate(booking.id)}
+                disabled={declineBooking.isPending}
+              >
+                <X className="w-4 h-4 mr-1" />
+                Decline
+              </Button>
+            </>
           )}
         </div>
       </div>
@@ -252,9 +301,15 @@ const BookingDetails = () => {
             <CardContent className="space-y-4">
               <div className="space-y-3">
                 <div className="flex justify-between">
-                  <span>Status:</span>
+                  <span>Booking Status:</span>
                   <Badge className={getStatusBadge(booking.status)}>
-                    {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                    {booking.status.charAt(0).toUpperCase() + booking.status.slice(1).replace('_', ' ')}
+                  </Badge>
+                </div>
+                <div className="flex justify-between">
+                  <span>Payment Status:</span>
+                  <Badge className={getStatusBadge(booking.payment_status)}>
+                    {booking.payment_status.charAt(0).toUpperCase() + booking.payment_status.slice(1)}
                   </Badge>
                 </div>
                 <Separator />
@@ -293,8 +348,8 @@ const BookingDetails = () => {
         </div>
       </div>
       
-      {/* Payment Modal */}
-      {booking && (
+      {/* Payment Modal - only show for vendors */}
+      {booking && !isAdminView && (
         <PaymentModal 
           booking={booking}
           isOpen={paymentModalOpen}

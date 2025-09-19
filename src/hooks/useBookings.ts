@@ -114,7 +114,7 @@ export const useCreateBooking = () => {
       const daysCount = bookingData.selectedDates?.length || 1;
       const pricePerDay = bookingData.pricePerDay || (bookingData.totalAmount / daysCount);
 
-      // Create the booking with hold expiry
+      // Create the booking with hold expiry and new status
       const { data: booking, error: bookingError } = await supabase
         .from('bookings')
         .insert({
@@ -122,7 +122,8 @@ export const useCreateBooking = () => {
           market_id: bookingData.marketId,
           total_amount: bookingData.totalAmount,
           paid_amount: 0,
-          status: 'pending' as const,
+          status: 'awaiting_admin' as const,
+          payment_status: 'pending' as const,
           invoice_number: invoiceNumber,
           selected_dates: bookingData.selectedDates,
           days_count: daysCount,
@@ -187,32 +188,17 @@ export const useCreateBooking = () => {
   });
 };
 
-// Payment stub functionality
+// Payment stub functionality - now only handles payment status
 export const usePaymentStub = () => {
   return useMutation({
     mutationFn: async (bookingId: string) => {
       // Simulate payment processing delay
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // First get the booking to get total amount
-      const { data: booking, error: fetchError } = await supabase
-        .from('bookings')
-        .select('total_amount')
-        .eq('id', bookingId)
-        .single();
-
-      if (fetchError) throw fetchError;
-
-      // Update booking status to paid
-      const { data, error } = await supabase
-        .from('bookings')
-        .update({ 
-          status: 'paid',
-          paid_amount: booking.total_amount
-        })
-        .eq('id', bookingId)
-        .select()
-        .single();
+      // Update payment status to success
+      const { data, error } = await supabase.rpc('simulate_payment_success', {
+        p_booking_id: bookingId
+      });
 
       if (error) throw error;
       return data;
