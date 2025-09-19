@@ -101,7 +101,6 @@ export type Database = {
           invoice_number: string
           market_id: string
           paid_amount: number
-          payment_status: Database["public"]["Enums"]["payment_status"]
           price_per_day: number | null
           selected_dates: string[] | null
           status: Database["public"]["Enums"]["booking_status"]
@@ -117,7 +116,6 @@ export type Database = {
           invoice_number: string
           market_id: string
           paid_amount?: number
-          payment_status?: Database["public"]["Enums"]["payment_status"]
           price_per_day?: number | null
           selected_dates?: string[] | null
           status?: Database["public"]["Enums"]["booking_status"]
@@ -133,7 +131,6 @@ export type Database = {
           invoice_number?: string
           market_id?: string
           paid_amount?: number
-          payment_status?: Database["public"]["Enums"]["payment_status"]
           price_per_day?: number | null
           selected_dates?: string[] | null
           status?: Database["public"]["Enums"]["booking_status"]
@@ -567,14 +564,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      admin_approve_booking: {
-        Args: { p_booking_id: string }
-        Returns: Json
-      }
-      admin_decline_booking: {
-        Args: { p_booking_id: string }
-        Returns: Json
-      }
       check_stall_date_availability: {
         Args: { dates: string[]; market_id: string; stall_id: string }
         Returns: boolean
@@ -622,12 +611,8 @@ export type Database = {
         | "expired"
         | "completed"
         | "failed"
-        | "awaiting_admin"
-        | "approved"
-        | "declined"
       kyc_status: "PENDING" | "APPROVED" | "REJECTED"
       market_status: "DRAFT" | "PUBLISHED" | "ARCHIVED"
-      payment_status: "pending" | "success" | "failed" | "cancelled"
       stall_shape: "RECT" | "CIRCLE" | "POLY"
       stall_status: "AVAILABLE" | "BOOKED" | "BLOCKED"
     }
@@ -766,13 +751,9 @@ export const Constants = {
         "expired",
         "completed",
         "failed",
-        "awaiting_admin",
-        "approved",
-        "declined",
       ],
       kyc_status: ["PENDING", "APPROVED", "REJECTED"],
       market_status: ["DRAFT", "PUBLISHED", "ARCHIVED"],
-      payment_status: ["pending", "success", "failed", "cancelled"],
       stall_shape: ["RECT", "CIRCLE", "POLY"],
       stall_status: ["AVAILABLE", "BOOKED", "BLOCKED"],
     },

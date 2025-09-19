@@ -92,7 +92,6 @@ const AppContent = () => {
           <Route path="markets/:marketId/canvas" element={<MarketCanvas />} />
           <Route path="templates" element={<StallTemplates />} />
           <Route path="bookings" element={<AdminBookings />} />
-          <Route path="bookings/:id" element={<BookingDetails />} />
           <Route path="kyc" element={<KYCReview />} />
           <Route path="settings" element={<Settings />} />
         </Route>

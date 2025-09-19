@@ -37,10 +37,9 @@ export function PaymentModal({ booking, isOpen, onClose }: PaymentModalProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['booking-details'] });
       queryClient.invalidateQueries({ queryKey: ['vendor-bookings'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-bookings'] });
       toast({
         title: 'Payment Successful',
-        description: 'Your payment has been processed successfully.',
+        description: 'Your booking has been completed successfully.',
       });
       onClose();
     },
@@ -64,10 +63,9 @@ export function PaymentModal({ booking, isOpen, onClose }: PaymentModalProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['booking-details'] });
       queryClient.invalidateQueries({ queryKey: ['vendor-bookings'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-bookings'] });
       toast({
         title: 'Payment Failed',
-        description: 'Payment failed. Your booking status remains unchanged.',
+        description: 'Payment failed. Your booking has been cancelled and stalls are now available for others.',
         variant: 'destructive',
       });
       onClose();
@@ -119,16 +117,9 @@ export function PaymentModal({ booking, isOpen, onClose }: PaymentModalProps) {
             </div>
             
             <div className="flex justify-between items-center">
-              <span className="text-sm font-medium">Booking Status:</span>
+              <span className="text-sm font-medium">Status:</span>
               <Badge variant="secondary">
                 {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
-              </Badge>
-            </div>
-            
-            <div className="flex justify-between items-center">
-              <span className="text-sm font-medium">Payment Status:</span>
-              <Badge variant={booking.payment_status === 'success' ? 'default' : booking.payment_status === 'failed' ? 'destructive' : 'secondary'}>
-                {booking.payment_status.charAt(0).toUpperCase() + booking.payment_status.slice(1)}
               </Badge>
             </div>
 
