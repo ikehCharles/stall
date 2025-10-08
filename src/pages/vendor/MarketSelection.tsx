@@ -9,8 +9,17 @@ import { format } from "date-fns";
 const MarketSelection = () => {
   const { data: markets, isLoading, error } = useMarkets();
 
-  // Only show published markets for vendor booking
-  const publishedMarkets = markets?.filter(market => market.status === 'PUBLISHED') || [];
+  // Only show published markets that are currently active (within date range)
+  const currentDate = new Date();
+  const publishedMarkets = markets?.filter(market => {
+    if (market.status !== 'PUBLISHED') return false;
+    
+    const startDate = new Date(market.start_at);
+    const endDate = new Date(market.end_at);
+    
+    // Market must have started and not yet ended
+    return currentDate >= startDate && currentDate <= endDate;
+  }) || [];
 
   if (isLoading) {
     return (
@@ -59,7 +68,7 @@ const MarketSelection = () => {
             <div className="py-12">
               <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">No Markets Available</h3>
-              <p className="text-gray-600">There are currently no published markets available for booking.</p>
+              <p className="text-gray-600">There are currently no active markets available for booking. Markets must be published and within their operational date range.</p>
             </div>
           </CardContent>
         </Card>
