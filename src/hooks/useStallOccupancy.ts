@@ -25,7 +25,7 @@ export const useStallOccupancy = (marketId?: string) => {
         .from('booking_dates')
         .select('stall_instance_id')
         .eq('status', 'booked')
-        .gte('date', new Date().toISOString().split('T')[0]); // Only current/future bookings
+        .gte('booking_date', new Date().toISOString().split('T')[0]); // Only current/future bookings
 
       if (bookedError) {
         console.error('Error fetching booked dates:', bookedError);
