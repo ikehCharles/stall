@@ -60,10 +60,12 @@ export function BookingCalendar({
       );
       onDateSelect(newDates);
     } else {
-      // Add date if under limit
-      if (selectedDates.length < maxDays) {
-        onDateSelect([...selectedDates, clickedDate]);
+      // Check if limit reached
+      if (selectedDates.length >= maxDays) {
+        // Show feedback that limit is reached (already handled by UI below)
+        return;
       }
+      onDateSelect([...selectedDates, clickedDate]);
     }
   };
 
@@ -192,8 +194,8 @@ export function BookingCalendar({
         )}
         
         {selectedDates.length >= maxDays && (
-          <p className="text-sm text-muted-foreground mt-2">
-            Maximum {maxDays} days selected.
+          <p className="text-sm font-medium text-amber-600 bg-amber-50 p-3 rounded-md mt-2">
+            ⚠️ Maximum {maxDays} days selected. Remove a date to select another.
           </p>
         )}
       </CardContent>
