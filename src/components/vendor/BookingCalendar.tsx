@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { useStallBookingDates } from "@/hooks/useBookingDates";
 import { useStallHolds } from "@/hooks/useStallHolds";
 import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from "date-fns";
+import { AlertCircle, Info } from "lucide-react";
 
 interface BookingCalendarProps {
   marketId: string;
@@ -187,15 +189,27 @@ export function BookingCalendar({
           </div>
         )}
         
+        {selectedDates.length >= maxDays && (
+          <Alert className="mt-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              You've reached the maximum of {maxDays} days per booking. To select different dates, first deselect some of your current selections.
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {selectedDates.length > 0 && selectedDates.length < maxDays && (
+          <Alert className="mt-4">
+            <Info className="h-4 w-4" />
+            <AlertDescription>
+              You can select up to {maxDays - selectedDates.length} more day{maxDays - selectedDates.length !== 1 ? 's' : ''}.
+            </AlertDescription>
+          </Alert>
+        )}
+        
         {selectedDates.length < minDays && (
           <p className="text-sm text-muted-foreground mt-2">
             Select at least {minDays} day{minDays > 1 ? 's' : ''} to continue.
-          </p>
-        )}
-        
-        {selectedDates.length >= maxDays && (
-          <p className="text-sm font-medium text-amber-600 bg-amber-50 p-3 rounded-md mt-2">
-            ⚠️ Maximum {maxDays} days selected. Remove a date to select another.
           </p>
         )}
       </CardContent>
