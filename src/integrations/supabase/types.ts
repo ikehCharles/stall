@@ -578,6 +578,10 @@ export type Database = {
         Args: { p_booking_id: string }
         Returns: Json
       }
+      cancel_booking: {
+        Args: { p_booking_id: string }
+        Returns: Json
+      }
       check_stall_date_availability: {
         Args: { dates: string[]; market_id: string; stall_id: string }
         Returns: boolean
@@ -623,15 +627,10 @@ export type Database = {
       app_role: "vendor" | "admin"
       booking_status:
         | "pending"
-        | "paid"
-        | "partial"
+        | "approved"
+        | "completed"
         | "cancelled"
         | "expired"
-        | "completed"
-        | "failed"
-        | "awaiting_admin"
-        | "approved"
-        | "declined"
       kyc_status: "PENDING" | "APPROVED" | "REJECTED"
       market_status: "DRAFT" | "PUBLISHED" | "ARCHIVED"
       payment_status: "pending" | "success" | "failed" | "cancelled"
@@ -768,15 +767,10 @@ export const Constants = {
       app_role: ["vendor", "admin"],
       booking_status: [
         "pending",
-        "paid",
-        "partial",
+        "approved",
+        "completed",
         "cancelled",
         "expired",
-        "completed",
-        "failed",
-        "awaiting_admin",
-        "approved",
-        "declined",
       ],
       kyc_status: ["PENDING", "APPROVED", "REJECTED"],
       market_status: ["DRAFT", "PUBLISHED", "ARCHIVED"],

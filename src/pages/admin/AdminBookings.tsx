@@ -21,18 +21,16 @@ const AdminBookings = () => {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
+      case 'pending':
+        return <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">Pending</Badge>;
+      case 'approved':
+        return <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">Approved</Badge>;
       case 'completed':
         return <Badge variant="default">Completed</Badge>;
-      case 'approved':
-        return <Badge className="bg-green-100 text-green-800">Approved</Badge>;
-      case 'pending':
-        return <Badge variant="secondary">Pending</Badge>;
-      case 'awaiting_admin':
-        return <Badge className="bg-yellow-100 text-yellow-800">Awaiting Admin</Badge>;
-      case 'declined':
-        return <Badge variant="destructive">Declined</Badge>;
       case 'cancelled':
         return <Badge variant="destructive">Cancelled</Badge>;
+      case 'expired':
+        return <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200">Expired</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -121,11 +119,10 @@ const AdminBookings = () => {
                 <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="awaiting_admin">Awaiting Admin</SelectItem>
                   <SelectItem value="approved">Approved</SelectItem>
-                  <SelectItem value="declined">Declined</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
                   <SelectItem value="cancelled">Cancelled</SelectItem>
+                  <SelectItem value="expired">Expired</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -170,7 +167,7 @@ const AdminBookings = () => {
                       <TableCell>{getPaymentStatusBadge(booking.payment_status)}</TableCell>
                       <TableCell>
                         <div className="flex space-x-2">
-                          {booking.status === 'awaiting_admin' && (
+                          {booking.status === 'pending' && (
                             <>
                               <Button 
                                 variant="outline" 

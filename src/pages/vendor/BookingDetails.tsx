@@ -1,11 +1,11 @@
 
-import { useParams, Link, useLocation } from "react-router-dom";
+import { useParams, Link, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { useBookingDetails } from "@/hooks/useBookings";
+import { useBookingDetails, useCancelBooking } from "@/hooks/useBookings";
 import { useBookingDatesForBooking } from "@/hooks/useBookingDatesForBooking";
 import { useStallInstances } from "@/hooks/useStallInstances";
 import { PaymentModal } from "@/components/vendor/PaymentModal";
@@ -14,17 +14,31 @@ import { useAdminApproveBooking, useAdminDeclineBooking } from "@/hooks/useAdmin
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { Check, X } from "lucide-react";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const BookingDetails = () => {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
+  const navigate = useNavigate();
   const { userProfile } = useAuth();
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const { data: booking, isLoading, error } = useBookingDetails(id || '');
   const { data: bookingDates = [] } = useBookingDatesForBooking(id || '');
   const { data: allStalls = [] } = useStallInstances(booking?.market_id || '');
   const approveBooking = useAdminApproveBooking();
   const declineBooking = useAdminDeclineBooking();
+  const cancelBooking = useCancelBooking();
 
   const isAdminView = location.pathname.includes('/admin/');
 
@@ -80,28 +94,22 @@ const BookingDetails = () => {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'completed':
-        return "bg-green-100 text-green-800";
-      case 'approved':
-        return "bg-green-100 text-green-800";
-      case 'awaiting_admin':
-        return "bg-yellow-100 text-yellow-800";
-      case 'declined':
-        return "bg-red-100 text-red-800";
       case 'pending':
-        return "bg-blue-100 text-blue-800";
-      case 'partial':
-        return "bg-yellow-100 text-yellow-800";
+        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
+      case 'approved':
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
+      case 'completed':
+        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
       case 'cancelled':
-        return "bg-red-100 text-red-800";
+        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
       case 'expired':
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
       case 'failed':
-        return "bg-red-100 text-red-800";
+        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
       case 'success':
-        return "bg-green-100 text-green-800";
+        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
       default:
-        return "bg-blue-100 text-blue-800";
+        return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
     }
   };
 
@@ -137,11 +145,29 @@ const BookingDetails = () => {
   };
 
   const isPaymentAvailable = booking && 
+    booking.status === 'approved' &&  // Must be approved by admin first
     ['pending', 'failed'].includes(booking.payment_status) && 
     booking.paid_amount < booking.total_amount &&
     (!booking.hold_expires_at || new Date(booking.hold_expires_at) > new Date());
 
+  const isCancellable = booking &&
+    ['pending', 'approved'].includes(booking.status) &&
+    booking.payment_status !== 'success';
+
   const bookedStallIds = booking?.booking_stalls?.map(bs => bs.stall_instance_id) || [];
+
+  const handleCancelBooking = async () => {
+    if (!id) return;
+    try {
+      await cancelBooking.mutateAsync(id);
+      toast.success('Booking cancelled successfully');
+      setCancelDialogOpen(false);
+      navigate('/vendor/bookings');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to cancel booking');
+      console.error('Error cancelling booking:', error);
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -166,7 +192,15 @@ const BookingDetails = () => {
               Make Payment
             </Button>
           )}
-          {isAdminView && booking?.status === 'awaiting_admin' && (
+          {!isAdminView && isCancellable && (
+            <Button 
+              onClick={() => setCancelDialogOpen(true)}
+              variant="destructive"
+            >
+              Cancel Booking
+            </Button>
+          )}
+          {isAdminView && booking?.status === 'pending' && (
             <>
               <Button 
                 onClick={() => approveBooking.mutate(booking.id)}
@@ -356,6 +390,28 @@ const BookingDetails = () => {
           onClose={() => setPaymentModalOpen(false)}
         />
       )}
+      
+      {/* Cancel Booking Dialog */}
+      <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Booking?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to cancel this booking? This action cannot be undone.
+              All reserved stalls and dates will be released.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep Booking</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleCancelBooking}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Cancel Booking
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

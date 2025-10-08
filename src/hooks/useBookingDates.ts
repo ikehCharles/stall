@@ -24,7 +24,7 @@ export const useBookingDates = (marketId: string) => {
           )
         `)
         .eq('bookings.market_id', marketId)
-        .in('bookings.status', ['paid', 'pending', 'partial']);
+        .in('bookings.status', ['pending', 'approved', 'completed']);
       
       if (error) throw error;
       return data;
@@ -46,7 +46,7 @@ export const useStallBookingDates = (stallInstanceId: string) => {
           )
         `)
         .eq('stall_instance_id', stallInstanceId)
-        .in('bookings.status', ['paid', 'pending', 'partial']);
+        .in('bookings.status', ['pending', 'approved', 'completed']);
       
       if (error) throw error;
       return data.map(item => item.booking_date);

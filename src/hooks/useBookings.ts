@@ -130,7 +130,7 @@ export const useCreateBooking = () => {
           market_id: bookingData.marketId,
           total_amount: bookingData.totalAmount,
           paid_amount: 0,
-          status: 'awaiting_admin' as const,
+          status: 'pending' as const,
           payment_status: 'pending' as const,
           invoice_number: invoiceNumber,
           selected_dates: bookingData.selectedDates,
@@ -210,6 +210,29 @@ export const usePaymentStub = () => {
 
       if (error) throw error;
       return data;
+    },
+  });
+};
+
+// Manual cancellation functionality
+export const useCancelBooking = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (bookingId: string) => {
+      const { data, error } = await supabase.rpc('cancel_booking', {
+        p_booking_id: bookingId
+      });
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vendor-bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['booking-details'] });
+      queryClient.invalidateQueries({ queryKey: ['stall-holds'] });
+      queryClient.invalidateQueries({ queryKey: ['stall-instances'] });
+      queryClient.invalidateQueries({ queryKey: ['booking-dates'] });
     },
   });
 };
