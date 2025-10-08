@@ -51,9 +51,9 @@ const AppContent = () => {
   // Check if user needs email verification
   const needsEmailVerification = user && !user.email_confirmed_at;
   
-  // Check if user needs KYC
+  // Check if user needs KYC (for redirects)
   const needsKYC = userProfile?.role === 'vendor' && 
-    (!userProfile.kyc_status || userProfile.kyc_status === 'PENDING');
+    userProfile.kyc_status !== 'APPROVED';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
@@ -71,14 +71,13 @@ const AppContent = () => {
             <VendorLayout />
           </ProtectedRoute>
         }>
-          <Route index element={needsKYC ? <Navigate to="/vendor/kyc" /> : <VendorDashboard />} />
-          <Route path="bookings" element={needsKYC ? <Navigate to="/vendor/kyc" /> : <MyBookings />} />
-          <Route path="bookings/:id" element={needsKYC ? <Navigate to="/vendor/kyc" /> : <BookingDetails />} />
-          <Route path="markets" element={needsKYC ? <Navigate to="/vendor/kyc" /> : <MarketSelection />} />
-          <Route path="book-stall/:marketId" element={needsKYC ? <Navigate to="/vendor/kyc" /> : <StallBooking />} />
-          <Route path="kyc" element={<KYCPage />} />
+          <Route index element={needsKYC ? <Navigate to="/vendor/profile?tab=verification" /> : <VendorDashboard />} />
+          <Route path="bookings" element={needsKYC ? <Navigate to="/vendor/profile?tab=verification" /> : <MyBookings />} />
+          <Route path="bookings/:id" element={needsKYC ? <Navigate to="/vendor/profile?tab=verification" /> : <BookingDetails />} />
+          <Route path="markets" element={needsKYC ? <Navigate to="/vendor/profile?tab=verification" /> : <MarketSelection />} />
+          <Route path="book-stall/:marketId" element={needsKYC ? <Navigate to="/vendor/profile?tab=verification" /> : <StallBooking />} />
           <Route path="profile" element={<VendorProfile />} />
-          <Route path="invoice/:id" element={needsKYC ? <Navigate to="/vendor/kyc" /> : <InvoiceView />} />
+          <Route path="invoice/:id" element={needsKYC ? <Navigate to="/vendor/profile?tab=verification" /> : <InvoiceView />} />
         </Route>
         
         {/* Admin Routes */}

@@ -24,7 +24,21 @@ export interface BookingWithStalls extends Booking {
     name: string;
     start_at: string;
     end_at: string;
+    theme: string;
   };
+  profiles?: {
+    full_name: string | null;
+    email: string;
+    phone_number: string | null;
+    company_name: string | null;
+    address: string | null;
+  };
+  booking_dates?: {
+    id: string;
+    stall_instance_id: string;
+    booking_date: string;
+    status: string;
+  }[];
 }
 
 export const useVendorBookings = () => {
@@ -35,7 +49,7 @@ export const useVendorBookings = () => {
         .from('bookings')
         .select(`
           *,
-          markets(name, start_at, end_at),
+          markets(name, start_at, end_at, theme),
           booking_stalls(
             *,
             stall_instances(
@@ -65,7 +79,7 @@ export const useBookingDetails = (bookingId: string) => {
         .from('bookings')
         .select(`
           *,
-          markets(name, start_at, end_at),
+          markets(name, start_at, end_at, theme),
           booking_stalls(
             *,
             stall_instances(
@@ -77,13 +91,30 @@ export const useBookingDetails = (bookingId: string) => {
               height,
               stall_templates(name)
             )
+          ),
+          booking_dates(
+            id,
+            stall_instance_id,
+            booking_date,
+            status
           )
         `)
         .eq('id', bookingId)
         .single();
       
       if (error) throw error;
-      return data as BookingWithStalls;
+
+      // Fetch profile separately using user_id
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name, email, phone_number, company_name, address')
+        .eq('id', data.user_id)
+        .single();
+
+      return {
+        ...data,
+        profiles: profile || undefined
+      } as BookingWithStalls;
     },
     enabled: !!bookingId,
   });

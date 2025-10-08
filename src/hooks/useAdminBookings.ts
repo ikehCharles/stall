@@ -34,7 +34,8 @@ export const useAdminBookings = () => {
             id,
             name,
             start_at,
-            end_at
+            end_at,
+            theme
           )
         `)
         .order('created_at', { ascending: false });

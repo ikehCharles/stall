@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -54,6 +54,20 @@ export const MarketDialog = ({ open, onOpenChange, market, onSuccess }: MarketDi
       banner_url: market?.banner_url || '',
     },
   });
+
+  // ADM01: Preload form when market prop changes
+  useEffect(() => {
+    if (market) {
+      form.reset({
+        name: market.name || '',
+        theme: market.theme || 'default',
+        start_at: market.start_at ? new Date(market.start_at) : undefined,
+        end_at: market.end_at ? new Date(market.end_at) : undefined,
+        banner_url: market.banner_url || '',
+      });
+      setBannerUrl(market.banner_url || '');
+    }
+  }, [market, form]);
 
   const handleBannerUpload = async (file: File) => {
     try {
@@ -221,7 +235,11 @@ export const MarketDialog = ({ open, onOpenChange, market, onSuccess }: MarketDi
                           mode="single"
                           selected={field.value}
                           onSelect={field.onChange}
-                          disabled={(date) => date < new Date()}
+                          disabled={(date) => {
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            return date < today;
+                          }}
                           initialFocus
                         />
                       </PopoverContent>
@@ -261,7 +279,11 @@ export const MarketDialog = ({ open, onOpenChange, market, onSuccess }: MarketDi
                           mode="single"
                           selected={field.value}
                           onSelect={field.onChange}
-                          disabled={(date) => date < new Date()}
+                          disabled={(date) => {
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            return date < today;
+                          }}
                           initialFocus
                         />
                       </PopoverContent>
