@@ -137,7 +137,7 @@ const BookingDetails = () => {
   };
 
   const isPaymentAvailable = booking && 
-    ['pending', 'partial'].includes(booking.status) && 
+    ['pending', 'failed'].includes(booking.payment_status) && 
     booking.paid_amount < booking.total_amount &&
     (!booking.hold_expires_at || new Date(booking.hold_expires_at) > new Date());
 
@@ -228,7 +228,7 @@ const BookingDetails = () => {
                 </div>
               </div>
               
-              {booking.hold_expires_at && ['pending', 'partial'].includes(booking.status) && (
+              {booking.hold_expires_at && ['pending', 'failed'].includes(booking.payment_status) && (
                 <div className="pt-2">
                   <BookingHoldTimer 
                     bookingId={booking.id}
