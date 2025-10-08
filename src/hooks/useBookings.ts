@@ -105,13 +105,21 @@ export const useCreateBooking = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No authenticated user');
 
+      // Validate 5-day maximum
+      const daysCount = bookingData.selectedDates?.length || 1;
+      if (daysCount > 5) {
+        throw new Error('Maximum 5 days can be selected per booking');
+      }
+      if (daysCount < 1) {
+        throw new Error('At least 1 day must be selected');
+      }
+
       // Generate invoice number
       const { data: invoiceNumber, error: invoiceError } = await supabase
         .rpc('generate_invoice_number');
       
       if (invoiceError) throw invoiceError;
 
-      const daysCount = bookingData.selectedDates?.length || 1;
       const pricePerDay = bookingData.pricePerDay || (bookingData.totalAmount / daysCount);
 
       // Create the booking with hold expiry and new status
