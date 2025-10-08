@@ -21,6 +21,7 @@ export type Database = {
           created_at: string
           id: string
           stall_instance_id: string
+          status: Database["public"]["Enums"]["stall_date_status"]
         }
         Insert: {
           booking_date: string
@@ -28,6 +29,7 @@ export type Database = {
           created_at?: string
           id?: string
           stall_instance_id: string
+          status?: Database["public"]["Enums"]["stall_date_status"]
         }
         Update: {
           booking_date?: string
@@ -35,6 +37,7 @@ export type Database = {
           created_at?: string
           id?: string
           stall_instance_id?: string
+          status?: Database["public"]["Enums"]["stall_date_status"]
         }
         Relationships: [
           {
@@ -595,6 +598,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      generate_stall_label: {
+        Args: { p_market_id: string }
+        Returns: string
+      }
       get_user_role: {
         Args: { user_uuid: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -628,6 +635,7 @@ export type Database = {
       kyc_status: "PENDING" | "APPROVED" | "REJECTED"
       market_status: "DRAFT" | "PUBLISHED" | "ARCHIVED"
       payment_status: "pending" | "success" | "failed" | "cancelled"
+      stall_date_status: "available" | "reserved" | "booked"
       stall_shape: "RECT" | "CIRCLE" | "POLY"
       stall_status: "AVAILABLE" | "BOOKED" | "BLOCKED"
     }
@@ -773,6 +781,7 @@ export const Constants = {
       kyc_status: ["PENDING", "APPROVED", "REJECTED"],
       market_status: ["DRAFT", "PUBLISHED", "ARCHIVED"],
       payment_status: ["pending", "success", "failed", "cancelled"],
+      stall_date_status: ["available", "reserved", "booked"],
       stall_shape: ["RECT", "CIRCLE", "POLY"],
       stall_status: ["AVAILABLE", "BOOKED", "BLOCKED"],
     },
