@@ -24,12 +24,13 @@ ALTER TABLE bookings ALTER COLUMN status SET DEFAULT 'pending'::booking_status;
 DROP TYPE booking_status_old;
 
 -- Step 3: Update simulate_payment_success - marks booking as completed
+DROP FUNCTION IF EXISTS public.simulate_payment_success(uuid);
 CREATE OR REPLACE FUNCTION public.simulate_payment_success(p_booking_id uuid)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path TO 'public'
-AS $function$
+AS $$
 DECLARE
   v_booking bookings%ROWTYPE;
   v_user_id uuid;
@@ -66,15 +67,16 @@ BEGIN
 
   RETURN jsonb_build_object('status', 'success', 'message', 'Payment processed successfully');
 END;
-$function$;
+$$;
 
 -- Step 4: Update simulate_payment_failure - cancels booking and releases stalls
+DROP FUNCTION IF EXISTS public.simulate_payment_failure(uuid);
 CREATE OR REPLACE FUNCTION public.simulate_payment_failure(p_booking_id uuid)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path TO 'public'
-AS $function$
+AS $$
 DECLARE
   v_booking bookings%ROWTYPE;
   v_user_id uuid;
@@ -113,7 +115,7 @@ BEGIN
 
   RETURN jsonb_build_object('status', 'success', 'message', 'Payment marked as failed and booking cancelled');
 END;
-$function$;
+$$;
 
 -- Step 5: Update admin_approve_booking - only approves, separate from payment
 CREATE OR REPLACE FUNCTION public.admin_approve_booking(p_booking_id uuid)
@@ -121,7 +123,7 @@ RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path TO 'public'
-AS $function$
+AS $$
 DECLARE
   v_booking bookings%ROWTYPE;
   v_user_id uuid;
@@ -155,7 +157,7 @@ BEGIN
     'booking_status', 'approved'
   );
 END;
-$function$;
+$$;
 
 -- Step 6: Update admin_decline_booking - fully cancels and releases
 CREATE OR REPLACE FUNCTION public.admin_decline_booking(p_booking_id uuid)
@@ -163,7 +165,7 @@ RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path TO 'public'
-AS $function$
+AS $$
 DECLARE
   v_booking bookings%ROWTYPE;
   v_user_id uuid;
@@ -201,15 +203,16 @@ BEGIN
 
   RETURN jsonb_build_object('status', 'success', 'message', 'Booking declined and dates released');
 END;
-$function$;
+$$;
 
 -- Step 7: Update expire_booking - also cancels payment
+DROP FUNCTION IF EXISTS public.expire_booking(uuid);
 CREATE OR REPLACE FUNCTION public.expire_booking(p_booking_id uuid)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path TO 'public'
-AS $function$
+AS $$
 DECLARE
   v_booking bookings%ROWTYPE;
   v_user_id uuid;
@@ -254,7 +257,7 @@ BEGIN
 
   RETURN jsonb_build_object('status', 'success', 'message', 'Booking expired and holds released');
 END;
-$function$;
+$$;
 
 -- Step 8: Create NEW cancel_booking function for vendor-initiated cancellation
 CREATE OR REPLACE FUNCTION public.cancel_booking(p_booking_id uuid)
@@ -262,7 +265,7 @@ RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path TO 'public'
-AS $function$
+AS $$
 DECLARE
   v_booking bookings%ROWTYPE;
   v_user_id uuid;
@@ -306,4 +309,4 @@ BEGIN
 
   RETURN jsonb_build_object('status', 'success', 'message', 'Booking cancelled successfully');
 END;
-$function$;
+$$;

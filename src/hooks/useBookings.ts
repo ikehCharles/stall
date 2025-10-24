@@ -162,7 +162,6 @@ export const useCreateBooking = () => {
           total_amount: bookingData.totalAmount,
           paid_amount: 0,
           status: 'pending' as const,
-          payment_status: 'pending' as const,
           invoice_number: invoiceNumber,
           selected_dates: bookingData.selectedDates,
           days_count: daysCount,

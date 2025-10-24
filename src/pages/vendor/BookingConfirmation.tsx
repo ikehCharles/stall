@@ -1,5 +1,5 @@
 
-import { useParams, Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useParams, Link, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,39 +26,28 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { ENV, PAYMENT_SWITCH_ENUM } from "@/lib/utils";
-import { useCreatePayment } from "@/hooks/use-payment";
+import { useCapturePayment, useCreatePayment } from "@/hooks/use-payment";
 
-const BookingDetails = () => {
+const BookingConfirmation = () => {
   const { id } = useParams<{ id: string }>();
-  const [searchParams] = useSearchParams()
   const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
   const navigate = useNavigate();
   const { userProfile } = useAuth();
-  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
-  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
-  const { data: booking, isLoading, error } = useBookingDetails(id || '');
   const { data: bookingDates = [] } = useBookingDatesForBooking(id || '');
+  const { data: booking, isLoading: isLoadingBooking } = useBookingDetails(id || '');
   const { data: allStalls = [] } = useStallInstances(booking?.market_id || '');
-  const approveBooking = useAdminApproveBooking();
-  const declineBooking = useAdminDeclineBooking();
-  const cancelBooking = useCancelBooking();
-  const createPayment = useCreatePayment();
-  const isAdminView = location.pathname.includes('/admin/');
-  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+const { mutateAsync: capturePayment, isPending: isLoading, error }  = useCapturePayment();
 
+useEffect(()=>{
+  if (queryParams.get('token')) {
+    capturePayment(queryParams.get('token') || '')
+  }else{
+    navigate(`/vendor/bookings/${id}`)
+  }
+},[])
 
-   // look for search params status=processing and set dependency on payment_status, if it changes to success, remove search param
-   useEffect(() => {
-    if (searchParams.get('status') === 'processing') {
-      setIsProcessingPayment(true);
-      if (booking?.payment_status === 'success') {
-        navigate(`/vendor/bookings/${id}`);
-        setIsProcessingPayment(false);
-      }
-    }
-  }, [booking?.payment_status, id, navigate, searchParams]);
-
-  if (isLoading) {
+  if (isLoading || isLoadingBooking) {
     return (
       <div className="space-y-8">
         <div className="animate-pulse">
@@ -94,13 +83,13 @@ const BookingDetails = () => {
     );
   }
 
-  if (error || !booking) {
+  if (error) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-2xl font-bold">Booking not found</h2>
-        <p className="text-muted-foreground mt-2">The booking you're looking for could not be found.</p>
+        <h2 className="text-2xl font-bold">Error verifying payment</h2>
+        <p className="text-muted-foreground mt-2">Kindly try again</p>
         <Button asChild className="mt-4">
-          <Link to={isAdminView ? "/admin/bookings" : "/vendor/bookings"}>
+          <Link to={"/vendor/bookings"}>
             Back to Bookings
           </Link>
         </Button>
@@ -160,102 +149,27 @@ const BookingDetails = () => {
     return groups.join(', ');
   };
 
-  console.warn(booking.payment_status, "payment status");
-
-  const isPaymentAvailable = booking && 
-    booking.status === 'approved' &&  // Must be approved by admin first
-    (!booking.payment_status || ['failed'].includes(booking.payment_status))&& 
-    booking.paid_amount < booking.total_amount &&
-    (!booking.hold_expires_at || new Date(booking.hold_expires_at) > new Date());
-
-  const isCancellable = booking &&
-    ['approved'].includes(booking.status) &&
-    booking.payment_status !== 'success';
-
   const bookedStallIds = booking?.booking_stalls?.map(bs => bs.stall_instance_id) || [];
 
-  const handleCancelBooking = async () => {
-    if (!id) return;
-    try {
-      await cancelBooking.mutateAsync(id);
-      toast.success('Booking cancelled successfully');
-      setCancelDialogOpen(false);
-      navigate('/vendor/bookings');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to cancel booking');
-      console.error('Error cancelling booking:', error);
-    }
-  };
-
- 
-
-  
-
-  const makePayment = () => {
-    if(ENV.PAYMENT_SWITCH === PAYMENT_SWITCH_ENUM.SIMULATION) {
-      setPaymentModalOpen(true);
-      return
-    }
-    createPayment.mutate({
-      bookingId: booking.id,
-      amount: booking.total_amount
-    })
-  };
-
-
-  
 
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
           <Button asChild variant="ghost" className="mb-4">
-            <Link to={isAdminView ? "/admin/bookings" : "/vendor/bookings"}>
+            <Link to={"/vendor/bookings"}>
               ← Back to Bookings
             </Link>
           </Button>
           <h1 className="text-3xl font-bold">Booking Details</h1>
-          <p className="text-muted-foreground mt-1">{booking.markets?.name}</p>
+          <p className="text-muted-foreground mt-1">{booking?.markets?.name}</p>
         </div>
         <div className="space-x-2">
-          {!isAdminView && (
             <Button asChild variant="outline">
               <Link to={`/vendor/invoice/${booking.id}`}>View Invoice</Link>
             </Button>
-          )}
-          {!isAdminView && isPaymentAvailable && (
-            <Button disabled={isProcessingPayment} onClick={makePayment}>
-              {isProcessingPayment ? "Processing Payment..." : "Make Payment"}
-            </Button>
-          )}
-          {!isAdminView && isCancellable && !isProcessingPayment && (
-            <Button 
-              onClick={() => setCancelDialogOpen(true)}
-              variant="destructive"
-            >
-              Cancel Booking
-            </Button>
-          )}
-          {isAdminView && booking?.status === 'pending' && (
-            <>
-              <Button 
-                onClick={() => approveBooking.mutate(booking.id)}
-                disabled={approveBooking.isPending}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                <Check className="w-4 h-4 mr-1" />
-                Approve
-              </Button>
-              <Button 
-                variant="destructive"
-                onClick={() => declineBooking.mutate(booking.id)}
-                disabled={declineBooking.isPending}
-              >
-                <X className="w-4 h-4 mr-1" />
-                Decline
-              </Button>
-            </>
-          )}
+          
+        
         </div>
       </div>
 
@@ -378,8 +292,8 @@ const BookingDetails = () => {
                 </div>
                 <div className="flex justify-between">
                   <span>Payment Status:</span>
-                  <Badge className={getStatusBadge(booking?.payment_status)}>
-                    {!booking.payment_status ? 'Pending' : booking.payment_status.charAt(0).toUpperCase() + booking.payment_status.slice(1)}
+                  <Badge className={getStatusBadge(booking.payment_status)}>
+                    {booking.payment_status.charAt(0).toUpperCase() + booking.payment_status.slice(1)}
                   </Badge>
                 </div>
                 <Separator />
@@ -418,38 +332,9 @@ const BookingDetails = () => {
         </div>
       </div>
       
-      {/* Payment Modal - only show for vendors */}
-      {booking && !isAdminView && (
-        <PaymentModal 
-          booking={booking}
-          isOpen={paymentModalOpen}
-          onClose={() => setPaymentModalOpen(false)}
-        />
-      )}
       
-      {/* Cancel Booking Dialog */}
-      <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Cancel Booking?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to cancel this booking? This action cannot be undone.
-              All reserved stalls and dates will be released.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Keep Booking</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleCancelBooking}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Cancel Booking
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 };
 
-export default BookingDetails;
+export default BookingConfirmation;
