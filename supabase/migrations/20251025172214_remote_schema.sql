@@ -1,550 +1,4 @@
-revoke delete on table "public"."booking_dates" from "anon";
-
-revoke insert on table "public"."booking_dates" from "anon";
-
-revoke references on table "public"."booking_dates" from "anon";
-
-revoke select on table "public"."booking_dates" from "anon";
-
-revoke trigger on table "public"."booking_dates" from "anon";
-
-revoke truncate on table "public"."booking_dates" from "anon";
-
-revoke update on table "public"."booking_dates" from "anon";
-
-revoke delete on table "public"."booking_dates" from "authenticated";
-
-revoke insert on table "public"."booking_dates" from "authenticated";
-
-revoke references on table "public"."booking_dates" from "authenticated";
-
-revoke select on table "public"."booking_dates" from "authenticated";
-
-revoke trigger on table "public"."booking_dates" from "authenticated";
-
-revoke truncate on table "public"."booking_dates" from "authenticated";
-
-revoke update on table "public"."booking_dates" from "authenticated";
-
-revoke delete on table "public"."booking_dates" from "service_role";
-
-revoke insert on table "public"."booking_dates" from "service_role";
-
-revoke references on table "public"."booking_dates" from "service_role";
-
-revoke select on table "public"."booking_dates" from "service_role";
-
-revoke trigger on table "public"."booking_dates" from "service_role";
-
-revoke truncate on table "public"."booking_dates" from "service_role";
-
-revoke update on table "public"."booking_dates" from "service_role";
-
-revoke delete on table "public"."booking_stalls" from "anon";
-
-revoke insert on table "public"."booking_stalls" from "anon";
-
-revoke references on table "public"."booking_stalls" from "anon";
-
-revoke select on table "public"."booking_stalls" from "anon";
-
-revoke trigger on table "public"."booking_stalls" from "anon";
-
-revoke truncate on table "public"."booking_stalls" from "anon";
-
-revoke update on table "public"."booking_stalls" from "anon";
-
-revoke delete on table "public"."booking_stalls" from "authenticated";
-
-revoke insert on table "public"."booking_stalls" from "authenticated";
-
-revoke references on table "public"."booking_stalls" from "authenticated";
-
-revoke select on table "public"."booking_stalls" from "authenticated";
-
-revoke trigger on table "public"."booking_stalls" from "authenticated";
-
-revoke truncate on table "public"."booking_stalls" from "authenticated";
-
-revoke update on table "public"."booking_stalls" from "authenticated";
-
-revoke delete on table "public"."booking_stalls" from "service_role";
-
-revoke insert on table "public"."booking_stalls" from "service_role";
-
-revoke references on table "public"."booking_stalls" from "service_role";
-
-revoke select on table "public"."booking_stalls" from "service_role";
-
-revoke trigger on table "public"."booking_stalls" from "service_role";
-
-revoke truncate on table "public"."booking_stalls" from "service_role";
-
-revoke update on table "public"."booking_stalls" from "service_role";
-
-revoke delete on table "public"."bookings" from "anon";
-
-revoke insert on table "public"."bookings" from "anon";
-
-revoke references on table "public"."bookings" from "anon";
-
-revoke select on table "public"."bookings" from "anon";
-
-revoke trigger on table "public"."bookings" from "anon";
-
-revoke truncate on table "public"."bookings" from "anon";
-
-revoke update on table "public"."bookings" from "anon";
-
-revoke delete on table "public"."bookings" from "authenticated";
-
-revoke insert on table "public"."bookings" from "authenticated";
-
-revoke references on table "public"."bookings" from "authenticated";
-
-revoke select on table "public"."bookings" from "authenticated";
-
-revoke trigger on table "public"."bookings" from "authenticated";
-
-revoke truncate on table "public"."bookings" from "authenticated";
-
-revoke update on table "public"."bookings" from "authenticated";
-
-revoke delete on table "public"."bookings" from "service_role";
-
-revoke insert on table "public"."bookings" from "service_role";
-
-revoke references on table "public"."bookings" from "service_role";
-
-revoke select on table "public"."bookings" from "service_role";
-
-revoke trigger on table "public"."bookings" from "service_role";
-
-revoke truncate on table "public"."bookings" from "service_role";
-
-revoke update on table "public"."bookings" from "service_role";
-
-revoke delete on table "public"."email_verifications" from "anon";
-
-revoke insert on table "public"."email_verifications" from "anon";
-
-revoke references on table "public"."email_verifications" from "anon";
-
-revoke select on table "public"."email_verifications" from "anon";
-
-revoke trigger on table "public"."email_verifications" from "anon";
-
-revoke truncate on table "public"."email_verifications" from "anon";
-
-revoke update on table "public"."email_verifications" from "anon";
-
-revoke delete on table "public"."email_verifications" from "authenticated";
-
-revoke insert on table "public"."email_verifications" from "authenticated";
-
-revoke references on table "public"."email_verifications" from "authenticated";
-
-revoke select on table "public"."email_verifications" from "authenticated";
-
-revoke trigger on table "public"."email_verifications" from "authenticated";
-
-revoke truncate on table "public"."email_verifications" from "authenticated";
-
-revoke update on table "public"."email_verifications" from "authenticated";
-
-revoke delete on table "public"."email_verifications" from "service_role";
-
-revoke insert on table "public"."email_verifications" from "service_role";
-
-revoke references on table "public"."email_verifications" from "service_role";
-
-revoke select on table "public"."email_verifications" from "service_role";
-
-revoke trigger on table "public"."email_verifications" from "service_role";
-
-revoke truncate on table "public"."email_verifications" from "service_role";
-
-revoke update on table "public"."email_verifications" from "service_role";
-
-revoke delete on table "public"."kyc_applications" from "anon";
-
-revoke insert on table "public"."kyc_applications" from "anon";
-
-revoke references on table "public"."kyc_applications" from "anon";
-
-revoke select on table "public"."kyc_applications" from "anon";
-
-revoke trigger on table "public"."kyc_applications" from "anon";
-
-revoke truncate on table "public"."kyc_applications" from "anon";
-
-revoke update on table "public"."kyc_applications" from "anon";
-
-revoke delete on table "public"."kyc_applications" from "authenticated";
-
-revoke insert on table "public"."kyc_applications" from "authenticated";
-
-revoke references on table "public"."kyc_applications" from "authenticated";
-
-revoke select on table "public"."kyc_applications" from "authenticated";
-
-revoke trigger on table "public"."kyc_applications" from "authenticated";
-
-revoke truncate on table "public"."kyc_applications" from "authenticated";
-
-revoke update on table "public"."kyc_applications" from "authenticated";
-
-revoke delete on table "public"."kyc_applications" from "service_role";
-
-revoke insert on table "public"."kyc_applications" from "service_role";
-
-revoke references on table "public"."kyc_applications" from "service_role";
-
-revoke select on table "public"."kyc_applications" from "service_role";
-
-revoke trigger on table "public"."kyc_applications" from "service_role";
-
-revoke truncate on table "public"."kyc_applications" from "service_role";
-
-revoke update on table "public"."kyc_applications" from "service_role";
-
-revoke delete on table "public"."kyc_audit_log" from "anon";
-
-revoke insert on table "public"."kyc_audit_log" from "anon";
-
-revoke references on table "public"."kyc_audit_log" from "anon";
-
-revoke select on table "public"."kyc_audit_log" from "anon";
-
-revoke trigger on table "public"."kyc_audit_log" from "anon";
-
-revoke truncate on table "public"."kyc_audit_log" from "anon";
-
-revoke update on table "public"."kyc_audit_log" from "anon";
-
-revoke delete on table "public"."kyc_audit_log" from "authenticated";
-
-revoke insert on table "public"."kyc_audit_log" from "authenticated";
-
-revoke references on table "public"."kyc_audit_log" from "authenticated";
-
-revoke select on table "public"."kyc_audit_log" from "authenticated";
-
-revoke trigger on table "public"."kyc_audit_log" from "authenticated";
-
-revoke truncate on table "public"."kyc_audit_log" from "authenticated";
-
-revoke update on table "public"."kyc_audit_log" from "authenticated";
-
-revoke delete on table "public"."kyc_audit_log" from "service_role";
-
-revoke insert on table "public"."kyc_audit_log" from "service_role";
-
-revoke references on table "public"."kyc_audit_log" from "service_role";
-
-revoke select on table "public"."kyc_audit_log" from "service_role";
-
-revoke trigger on table "public"."kyc_audit_log" from "service_role";
-
-revoke truncate on table "public"."kyc_audit_log" from "service_role";
-
-revoke update on table "public"."kyc_audit_log" from "service_role";
-
-revoke delete on table "public"."market_layouts" from "anon";
-
-revoke insert on table "public"."market_layouts" from "anon";
-
-revoke references on table "public"."market_layouts" from "anon";
-
-revoke select on table "public"."market_layouts" from "anon";
-
-revoke trigger on table "public"."market_layouts" from "anon";
-
-revoke truncate on table "public"."market_layouts" from "anon";
-
-revoke update on table "public"."market_layouts" from "anon";
-
-revoke delete on table "public"."market_layouts" from "authenticated";
-
-revoke insert on table "public"."market_layouts" from "authenticated";
-
-revoke references on table "public"."market_layouts" from "authenticated";
-
-revoke select on table "public"."market_layouts" from "authenticated";
-
-revoke trigger on table "public"."market_layouts" from "authenticated";
-
-revoke truncate on table "public"."market_layouts" from "authenticated";
-
-revoke update on table "public"."market_layouts" from "authenticated";
-
-revoke delete on table "public"."market_layouts" from "service_role";
-
-revoke insert on table "public"."market_layouts" from "service_role";
-
-revoke references on table "public"."market_layouts" from "service_role";
-
-revoke select on table "public"."market_layouts" from "service_role";
-
-revoke trigger on table "public"."market_layouts" from "service_role";
-
-revoke truncate on table "public"."market_layouts" from "service_role";
-
-revoke update on table "public"."market_layouts" from "service_role";
-
-revoke delete on table "public"."markets" from "anon";
-
-revoke insert on table "public"."markets" from "anon";
-
-revoke references on table "public"."markets" from "anon";
-
-revoke select on table "public"."markets" from "anon";
-
-revoke trigger on table "public"."markets" from "anon";
-
-revoke truncate on table "public"."markets" from "anon";
-
-revoke update on table "public"."markets" from "anon";
-
-revoke delete on table "public"."markets" from "authenticated";
-
-revoke insert on table "public"."markets" from "authenticated";
-
-revoke references on table "public"."markets" from "authenticated";
-
-revoke select on table "public"."markets" from "authenticated";
-
-revoke trigger on table "public"."markets" from "authenticated";
-
-revoke truncate on table "public"."markets" from "authenticated";
-
-revoke update on table "public"."markets" from "authenticated";
-
-revoke delete on table "public"."markets" from "service_role";
-
-revoke insert on table "public"."markets" from "service_role";
-
-revoke references on table "public"."markets" from "service_role";
-
-revoke select on table "public"."markets" from "service_role";
-
-revoke trigger on table "public"."markets" from "service_role";
-
-revoke truncate on table "public"."markets" from "service_role";
-
-revoke update on table "public"."markets" from "service_role";
-
-revoke delete on table "public"."profiles" from "anon";
-
-revoke insert on table "public"."profiles" from "anon";
-
-revoke references on table "public"."profiles" from "anon";
-
-revoke select on table "public"."profiles" from "anon";
-
-revoke trigger on table "public"."profiles" from "anon";
-
-revoke truncate on table "public"."profiles" from "anon";
-
-revoke update on table "public"."profiles" from "anon";
-
-revoke delete on table "public"."profiles" from "authenticated";
-
-revoke insert on table "public"."profiles" from "authenticated";
-
-revoke references on table "public"."profiles" from "authenticated";
-
-revoke select on table "public"."profiles" from "authenticated";
-
-revoke trigger on table "public"."profiles" from "authenticated";
-
-revoke truncate on table "public"."profiles" from "authenticated";
-
-revoke update on table "public"."profiles" from "authenticated";
-
-revoke delete on table "public"."profiles" from "service_role";
-
-revoke insert on table "public"."profiles" from "service_role";
-
-revoke references on table "public"."profiles" from "service_role";
-
-revoke select on table "public"."profiles" from "service_role";
-
-revoke trigger on table "public"."profiles" from "service_role";
-
-revoke truncate on table "public"."profiles" from "service_role";
-
-revoke update on table "public"."profiles" from "service_role";
-
-revoke delete on table "public"."stall_holds" from "anon";
-
-revoke insert on table "public"."stall_holds" from "anon";
-
-revoke references on table "public"."stall_holds" from "anon";
-
-revoke select on table "public"."stall_holds" from "anon";
-
-revoke trigger on table "public"."stall_holds" from "anon";
-
-revoke truncate on table "public"."stall_holds" from "anon";
-
-revoke update on table "public"."stall_holds" from "anon";
-
-revoke delete on table "public"."stall_holds" from "authenticated";
-
-revoke insert on table "public"."stall_holds" from "authenticated";
-
-revoke references on table "public"."stall_holds" from "authenticated";
-
-revoke select on table "public"."stall_holds" from "authenticated";
-
-revoke trigger on table "public"."stall_holds" from "authenticated";
-
-revoke truncate on table "public"."stall_holds" from "authenticated";
-
-revoke update on table "public"."stall_holds" from "authenticated";
-
-revoke delete on table "public"."stall_holds" from "service_role";
-
-revoke insert on table "public"."stall_holds" from "service_role";
-
-revoke references on table "public"."stall_holds" from "service_role";
-
-revoke select on table "public"."stall_holds" from "service_role";
-
-revoke trigger on table "public"."stall_holds" from "service_role";
-
-revoke truncate on table "public"."stall_holds" from "service_role";
-
-revoke update on table "public"."stall_holds" from "service_role";
-
-revoke delete on table "public"."stall_instances" from "anon";
-
-revoke insert on table "public"."stall_instances" from "anon";
-
-revoke references on table "public"."stall_instances" from "anon";
-
-revoke select on table "public"."stall_instances" from "anon";
-
-revoke trigger on table "public"."stall_instances" from "anon";
-
-revoke truncate on table "public"."stall_instances" from "anon";
-
-revoke update on table "public"."stall_instances" from "anon";
-
-revoke delete on table "public"."stall_instances" from "authenticated";
-
-revoke insert on table "public"."stall_instances" from "authenticated";
-
-revoke references on table "public"."stall_instances" from "authenticated";
-
-revoke select on table "public"."stall_instances" from "authenticated";
-
-revoke trigger on table "public"."stall_instances" from "authenticated";
-
-revoke truncate on table "public"."stall_instances" from "authenticated";
-
-revoke update on table "public"."stall_instances" from "authenticated";
-
-revoke delete on table "public"."stall_instances" from "service_role";
-
-revoke insert on table "public"."stall_instances" from "service_role";
-
-revoke references on table "public"."stall_instances" from "service_role";
-
-revoke select on table "public"."stall_instances" from "service_role";
-
-revoke trigger on table "public"."stall_instances" from "service_role";
-
-revoke truncate on table "public"."stall_instances" from "service_role";
-
-revoke update on table "public"."stall_instances" from "service_role";
-
-revoke delete on table "public"."stall_templates" from "anon";
-
-revoke insert on table "public"."stall_templates" from "anon";
-
-revoke references on table "public"."stall_templates" from "anon";
-
-revoke select on table "public"."stall_templates" from "anon";
-
-revoke trigger on table "public"."stall_templates" from "anon";
-
-revoke truncate on table "public"."stall_templates" from "anon";
-
-revoke update on table "public"."stall_templates" from "anon";
-
-revoke delete on table "public"."stall_templates" from "authenticated";
-
-revoke insert on table "public"."stall_templates" from "authenticated";
-
-revoke references on table "public"."stall_templates" from "authenticated";
-
-revoke select on table "public"."stall_templates" from "authenticated";
-
-revoke trigger on table "public"."stall_templates" from "authenticated";
-
-revoke truncate on table "public"."stall_templates" from "authenticated";
-
-revoke update on table "public"."stall_templates" from "authenticated";
-
-revoke delete on table "public"."stall_templates" from "service_role";
-
-revoke insert on table "public"."stall_templates" from "service_role";
-
-revoke references on table "public"."stall_templates" from "service_role";
-
-revoke select on table "public"."stall_templates" from "service_role";
-
-revoke trigger on table "public"."stall_templates" from "service_role";
-
-revoke truncate on table "public"."stall_templates" from "service_role";
-
-revoke update on table "public"."stall_templates" from "service_role";
-
-revoke delete on table "public"."user_roles" from "anon";
-
-revoke insert on table "public"."user_roles" from "anon";
-
-revoke references on table "public"."user_roles" from "anon";
-
-revoke select on table "public"."user_roles" from "anon";
-
-revoke trigger on table "public"."user_roles" from "anon";
-
-revoke truncate on table "public"."user_roles" from "anon";
-
-revoke update on table "public"."user_roles" from "anon";
-
-revoke delete on table "public"."user_roles" from "authenticated";
-
-revoke insert on table "public"."user_roles" from "authenticated";
-
-revoke references on table "public"."user_roles" from "authenticated";
-
-revoke select on table "public"."user_roles" from "authenticated";
-
-revoke trigger on table "public"."user_roles" from "authenticated";
-
-revoke truncate on table "public"."user_roles" from "authenticated";
-
-revoke update on table "public"."user_roles" from "authenticated";
-
-revoke delete on table "public"."user_roles" from "service_role";
-
-revoke insert on table "public"."user_roles" from "service_role";
-
-revoke references on table "public"."user_roles" from "service_role";
-
-revoke select on table "public"."user_roles" from "service_role";
-
-revoke trigger on table "public"."user_roles" from "service_role";
-
-revoke truncate on table "public"."user_roles" from "service_role";
-
-revoke update on table "public"."user_roles" from "service_role";
-
-create table "public"."payments" (
+create table if not exists "public"."payments" (
     "id" uuid not null default gen_random_uuid(),
     "booking_id" uuid,
     "invoice_number" text,
@@ -568,15 +22,35 @@ alter table "public"."bookings" alter column "payment_status" drop default;
 
 alter table "public"."bookings" alter column "payment_status" drop not null;
 
-CREATE INDEX payments_invoice_number_idx ON public.payments USING btree (invoice_number);
+CREATE INDEX IF NOT EXISTS payments_invoice_number_idx ON public.payments USING btree (invoice_number);
 
-CREATE UNIQUE INDEX payments_pkey ON public.payments USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS payments_pkey ON public.payments USING btree (id);
 
-CREATE INDEX payments_provider_event_id_idx ON public.payments USING btree (provider, provider_event_id);
+CREATE INDEX IF NOT EXISTS payments_provider_event_id_idx ON public.payments USING btree (provider, provider_event_id);
 
-CREATE UNIQUE INDEX payments_provider_payment_id_idx ON public.payments USING btree (provider, provider_payment_id);
+CREATE UNIQUE INDEX IF NOT EXISTS payments_provider_payment_id_idx ON public.payments USING btree (provider, provider_payment_id);
 
-alter table "public"."payments" add constraint "payments_pkey" PRIMARY KEY using index "payments_pkey";
+DO $$
+BEGIN
+  -- Drop the orphaned index if it exists
+  IF EXISTS (
+    SELECT 1 FROM pg_indexes 
+    WHERE schemaname = 'public' AND indexname = 'payments_pkey'
+  ) THEN
+    EXECUTE 'DROP INDEX public.payments_pkey';
+  END IF;
+
+  -- Only add constraint if it doesn’t exist
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint 
+    WHERE conname = 'payments_pkey'
+  ) THEN
+    ALTER TABLE public.payments
+    ADD CONSTRAINT payments_pkey PRIMARY KEY (id);
+  END IF;
+END$$;
+
+ALTER TABLE "public"."payments" DROP CONSTRAINT IF EXISTS "payments_booking_id_fkey";
 
 alter table "public"."payments" add constraint "payments_booking_id_fkey" FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE SET NULL not valid;
 
@@ -1297,7 +771,20 @@ END;
 $function$
 ;
 
-CREATE TRIGGER payments_set_updated_at BEFORE UPDATE ON public.payments FOR EACH ROW EXECUTE FUNCTION payments_updated_at();
+-- CREATE TRIGGER payments_set_updated_at BEFORE UPDATE ON public.payments FOR EACH ROW EXECUTE FUNCTION payments_updated_at();
 
 
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_trigger
+    WHERE tgname = 'payments_set_updated_at'
+  ) THEN
+    CREATE TRIGGER payments_set_updated_at
+    BEFORE UPDATE ON public.payments
+    FOR EACH ROW
+    EXECUTE FUNCTION payments_updated_at();
+  END IF;
+END$$;
 

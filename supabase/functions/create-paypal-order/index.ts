@@ -1,5 +1,4 @@
 // supabase/functions/create-paypal-order/index.ts
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const PAYPAL_CLIENT_ID = Deno.env.get("PAYPAL_API_CLIENT");
 const PAYPAL_SECRET = Deno.env.get("PAYPAL_API_SECRET");
@@ -26,7 +25,7 @@ async function getAccessToken() {
   const data = await res.json();
   return data.access_token;
 }
-serve(async (req)=>{
+Deno.serve(async (req)=>{
   if (req.method === "OPTIONS") {
     return new Response(null, {
       headers: corsHeaders
@@ -50,9 +49,20 @@ serve(async (req)=>{
     const accessToken = await getAccessToken();
 
     // get actual amount from booking
-    const { data } = await supabaseClient.from('bookings').select(`amount`).eq('id', bookingId).single();
+    const { data, error } = await supabaseClient.from('bookings').select(`total_amount`).eq('id', bookingId).single();
 
-    console.warn(data, "data");
+    if(error){
+      return new Response(JSON.stringify({
+        error: error.message
+      }), {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        },
+        status: 400
+      });
+    }
+
     // create order and generate unique url for client to pay
     const orderRes = await fetch(`${PAYPAL_BASE}/v2/checkout/orders`, {
       method: "POST",
@@ -68,7 +78,7 @@ serve(async (req)=>{
             custom_id: bookingId,
             amount: {
               currency_code: "USD",
-              value: data.amount
+              value: data.total_amount
             }
           }
         ],

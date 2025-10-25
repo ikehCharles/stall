@@ -293,7 +293,7 @@ useEffect(()=>{
                 <div className="flex justify-between">
                   <span>Payment Status:</span>
                   <Badge className={getStatusBadge(booking.payment_status)}>
-                    {booking.payment_status.charAt(0).toUpperCase() + booking.payment_status.slice(1)}
+                    {!booking.payment_status ? 'Pending':booking.payment_status.charAt(0).toUpperCase() + booking.payment_status.slice(1)}
                   </Badge>
                 </div>
                 <Separator />
