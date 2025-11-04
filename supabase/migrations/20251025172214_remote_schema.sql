@@ -98,8 +98,6 @@ BEGIN
   WHERE booking_id = p_booking_id;
 
   RETURN jsonb_build_object('status', 'success', 'message','Payment processed successfully');
-
-
 END;$function$
 ;
 

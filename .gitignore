@@ -21,10 +21,4 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-.vscode
-functions/.env
-.env
-.env.local
-.env.development
-.env.production
-.env.*        
+.vscode 

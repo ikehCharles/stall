@@ -28,7 +28,6 @@ const MarketCanvas = () => {
   const { data: stalls } = useStallInstances(marketId!);
   const upsertLayout = useUpsertMarketLayout();
 
-  console.error(marketId, "Layout");
 
   const market = markets?.find(m => m.id === marketId);
 

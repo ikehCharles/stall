@@ -138,9 +138,9 @@ serve(async (req)=>{
           p_booking_id: resource?.purchase_units?.[0].custom_id
         });
         if (error) {
-          console.error('Error simulating payment success', error);
+          console.error('Error simulating payment success for payment approval', error);
           return new Response(JSON.stringify({
-            error: 'Error simulating payment failure for payment success'
+            error: 'Error simulating payment success for payment approval'
           }), {
             status: 200
           });

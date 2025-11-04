@@ -40,13 +40,13 @@ export const CanvasSettings = ({ open, onOpenChange, layout, onSave }: CanvasSet
     onOpenChange(false);
   };
 
-  const naigate = useNavigate();
+  const navigate = useNavigate();
 
   const onCancel = () => {
     if(layout){
       onOpenChange(false);
     }else{
-      naigate('/admin/markets');
+      navigate('/admin/markets');
     }
   };
 
