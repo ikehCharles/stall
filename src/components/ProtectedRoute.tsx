@@ -11,7 +11,7 @@ export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) 
   const { user, userProfile, loading, profileLoading } = useAuth();
 
   // Show loading state while checking auth
-  if (loading || (user && profileLoading)) {
+  if (loading || profileLoading || (user && profileLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
         <div className="text-center">

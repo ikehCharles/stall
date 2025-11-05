@@ -1,6 +1,7 @@
 -- Phase 5: Add server-side validation for 5-day booking limit
 
 -- Update create_stall_hold to enforce 5-day maximum
+DROP FUNCTION IF EXISTS public.create_stall_hold(uuid,uuid,date[]);
 CREATE OR REPLACE FUNCTION public.create_stall_hold(p_stall_id uuid, p_market_id uuid, p_dates date[])
 RETURNS jsonb
 LANGUAGE plpgsql

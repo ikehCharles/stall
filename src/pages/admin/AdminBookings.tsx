@@ -41,13 +41,13 @@ const AdminBookings = () => {
       case 'success':
         return <Badge variant="default">Paid</Badge>;
       case 'pending':
-        return <Badge variant="secondary">Pending</Badge>;
+        return <Badge variant="secondary">Captured</Badge>;
       case 'failed':
         return <Badge variant="destructive">Failed</Badge>;
       case 'cancelled':
         return <Badge variant="destructive">Cancelled</Badge>;
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return <Badge variant="outline">Pending</Badge>;
     }
   };
 

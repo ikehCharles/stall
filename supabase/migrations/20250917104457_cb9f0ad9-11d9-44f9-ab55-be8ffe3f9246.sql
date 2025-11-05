@@ -1,10 +1,11 @@
 -- Fix the RPC functions to avoid ambiguous column references
+DROP FUNCTION IF EXISTS public.simulate_payment_success(uuid);
 CREATE OR REPLACE FUNCTION public.simulate_payment_success(p_booking_id uuid)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path TO 'public'
-AS $function$
+AS $$
 DECLARE
   v_booking bookings%ROWTYPE;
   v_user_id uuid;
@@ -41,15 +42,16 @@ BEGIN
 
   RETURN jsonb_build_object('status', 'success', 'message', 'Payment processed successfully');
 END;
-$function$;
+$$;
 
 -- Fix the payment failure function
+DROP FUNCTION IF EXISTS public.simulate_payment_failure(uuid);
 CREATE OR REPLACE FUNCTION public.simulate_payment_failure(p_booking_id uuid)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path TO 'public'
-AS $function$
+AS $$
 DECLARE
   v_booking bookings%ROWTYPE;
   v_user_id uuid;
@@ -85,15 +87,16 @@ BEGIN
 
   RETURN jsonb_build_object('status', 'success', 'message', 'Booking marked as failed, holds released');
 END;
-$function$;
+$$;
 
 -- Fix the expire booking function  
+DROP FUNCTION IF EXISTS public.expire_booking(uuid);
 CREATE OR REPLACE FUNCTION public.expire_booking(p_booking_id uuid)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path TO 'public'
-AS $function$
+AS $$
 DECLARE
   v_booking bookings%ROWTYPE;
   v_user_id uuid;
@@ -134,4 +137,4 @@ BEGIN
 
   RETURN jsonb_build_object('status', 'success', 'message', 'Booking expired and holds released');
 END;
-$function$;
+$$;

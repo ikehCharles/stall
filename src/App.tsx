@@ -30,6 +30,7 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { LoadingProvider, useLoading } from "./contexts/LoadingContext";
 import { PageLoader } from "./components/ui/page-loader";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import BookingConfirmation from "./pages/vendor/BookingConfirmation";
 
 const queryClient = new QueryClient();
 
@@ -73,7 +74,8 @@ const AppContent = () => {
         }>
           <Route index element={needsKYC ? <Navigate to="/vendor/profile?tab=verification" /> : <VendorDashboard />} />
           <Route path="bookings" element={needsKYC ? <Navigate to="/vendor/profile?tab=verification" /> : <MyBookings />} />
-          <Route path="bookings/:id" element={needsKYC ? <Navigate to="/vendor/profile?tab=verification" /> : <BookingDetails />} />
+          <Route path="bookings/:id" element={ <BookingDetails />} />
+          <Route path="bookings/:id/confirmation" element={needsKYC ? <Navigate to="/vendor/profile?tab=verification" /> : <BookingConfirmation />} />
           <Route path="markets" element={needsKYC ? <Navigate to="/vendor/profile?tab=verification" /> : <MarketSelection />} />
           <Route path="book-stall/:marketId" element={needsKYC ? <Navigate to="/vendor/profile?tab=verification" /> : <StallBooking />} />
           <Route path="profile" element={<VendorProfile />} />

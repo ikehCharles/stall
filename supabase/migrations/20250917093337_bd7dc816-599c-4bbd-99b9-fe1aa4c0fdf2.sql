@@ -1,10 +1,12 @@
 -- Complete stall booking system fix
 -- 1. Add unique constraints to prevent double-booking
+ALTER TABLE public.booking_dates DROP CONSTRAINT IF EXISTS unique_stall_booking_date;
 ALTER TABLE public.booking_dates 
 ADD CONSTRAINT unique_stall_booking_date UNIQUE (stall_instance_id, booking_date);
 
 -- 2. Restructure stall_holds table for individual date rows
 -- Add hold_date column for individual date tracking
+ALTER TABLE public.stall_holds DROP COLUMN IF EXISTS hold_date;
 ALTER TABLE public.stall_holds ADD COLUMN hold_date DATE;
 
 -- Add unique constraint for holds
@@ -13,12 +15,11 @@ ADD CONSTRAINT unique_stall_hold_date UNIQUE (stall_instance_id, hold_date);
 
 -- 3. Drop existing function and recreate with JSON response
 DROP FUNCTION IF EXISTS public.create_stall_hold(uuid,uuid,date[]);
-
 CREATE OR REPLACE FUNCTION public.create_stall_hold(
   p_stall_id UUID,
   p_market_id UUID,
   p_dates DATE[]
-) RETURNS JSONB
+) RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = 'public'

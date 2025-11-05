@@ -7,10 +7,30 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "13.0.4"
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -104,7 +124,7 @@ export type Database = {
           invoice_number: string
           market_id: string
           paid_amount: number
-          payment_status: Database["public"]["Enums"]["payment_status"]
+          payment_status: Database["public"]["Enums"]["payment_status"] | null
           price_per_day: number | null
           selected_dates: string[] | null
           status: Database["public"]["Enums"]["booking_status"]
@@ -120,7 +140,7 @@ export type Database = {
           invoice_number: string
           market_id: string
           paid_amount?: number
-          payment_status?: Database["public"]["Enums"]["payment_status"]
+          payment_status?: Database["public"]["Enums"]["payment_status"] | null
           price_per_day?: number | null
           selected_dates?: string[] | null
           status?: Database["public"]["Enums"]["booking_status"]
@@ -136,7 +156,7 @@ export type Database = {
           invoice_number?: string
           market_id?: string
           paid_amount?: number
-          payment_status?: Database["public"]["Enums"]["payment_status"]
+          payment_status?: Database["public"]["Enums"]["payment_status"] | null
           price_per_day?: number | null
           selected_dates?: string[] | null
           status?: Database["public"]["Enums"]["booking_status"]
@@ -357,6 +377,65 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      payments: {
+        Row: {
+          amount: number | null
+          booking_id: string | null
+          created_at: string
+          currency: string | null
+          id: string
+          invoice_number: string | null
+          metadata: Json | null
+          processed_at: string | null
+          provider: string
+          provider_event_id: string | null
+          provider_payment_id: string
+          raw_payload: Json | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number | null
+          booking_id?: string | null
+          created_at?: string
+          currency?: string | null
+          id?: string
+          invoice_number?: string | null
+          metadata?: Json | null
+          processed_at?: string | null
+          provider: string
+          provider_event_id?: string | null
+          provider_payment_id: string
+          raw_payload?: Json | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number | null
+          booking_id?: string | null
+          created_at?: string
+          currency?: string | null
+          id?: string
+          invoice_number?: string | null
+          metadata?: Json | null
+          processed_at?: string | null
+          provider?: string
+          provider_event_id?: string | null
+          provider_payment_id?: string
+          raw_payload?: Json | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -614,11 +693,19 @@ export type Database = {
         Args: { market_id: string; stall_id: string }
         Returns: boolean
       }
+      simulate_payment_confirmed_admin: {
+        Args: { p_booking_id: string }
+        Returns: Json
+      }
       simulate_payment_failure: {
         Args: { p_booking_id: string }
         Returns: Json
       }
       simulate_payment_success: {
+        Args: { p_booking_id: string }
+        Returns: Json
+      }
+      simulate_payment_success_admin: {
         Args: { p_booking_id: string }
         Returns: Json
       }
@@ -762,6 +849,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       app_role: ["vendor", "admin"],
@@ -781,3 +871,4 @@ export const Constants = {
     },
   },
 } as const
+

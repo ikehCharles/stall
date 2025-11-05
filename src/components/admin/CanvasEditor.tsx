@@ -120,6 +120,8 @@ export const CanvasEditor = ({
     const label = `ST-${stallCounter.toString().padStart(3, '0')}`;
     setStallCounter(prev => prev + 1);
 
+
+
     createStall.mutate({
       market_id: layout?.market_id,
       template_id: templateData.id,
