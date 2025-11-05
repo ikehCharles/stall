@@ -271,13 +271,13 @@ const EnhancedStallBooking = () => {
             </CardHeader>
             <CardContent>
               <div className="relative bg-muted/20 rounded-lg p-8 min-h-[400px]">
-                <svg width="100%" height="350" viewBox="0 0 800 600">
+                <svg  width="100%" height="350" viewBox="0 0 800 600">
                   {stalls.map((stall) => {
                     const fillColor = getStallColor(stall);
                     const stallPrice = stall.price_override || stall.stall_templates?.price || 0;
 
                     return (
-                      <g key={stall.id}>
+                      <g onClick={() => handleStallClick(stall)} key={stall.id}>
                         <rect
                           x={stall.x}
                           y={stall.y}
@@ -288,7 +288,7 @@ const EnhancedStallBooking = () => {
                           strokeWidth="2"
                           rx="4"
                           className="cursor-pointer hover:opacity-80 transition-opacity"
-                          onClick={() => handleStallClick(stall)}
+                          
                         />
                         <text
                           x={stall.x + stall.width / 2}
@@ -298,6 +298,7 @@ const EnhancedStallBooking = () => {
                           fill="white"
                           fontSize="14"
                           fontWeight="bold"
+                          cursor={"pointer"}
                         >
                           {stall.label}
                         </text>
@@ -308,6 +309,7 @@ const EnhancedStallBooking = () => {
                           dominantBaseline="middle"
                           fill="white"
                           fontSize="10"
+                          cursor={"pointer"}
                         >
                           ${stallPrice}/day
                         </text>

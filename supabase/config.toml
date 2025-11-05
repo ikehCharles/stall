@@ -5,3 +5,12 @@ verify_jwt = true
 
 [functions.verify-otp]
 verify_jwt = true
+
+[functions.create-paypal-order]
+verify_jwt = true
+
+[functions.capture-paypal-order]
+verify_jwt = true
+
+[functions.paypal-webhook]
+verify_jwt = false

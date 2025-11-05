@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useNavigate } from 'react-router-dom';
 
 const formSchema = z.object({
   canvas_width: z.number().min(100, 'Width must be at least 100'),
@@ -39,9 +40,19 @@ export const CanvasSettings = ({ open, onOpenChange, layout, onSave }: CanvasSet
     onOpenChange(false);
   };
 
+  const navigate = useNavigate();
+
+  const onCancel = () => {
+    if(layout){
+      onOpenChange(false);
+    }else{
+      navigate('/admin/markets');
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[400px]">
+      <DialogContent disableClose className="sm:max-w-[400px]">
         <DialogHeader>
           <DialogTitle>Canvas Settings</DialogTitle>
           <DialogDescription>
@@ -130,7 +141,7 @@ export const CanvasSettings = ({ open, onOpenChange, layout, onSave }: CanvasSet
             />
 
             <div className="flex justify-end space-x-2">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button type="button" variant="outline" onClick={onCancel}>
                 Cancel
               </Button>
               <Button type="submit">

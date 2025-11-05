@@ -1,12 +1,13 @@
 -- Phase 3 & 6: Update RPC functions for proper status workflow
 
 -- Update simulate_payment_success to ONLY update payment_status, not booking.status
+DROP FUNCTION IF EXISTS public.simulate_payment_success(uuid);
 CREATE OR REPLACE FUNCTION public.simulate_payment_success(p_booking_id uuid)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path TO 'public'
-AS $function$
+AS $$
 DECLARE
   v_booking bookings%ROWTYPE;
   v_user_id uuid;
@@ -34,7 +35,7 @@ BEGIN
 
   RETURN jsonb_build_object('status', 'success', 'message', 'Payment processed successfully');
 END;
-$function$;
+$$;
 
 -- Update admin_approve_booking to handle booking_dates status transition
 CREATE OR REPLACE FUNCTION public.admin_approve_booking(p_booking_id uuid)
@@ -42,7 +43,7 @@ RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path TO 'public'
-AS $function$
+AS $$
 DECLARE
   v_booking bookings%ROWTYPE;
   v_user_id uuid;
@@ -94,7 +95,7 @@ BEGIN
     );
   END IF;
 END;
-$function$;
+$$;
 
 -- Update admin_decline_booking to update booking_dates status back to 'available'
 CREATE OR REPLACE FUNCTION public.admin_decline_booking(p_booking_id uuid)
@@ -102,7 +103,7 @@ RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path TO 'public'
-AS $function$
+AS $$
 DECLARE
   v_booking bookings%ROWTYPE;
   v_user_id uuid;
@@ -141,4 +142,4 @@ BEGIN
 
   RETURN jsonb_build_object('status', 'success', 'message', 'Booking declined and dates released');
 END;
-$function$;
+$$;

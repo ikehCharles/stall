@@ -71,3 +71,48 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+
+## Connecting via Local
+
+#### Requirement
+
+* Setup /supabase/.env(SUPABASE)
+
+  * PAYPAL_API_CLIENT=""
+  * PAYPAL_API_SECRET=""
+  * PAYPAL_API=""
+  * CLIENT_BASEURL=""
+* Setup .env(REACT)
+
+  * VITE_SUPABASE_PROJECT_ID=""
+  * VITE_SUPABASE_PUBLISHABLE_KEY=""
+  * VITE_SUPABASE_URL=""
+  * AUTH_VERIFICATION_MODE=""
+  * PAYMENT_SWITCH=""
+* Install Docker Desktop and get it running
+* Install [Supabase CLI](https://supabase.com/docs/guides/local-development/cli/getting-started?queryGroups=access-method&access-method=studio&queryGroups=platform&platform=npm)
+
+#### SCRIPT
+
+###### Database Commands
+
+* Run Supabase locally: [`supabase init`](https://supabase.com/docs/reference/cli/usage#supabase-init) and [`supabase start`](https://supabase.com/docs/reference/cli/usage#supabase-start)
+* Manage database migrations: [`supabase migration`](https://supabase.com/docs/reference/cli/usage#supabase-migration)
+* Generate types directly from your database schema: [`supabase gen types`](https://supabase.com/docs/reference/cli/usage#supabase-gen)
+* CI/CD for releasing to production: [`supabase db push`](https://supabase.com/docs/reference/cli/usage#supabase-db-push)
+* Manage your Supabase projects: [`supabase projects`](https://supabase.com/docs/reference/cli/usage#supabase-projects)
+
+**Functions Command**
+
+* [supabase functions download](https://supabase.com/docs/reference/cli/supabase-functions-download)
+* [supabase functions list](https://supabase.com/docs/reference/cli/supabase-functions-list)
+* [supabase functions serve](https://supabase.com/docs/reference/cli/supabase-functions-serve)
+* [supabase functions new](https://supabase.com/docs/reference/cli/supabase-functions-new)
+* [supabase functions deploy](https://supabase.com/docs/reference/cli/supabase-functions-deploy)
+* [supabase functions delete](https://supabase.com/docs/reference/cli/supabase-functions-delete)
+
+###### React/SPA Command
+
+* npm run dev (start locally)
+* npm run build (generate build files)

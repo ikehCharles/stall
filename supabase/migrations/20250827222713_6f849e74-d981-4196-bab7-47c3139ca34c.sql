@@ -22,9 +22,11 @@ WITH duplicates AS (
 DELETE FROM profiles 
 WHERE id IN (SELECT id FROM duplicates WHERE rn > 1);
 
+ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_email_unique;
 -- Now add unique constraints
 ALTER TABLE public.profiles 
 ADD CONSTRAINT profiles_email_unique UNIQUE (email);
 
+ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_phone_number_unique;
 ALTER TABLE public.profiles 
 ADD CONSTRAINT profiles_phone_number_unique UNIQUE (phone_number);

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Settings, Save, Grid, Move, Square, Circle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,19 +14,30 @@ import { CanvasSettings } from '@/components/admin/CanvasSettings';
 import { toast } from '@/hooks/use-toast';
 
 const MarketCanvas = () => {
+
+
+  
   const { marketId } = useParams<{ marketId: string }>();
   const [selectedStallId, setSelectedStallId] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showGrid, setShowGrid] = useState(true);
   
   const { data: markets } = useMarkets();
-  const { data: layout } = useMarketLayout(marketId!);
+  const { data: layout, isLoading:layoutLoading } = useMarketLayout(marketId!);
   const { data: templates } = useStallTemplates();
   const { data: stalls } = useStallInstances(marketId!);
   const upsertLayout = useUpsertMarketLayout();
 
+
   const market = markets?.find(m => m.id === marketId);
 
+  useEffect(() => {
+    if (layout || layoutLoading) {
+      setShowSettings(false);
+    }else{
+      setShowSettings(true);
+    }
+  }, [layout, layoutLoading]);
   const handleSaveLayout = async (layoutData: any) => {
     try {
       await upsertLayout.mutateAsync({
@@ -49,6 +60,8 @@ const MarketCanvas = () => {
   if (!market) {
     return <div className="p-6">Market not found</div>;
   }
+
+  
 
   return (
     <div className="h-screen flex flex-col">

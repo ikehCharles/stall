@@ -45,7 +45,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(true);
 
   const fetchUserProfile = async (userId: string) => {
     setProfileLoading(true);
@@ -97,9 +97,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         role: roleData?.role || null,
         kyc_status: kycData?.status || null,
       });
+      setProfileLoading(false);
     } catch (error) {
       console.error('Error fetching user profile:', error);
-    } finally {
       setProfileLoading(false);
     }
   };

@@ -128,7 +128,7 @@ export function PaymentModal({ booking, isOpen, onClose }: PaymentModalProps) {
             <div className="flex justify-between items-center">
               <span className="text-sm font-medium">Payment Status:</span>
               <Badge variant={booking.payment_status === 'success' ? 'default' : booking.payment_status === 'failed' ? 'destructive' : 'secondary'}>
-                {booking.payment_status.charAt(0).toUpperCase() + booking.payment_status.slice(1)}
+                {!booking.payment_status ? 'Pending':booking.payment_status.charAt(0).toUpperCase() + booking.payment_status.slice(1)}
               </Badge>
             </div>
 

@@ -29,12 +29,13 @@ SET
   END;
 
 -- Update payment simulation functions to only handle payment_status
+DROP FUNCTION IF EXISTS public.simulate_payment_success(uuid);
 CREATE OR REPLACE FUNCTION public.simulate_payment_success(p_booking_id uuid)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path TO 'public'
-AS $function$
+AS $$
 DECLARE
   v_booking bookings%ROWTYPE;
   v_user_id uuid;
@@ -69,14 +70,15 @@ BEGIN
 
   RETURN jsonb_build_object('status', 'success', 'message', 'Payment processed successfully');
 END;
-$function$;
+$$;
 
+DROP FUNCTION IF EXISTS public.simulate_payment_failure(uuid);
 CREATE OR REPLACE FUNCTION public.simulate_payment_failure(p_booking_id uuid)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path TO 'public'
-AS $function$
+AS $$
 DECLARE
   v_booking bookings%ROWTYPE;
   v_user_id uuid;
@@ -103,7 +105,7 @@ BEGIN
 
   RETURN jsonb_build_object('status', 'success', 'message', 'Payment marked as failed');
 END;
-$function$;
+$$;
 
 -- Create admin confirmation functions
 CREATE OR REPLACE FUNCTION public.admin_approve_booking(p_booking_id uuid)
@@ -111,7 +113,7 @@ RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path TO 'public'
-AS $function$
+AS $$
 DECLARE
   v_booking bookings%ROWTYPE;
   v_user_id uuid;
@@ -145,14 +147,14 @@ BEGIN
 
   RETURN jsonb_build_object('status', 'success', 'message', 'Booking approved successfully');
 END;
-$function$;
+$$;
 
 CREATE OR REPLACE FUNCTION public.admin_decline_booking(p_booking_id uuid)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path TO 'public'
-AS $function$
+AS $$
 DECLARE
   v_booking bookings%ROWTYPE;
   v_user_id uuid;
@@ -187,4 +189,4 @@ BEGIN
 
   RETURN jsonb_build_object('status', 'success', 'message', 'Booking declined and holds released');
 END;
-$function$;
+$$;
