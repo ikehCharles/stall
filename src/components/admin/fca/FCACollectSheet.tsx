@@ -15,12 +15,13 @@ interface FCACollectSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   amount: number;
-  onSuccess: (method: 'card' | 'cash') => void;
+  bookingId: string;
+  onSuccess: (method: 'card' | 'cash', bookingId: string) => void;
 }
 
 type PaymentState = 'idle' | 'processing' | 'success' | 'failed';
 
-export const FCACollectSheet = ({ open, onOpenChange, amount, onSuccess }: FCACollectSheetProps) => {
+export const FCACollectSheet = ({ open, onOpenChange, amount, bookingId, onSuccess }: FCACollectSheetProps) => {
   const [paymentState, setPaymentState] = useState<PaymentState>('idle');
   const [selectedMethod, setSelectedMethod] = useState<'card' | 'cash' | null>(null);
 
@@ -43,7 +44,7 @@ export const FCACollectSheet = ({ open, onOpenChange, amount, onSuccess }: FCACo
       
       // Wait a moment before calling success and closing
       setTimeout(() => {
-        onSuccess(method);
+        onSuccess(method, bookingId);
         handleReset();
       }, 1500);
     } else {
@@ -168,7 +169,7 @@ export const FCACollectSheet = ({ open, onOpenChange, amount, onSuccess }: FCACo
               <Button size="sm" variant="outline" onClick={() => {
                 setPaymentState('success');
                 setTimeout(() => {
-                  onSuccess('card');
+                  onSuccess('card', bookingId);
                   handleReset();
                 }, 1000);
               }}>

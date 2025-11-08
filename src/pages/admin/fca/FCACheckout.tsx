@@ -4,16 +4,21 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Briefcase } from 'lucide-react';
+import { ArrowLeft, Briefcase, Loader2 } from 'lucide-react';
 import { FCACollectSheet } from '@/components/admin/fca/FCACollectSheet';
 import { useCreateBooking, CreateBookingData } from '@/hooks/useBookings';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 
 const FCACheckout = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [showCollectSheet, setShowCollectSheet] = useState(false);
   const [bookingData, setBookingData] = useState<any>(null);
+  const [bookingId, setBookingId] = useState<string | null>(null);
+  const [isCreatingBooking, setIsCreatingBooking] = useState(false);
   const createBooking = useCreateBooking();
 
   useEffect(() => {
@@ -44,46 +49,93 @@ const FCACheckout = () => {
     }
   }, [navigate]);
 
-  const handlePaymentSuccess = async (method: 'card' | 'cash') => {
-    if (!bookingData) return;
+  // Create booking when data is loaded
+  useEffect(() => {
+    if (!bookingData || bookingId || isCreatingBooking || !user) return;
 
-    const { marketId, vendorId, stallSelection } = bookingData;
+    const createFCABooking = async () => {
+      setIsCreatingBooking(true);
+      
+      const { marketId, vendorId, stallSelection } = bookingData;
+      const pricePerDay = stallSelection.stall.price_override || stallSelection.stall.stall_templates?.price || 0;
 
-    const pricePerDay = stallSelection.stall.price_override || stallSelection.stall.stall_templates?.price || 0;
+      const bookingPayload: CreateBookingData = {
+        marketId,
+        stallIds: [stallSelection.stall.id],
+        totalAmount: stallSelection.totalCost,
+        selectedDates: stallSelection.selectedDates.map((date: Date) => format(new Date(date), 'yyyy-MM-dd')),
+        pricePerDay,
+        vendorId: vendorId,
+        createdByFcaId: user.id,
+        fcaNotes: 'FCA on-site booking - awaiting payment'
+      };
 
-    const bookingPayload: CreateBookingData = {
-      marketId,
-      stallIds: [stallSelection.stall.id],
-      totalAmount: stallSelection.totalCost,
-      selectedDates: stallSelection.selectedDates.map((date: Date) => format(new Date(date), 'yyyy-MM-dd')),
-      pricePerDay,
+      try {
+        const result = await createBooking.mutateAsync(bookingPayload);
+        setBookingId(result.id);
+        toast({
+          title: 'Booking Created',
+          description: 'Ready to collect payment',
+        });
+      } catch (error: any) {
+        toast({
+          title: 'Failed to Create Booking',
+          description: error.message || 'Please try again',
+          variant: 'destructive',
+        });
+        navigate('/admin/fca/markets');
+      } finally {
+        setIsCreatingBooking(false);
+      }
     };
 
+    createFCABooking();
+  }, [bookingData, bookingId, isCreatingBooking, user, createBooking, navigate]);
+
+  const handlePaymentSuccess = async (method: 'card' | 'cash', bookingId: string) => {
+    if (!bookingData || !bookingId) return;
+
     try {
-      const result = await createBooking.mutateAsync(bookingPayload);
+      // Update booking payment status via RPC
+      const { data, error } = await supabase.rpc('simulate_payment_success', {
+        p_booking_id: bookingId
+      });
+
+      if (error) throw error;
+
+      // Update FCA notes to include payment method
+      await supabase
+        .from('bookings')
+        .update({ 
+          fca_notes: `FCA on-site ${method} payment - collected and confirmed` 
+        })
+        .eq('id', bookingId);
       
       sessionStorage.removeItem('fcaBooking');
 
       toast({
-        title: 'Booking Created',
-        description: `Offline ${method} payment processed successfully`,
+        title: 'Payment Confirmed',
+        description: `${method === 'card' ? 'Card' : 'Cash'} payment of $${bookingData.stallSelection.totalCost.toFixed(2)} processed successfully`,
       });
 
-      navigate(`/admin/fca/invoices/${result.id}`);
+      navigate(`/admin/fca/invoices/${bookingId}`);
     } catch (error: any) {
       toast({
-        title: 'Booking Failed',
-        description: error.message || 'Failed to create booking',
+        title: 'Payment Failed',
+        description: error.message || 'Failed to process payment',
         variant: 'destructive',
       });
     }
   };
 
-  if (!bookingData) {
+  if (!bookingData || isCreatingBooking || !bookingId) {
     return (
       <div className="p-6">
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">Loading...</p>
+        <div className="text-center py-12 space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+          <p className="text-muted-foreground">
+            {!bookingData ? 'Loading booking data...' : 'Creating booking...'}
+          </p>
         </div>
       </div>
     );
@@ -196,7 +248,7 @@ const FCACheckout = () => {
             className="w-full mt-4" 
             size="lg"
             onClick={() => setShowCollectSheet(true)}
-            disabled={createBooking.isPending}
+            disabled={!bookingId}
           >
             Collect Payment
           </Button>
@@ -207,6 +259,7 @@ const FCACheckout = () => {
         open={showCollectSheet}
         onOpenChange={setShowCollectSheet}
         amount={stallSelection.totalCost}
+        bookingId={bookingId}
         onSuccess={handlePaymentSuccess}
       />
     </div>
