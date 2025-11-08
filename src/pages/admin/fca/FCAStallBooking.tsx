@@ -3,112 +3,92 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { toast } from '@/hooks/use-toast';
+import { ArrowLeft, Briefcase } from 'lucide-react';
 import { useMarkets } from '@/hooks/useMarkets';
 import { useStallInstances } from '@/hooks/useStallInstances';
 import { useStallHolds } from '@/hooks/useStallHolds';
 import { useBookingDates } from '@/hooks/useBookingDates';
-import { EnhancedStallModal } from '@/components/vendor/EnhancedStallModal';
-import { useAuth } from '@/contexts/AuthContext';
-import type { Database } from '@/integrations/supabase/types';
-import { ArrowLeft, Briefcase } from 'lucide-react';
+import { FCABookingModal } from '@/components/admin/fca/FCABookingModal';
+import { Loader2 } from 'lucide-react';
+import { format, eachDayOfInterval, startOfDay } from 'date-fns';
 
-type StallInstance = Database['public']['Tables']['stall_instances']['Row'] & {
+type StallInstance = {
+  id: string;
+  label: string;
+  status: string;
+  price_override: number | null;
   stall_templates?: {
     name: string;
-    shape: Database['public']['Enums']['stall_shape'];
-    fill_color: string;
-    stroke_color: string;
     price: number;
-    capacity: number;
   };
-  isBooked?: boolean;
-  isHeld?: boolean;
 };
 
-interface StallSelection {
-  stall: StallInstance;
-  selectedDates: Date[];
-  totalCost: number;
-}
-
 const FCAStallBooking = () => {
-  const { marketId } = useParams<{ marketId: string }>();
+  const { id } = useParams();
   const navigate = useNavigate();
-  const { user: currentUser } = useAuth();
   const [selectedStall, setSelectedStall] = useState<StallInstance | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [stallSelection, setStallSelection] = useState<StallSelection | null>(null);
+  const [showModal, setShowModal] = useState(false);
 
-  const { data: markets } = useMarkets();
-  const { data: stallInstances, isLoading: stallsLoading } = useStallInstances(marketId || '');
-  const { data: currentStallHolds = {} } = useStallHolds(marketId || '');
-  const { data: bookedDates = [] } = useBookingDates(marketId || '');
+  const market = useMarkets();
+  const stalls = useStallInstances(id || '');
+  const stallHolds = useStallHolds(id || '');
+  const bookingDates = useBookingDates(id || '');
 
-  const currentMarket = markets?.find(m => m.id === marketId);
-
-  const stalls: StallInstance[] = stallInstances?.map(stall => {
-    const stallBookedDates = bookedDates.filter(bd => 
-      bd.stall_instance_id === stall.id
-    ).map(bd => bd.booking_date);
-
-    const stallHeldDates = currentStallHolds[stall.id] || [];
-
-    return {
-      ...stall,
-      isBooked: stallBookedDates.length > 0,
-      isHeld: stallHeldDates.length > 0
-    };
-  }) || [];
+  const currentMarket = market.data?.find(m => m.id === id);
 
   const handleStallClick = (stall: StallInstance) => {
-    if (stall.status !== 'AVAILABLE') {
-      toast({
-        title: 'Stall Unavailable',
-        description: 'This stall is not available for booking',
-        variant: 'destructive'
-      });
-      return;
+    if (stall.status === 'AVAILABLE') {
+      setSelectedStall(stall);
+      setShowModal(true);
     }
-    setSelectedStall(stall);
-    setIsModalOpen(true);
   };
 
-  const handleSelectStall = (stall: StallInstance, selectedDates: Date[]) => {
-    const pricePerDay = stall.price_override || stall.stall_templates?.price || 0;
-    const totalCost = pricePerDay * selectedDates.length;
+  // Get booked dates for the selected stall
+  const getBookedDatesForStall = (stallId: string): Date[] => {
+    if (!bookingDates.data || !currentMarket) return [];
+    
+    return bookingDates.data
+      .filter(bd => bd.stall_instance_id === stallId)
+      .map(bd => startOfDay(new Date(bd.booking_date)));
+  };
 
-    setStallSelection({
-      stall,
-      selectedDates,
-      totalCost
+  // Check if stall has ANY available date in market window
+  const isStallAvailable = (stall: StallInstance): boolean => {
+    if (!currentMarket) return false;
+    
+    const marketDates = eachDayOfInterval({
+      start: startOfDay(new Date(currentMarket.start_at)),
+      end: startOfDay(new Date(currentMarket.end_at))
     });
-    setIsModalOpen(false);
     
-    toast({
-      title: 'Stall Selected',
-      description: `${stall.label} selected for ${selectedDates.length} days`,
-    });
+    const bookedDates = getBookedDatesForStall(stall.id);
+    
+    // Available if at least ONE date in market window is not booked
+    return marketDates.some(marketDate => 
+      !bookedDates.some(bookedDate => 
+        bookedDate.getTime() === marketDate.getTime()
+      )
+    );
   };
 
-  const handleProceedToCheckout = () => {
-    if (!stallSelection) return;
-    
-    // Store selection in sessionStorage for checkout page
-    sessionStorage.setItem('fcaBooking', JSON.stringify({
-      marketId,
-      stallSelection
-    }));
-    
-    navigate(`/admin/fca/checkout`);
-  };
-
-  if (stallsLoading) {
+  if (stalls.isLoading || market.isLoading) {
     return (
       <div className="p-6">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-muted rounded w-1/3"></div>
-          <div className="h-96 bg-muted rounded"></div>
+        <div className="flex justify-center items-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!currentMarket) {
+    return (
+      <div className="p-6">
+        <div className="text-center py-12">
+          <h2 className="text-2xl font-bold">Market not found</h2>
+          <Button onClick={() => navigate('/admin/fca/markets')} className="mt-4">
+            Back to Markets
+          </Button>
         </div>
       </div>
     );
@@ -120,11 +100,13 @@ const FCAStallBooking = () => {
         <div className="flex items-center gap-4">
           <Button variant="ghost" onClick={() => navigate('/admin/fca/markets')}>
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Markets
+            Back
           </Button>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">{currentMarket?.name}</h1>
-            <p className="text-muted-foreground">Select a stall for offline booking</p>
+            <h1 className="text-2xl font-bold text-foreground">{currentMarket.name}</h1>
+            <p className="text-sm text-muted-foreground">
+              {format(new Date(currentMarket.start_at), 'MMM d')} - {format(new Date(currentMarket.end_at), 'MMM d, yyyy')}
+            </p>
           </div>
         </div>
         <Badge variant="outline">
@@ -133,36 +115,34 @@ const FCAStallBooking = () => {
         </Badge>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {stalls.map((stall) => {
-          const pricePerDay = stall.price_override || stall.stall_templates?.price || 0;
-          const isBooked = stall.isBooked;
-          const isHeld = stall.isHeld;
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {stalls.data?.map((stall) => {
+          const available = isStallAvailable(stall);
+          const statusVariant = available ? 'default' : 'destructive';
+          const statusText = available ? 'Available' : 'Booked';
 
           return (
             <Card 
-              key={stall.id}
+              key={stall.id} 
               className={`cursor-pointer transition-all hover:shadow-lg ${
-                isBooked ? 'opacity-60 cursor-not-allowed' : ''
-              } ${stallSelection?.stall.id === stall.id ? 'ring-2 ring-primary' : ''}`}
-              onClick={() => !isBooked && handleStallClick(stall)}
+                available ? 'hover:border-primary' : 'opacity-60'
+              }`}
+              onClick={() => handleStallClick(stall)}
             >
               <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span>{stall.label}</span>
-                  <Badge variant={isBooked ? 'destructive' : isHeld ? 'secondary' : 'default'}>
-                    {isBooked ? 'Booked' : isHeld ? 'Held' : 'Available'}
+                <div className="flex items-start justify-between">
+                  <CardTitle className="text-lg">{stall.label}</CardTitle>
+                  <Badge variant={statusVariant}>
+                    {statusText}
                   </Badge>
-                </CardTitle>
+                </div>
               </CardHeader>
               <CardContent className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Price/Day:</span>
-                  <span className="font-medium">${pricePerDay.toFixed(2)}</span>
+                <div className="text-sm text-muted-foreground">
+                  <strong>Template:</strong> {stall.stall_templates?.name || 'N/A'}
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Template:</span>
-                  <span className="font-medium">{stall.stall_templates?.name || 'N/A'}</span>
+                <div className="text-sm text-muted-foreground">
+                  <strong>Price:</strong> ${(stall.price_override || stall.stall_templates?.price || 0).toFixed(2)}/day
                 </div>
               </CardContent>
             </Card>
@@ -170,42 +150,13 @@ const FCAStallBooking = () => {
         })}
       </div>
 
-      {stallSelection && (
-        <Card className="border-primary">
-          <CardHeader>
-            <CardTitle>Selected Stall</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-2">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Stall:</span>
-                <span className="font-medium">{stallSelection.stall.label}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Days:</span>
-                <span className="font-medium">{stallSelection.selectedDates.length}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Total:</span>
-                <span className="font-bold text-lg">${stallSelection.totalCost.toFixed(2)}</span>
-              </div>
-            </div>
-            <Button className="w-full" onClick={handleProceedToCheckout}>
-              Proceed to Payment
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {selectedStall && (
-        <EnhancedStallModal
-          stall={selectedStall}
-          market={currentMarket!}
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          onSelectStall={handleSelectStall}
-        />
-      )}
+      <FCABookingModal
+        open={showModal}
+        onOpenChange={setShowModal}
+        stall={selectedStall}
+        market={currentMarket}
+        bookedDates={selectedStall ? getBookedDatesForStall(selectedStall.id) : []}
+      />
     </div>
   );
 };

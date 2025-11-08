@@ -17,12 +17,11 @@ const FCACheckout = () => {
   const createBooking = useCreateBooking();
 
   useEffect(() => {
-    // Retrieve booking data from sessionStorage
     const stored = sessionStorage.getItem('fcaBooking');
     if (!stored) {
       toast({
         title: 'No Booking Data',
-        description: 'Please select a stall first',
+        description: 'Please select a stall and vendor first',
         variant: 'destructive',
       });
       navigate('/admin/fca/markets');
@@ -31,6 +30,9 @@ const FCACheckout = () => {
 
     try {
       const data = JSON.parse(stored);
+      if (!data.vendorId || !data.vendorDetails) {
+        throw new Error('Vendor information missing');
+      }
       setBookingData(data);
     } catch (error) {
       toast({
@@ -45,11 +47,10 @@ const FCACheckout = () => {
   const handlePaymentSuccess = async (method: 'card' | 'cash') => {
     if (!bookingData) return;
 
-    const { marketId, stallSelection } = bookingData;
+    const { marketId, vendorId, stallSelection } = bookingData;
 
     const pricePerDay = stallSelection.stall.price_override || stallSelection.stall.stall_templates?.price || 0;
 
-    // Create booking with immediate payment confirmation
     const bookingPayload: CreateBookingData = {
       marketId,
       stallIds: [stallSelection.stall.id],
@@ -61,7 +62,6 @@ const FCACheckout = () => {
     try {
       const result = await createBooking.mutateAsync(bookingPayload);
       
-      // Clear session storage
       sessionStorage.removeItem('fcaBooking');
 
       toast({
@@ -69,7 +69,6 @@ const FCACheckout = () => {
         description: `Offline ${method} payment processed successfully`,
       });
 
-      // Navigate to invoice
       navigate(`/admin/fca/invoices/${result.id}`);
     } catch (error: any) {
       toast({
@@ -90,7 +89,7 @@ const FCACheckout = () => {
     );
   }
 
-  const { stallSelection } = bookingData;
+  const { stallSelection, vendorDetails } = bookingData;
 
   return (
     <div className="p-6 space-y-6 max-w-2xl mx-auto">
@@ -107,6 +106,34 @@ const FCACheckout = () => {
           FCA - Offline Only
         </Badge>
       </div>
+
+      {vendorDetails && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Vendor Details</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Name:</span>
+              <span className="font-medium">{vendorDetails.full_name || 'N/A'}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Email:</span>
+              <span className="font-medium">{vendorDetails.email}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">KYC Status:</span>
+              <Badge variant="default">APPROVED</Badge>
+            </div>
+            {vendorDetails.company_name && (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Company:</span>
+                <span className="font-medium">{vendorDetails.company_name}</span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
