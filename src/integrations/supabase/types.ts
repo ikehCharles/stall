@@ -364,6 +364,33 @@ export type Database = {
         }
         Relationships: []
       }
+      permissions: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          key: string
+          name: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          key: string
+          name: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          key?: string
+          name?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           address: string | null
@@ -396,6 +423,108 @@ export type Database = {
           full_name?: string | null
           id?: string
           phone_number?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      rbac_audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          after_state: Json | null
+          before_state: Json | null
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          metadata: Json | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          after_state?: Json | null
+          before_state?: Json | null
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          metadata?: Json | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          after_state?: Json | null
+          before_state?: Json | null
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          metadata?: Json | null
+        }
+        Relationships: []
+      }
+      role_permissions: {
+        Row: {
+          created_at: string
+          id: string
+          permission_id: string
+          role_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          permission_id: string
+          role_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          permission_id?: string
+          role_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "permissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_permissions_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      roles: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_system: boolean
+          key: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system?: boolean
+          key: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system?: boolean
+          key?: string
+          name?: string
           updated_at?: string
         }
         Relationships: []
@@ -552,24 +681,35 @@ export type Database = {
       }
       user_roles: {
         Row: {
-          created_at: string
+          assigned_at: string
+          assigned_by: string | null
           id: string
-          role: Database["public"]["Enums"]["app_role"]
+          role_id: string
           user_id: string
         }
         Insert: {
-          created_at?: string
+          assigned_at?: string
+          assigned_by?: string | null
           id?: string
-          role: Database["public"]["Enums"]["app_role"]
+          role_id: string
           user_id: string
         }
         Update: {
-          created_at?: string
+          assigned_at?: string
+          assigned_by?: string | null
           id?: string
-          role?: Database["public"]["Enums"]["app_role"]
+          role_id?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -602,9 +742,32 @@ export type Database = {
           total_amount: number
         }[]
       }
+      get_user_permissions: { Args: { user_uuid: string }; Returns: string[] }
       get_user_role: {
         Args: { user_uuid: string }
         Returns: Database["public"]["Enums"]["app_role"]
+      }
+      get_user_role_id: { Args: { user_uuid: string }; Returns: string }
+      get_user_role_key: { Args: { user_uuid: string }; Returns: string }
+      get_user_role_with_permissions: {
+        Args: { user_uuid: string }
+        Returns: {
+          permissions: string[]
+          role_key: string
+          role_name: string
+        }[]
+      }
+      has_all_permissions: {
+        Args: { permission_keys: string[]; user_uuid: string }
+        Returns: boolean
+      }
+      has_any_permission: {
+        Args: { permission_keys: string[]; user_uuid: string }
+        Returns: boolean
+      }
+      has_permission: {
+        Args: { permission_key: string; user_uuid: string }
+        Returns: boolean
       }
       is_stall_available: {
         Args: { market_id: string; stall_id: string }
