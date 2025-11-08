@@ -108,7 +108,7 @@ const FCAStallBooking = () => {
         <div className="flex items-center gap-4">
           <Button variant="ghost" onClick={() => navigate('/admin/fca/markets')}>
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
+            Back to Markets
           </Button>
           <div>
             <h1 className="text-2xl font-bold text-foreground">{currentMarket.name}</h1>
@@ -140,6 +140,13 @@ const FCAStallBooking = () => {
             <Briefcase className="h-4 w-4 mr-2" />
             FCA Mode
           </Badge>
+          <Button 
+            variant="outline"
+            onClick={() => navigate('/admin')}
+            size="sm"
+          >
+            Exit FCA Mode
+          </Button>
         </div>
       </div>
 

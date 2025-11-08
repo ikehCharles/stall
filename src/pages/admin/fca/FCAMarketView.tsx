@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
-import { Briefcase, Calendar, Search } from 'lucide-react';
+import { Briefcase, Calendar, Search, ArrowLeft } from 'lucide-react';
 import { useMarkets } from '@/hooks/useMarkets';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format, isPast } from 'date-fns';
@@ -109,11 +109,21 @@ const FCAMarketView = () => {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-foreground">Field Collections Agent</h1>
-        <Badge variant="outline">
-          <Briefcase className="h-4 w-4 mr-2" />
-          FCA Mode
-        </Badge>
+        <div className="flex items-center gap-4">
+          <h1 className="text-2xl font-bold text-foreground">Field Collections Agent</h1>
+          <Badge variant="outline">
+            <Briefcase className="h-4 w-4 mr-2" />
+            FCA Mode
+          </Badge>
+        </div>
+        <Button 
+          variant="outline"
+          onClick={() => navigate('/admin')}
+          className="gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Exit FCA Mode
+        </Button>
       </div>
 
       <div className="flex gap-2">

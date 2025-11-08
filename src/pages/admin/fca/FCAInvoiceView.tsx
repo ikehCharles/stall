@@ -93,6 +93,13 @@ const FCAInvoiceView = () => {
             <Briefcase className="h-4 w-4 mr-2" />
             FCA Mode
           </Badge>
+          <Button 
+            variant="outline"
+            onClick={() => navigate('/admin')}
+            size="sm"
+          >
+            Exit FCA Mode
+          </Button>
         </div>
       </div>
 

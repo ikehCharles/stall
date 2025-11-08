@@ -147,16 +147,25 @@ const FCACheckout = () => {
     <div className="p-6 space-y-6 max-w-2xl mx-auto">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => navigate(-1)}>
+          <Button variant="ghost" onClick={() => navigate('/admin/fca/markets')}>
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
+            Back to Markets
           </Button>
           <h1 className="text-2xl font-bold text-foreground">Payment Summary</h1>
         </div>
-        <Badge variant="outline">
-          <Briefcase className="h-4 w-4 mr-2" />
-          FCA - Offline Only
-        </Badge>
+        <div className="flex items-center gap-3">
+          <Badge variant="outline">
+            <Briefcase className="h-4 w-4 mr-2" />
+            FCA Mode
+          </Badge>
+          <Button 
+            variant="outline"
+            onClick={() => navigate('/admin')}
+            size="sm"
+          >
+            Exit FCA Mode
+          </Button>
+        </div>
       </div>
 
       {vendorDetails && (
