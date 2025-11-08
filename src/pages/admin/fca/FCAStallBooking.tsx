@@ -24,17 +24,17 @@ type StallInstance = {
 };
 
 const FCAStallBooking = () => {
-  const { id } = useParams();
+  const { marketId } = useParams();
   const navigate = useNavigate();
   const [selectedStall, setSelectedStall] = useState<StallInstance | null>(null);
   const [showModal, setShowModal] = useState(false);
 
   const market = useMarkets();
-  const stalls = useStallInstances(id || '');
-  const stallHolds = useStallHolds(id || '');
-  const bookingDates = useBookingDates(id || '');
+  const stalls = useStallInstances(marketId || '');
+  const stallHolds = useStallHolds(marketId || '');
+  const bookingDates = useBookingDates(marketId || '');
 
-  const currentMarket = market.data?.find(m => m.id === id);
+  const currentMarket = market.data?.find(m => m.id === marketId);
 
   const handleStallClick = (stall: StallInstance) => {
     if (stall.status === 'AVAILABLE') {
