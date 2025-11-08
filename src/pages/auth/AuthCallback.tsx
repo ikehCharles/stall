@@ -31,12 +31,9 @@ const AuthCallback = () => {
           // Wait a bit for profile to load then redirect based on role
           setTimeout(async () => {
             const { data: roleData } = await supabase
-              .from('user_roles')
-              .select('role')
-              .eq('user_id', data.session.user.id)
-              .maybeSingle();
+              .rpc('get_user_role_key', { user_uuid: data.session.user.id });
             
-            if (roleData?.role === 'admin') {
+            if (roleData === 'admin') {
               navigate("/admin/dashboard");
             } else {
               navigate("/vendor/dashboard");

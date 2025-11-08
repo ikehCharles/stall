@@ -12,6 +12,11 @@ export interface UserProfile {
   company_name: string | null;
   address: string | null;
   business_logo_url: string | null;
+  // RBAC fields
+  role_key: string | null; // 'admin', 'vendor', 'fca'
+  role_name: string | null; // 'Administrator', 'Vendor', 'Field Collections Agent'
+  permissions: string[]; // ['markets.view', 'stalls.book.self', ...]
+  // Legacy role field for backward compatibility
   role: 'vendor' | 'admin' | null;
   kyc_status: 'PENDING' | 'APPROVED' | 'REJECTED' | null;
 }
@@ -59,20 +64,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (profileError) {
         console.error('Error fetching profile:', profileError);
+        setProfileLoading(false);
         return;
       }
 
-      // Get user role
+      // Get user role with permissions using RPC function
       const { data: roleData, error: roleError } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .maybeSingle();
+        .rpc('get_user_role_with_permissions', { user_uuid: userId });
 
       if (roleError) {
-        console.error('Error fetching role:', roleError);
+        console.error('Error fetching role and permissions:', roleError);
+        setProfileLoading(false);
         return;
       }
+
+      // RPC returns a single row, extract the first element if it's an array
+      const roleInfo = Array.isArray(roleData) ? roleData[0] : roleData;
 
       // Get KYC status
       const { data: kycData, error: kycError } = await supabase
@@ -83,7 +90,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (kycError && kycError.code !== 'PGRST116') {
         console.error('Error fetching KYC status:', kycError);
-        return;
       }
 
       setUserProfile({
@@ -94,7 +100,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         company_name: profile?.company_name || null,
         address: profile?.address || null,
         business_logo_url: profile?.business_logo_url || null,
-        role: roleData?.role || null,
+        // RBAC fields
+        role_key: roleInfo?.role_key || null,
+        role_name: roleInfo?.role_name || null,
+        permissions: roleInfo?.permissions || [],
+        // Legacy role field for backward compatibility
+        role: roleInfo?.role_key === 'admin' ? 'admin' : roleInfo?.role_key === 'vendor' ? 'vendor' : null,
         kyc_status: kycData?.status || null,
       });
       setProfileLoading(false);
