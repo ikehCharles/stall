@@ -12,11 +12,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Upload, X } from "lucide-react";
 import { KYCForm } from "@/components/kyc/KYCForm";
 import { KYCStatus } from "@/components/kyc/KYCStatus";
+import { usePermissions } from "@/hooks/usePermissions";
+import { PERMISSIONS } from "@/lib/permissions";
 
 const VendorProfile = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get("tab") || "personal";
   const { userProfile, refreshProfile } = useAuth();
+  const { hasPermission } = usePermissions();
+  const isAdmin = hasPermission(PERMISSIONS.USERS.MANAGE);
   const [profile, setProfile] = useState({
     full_name: "",
     email: "",
@@ -187,9 +191,9 @@ const VendorProfile = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={(value) => setSearchParams({ tab: value })}>
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-1' : 'grid-cols-2'}`}>
           <TabsTrigger value="personal">Personal Information</TabsTrigger>
-          <TabsTrigger value="verification">Business Verification</TabsTrigger>
+          {!isAdmin && <TabsTrigger value="verification">Business Verification</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="personal" className="space-y-6 mt-6">
@@ -333,7 +337,8 @@ const VendorProfile = () => {
           </div>
         </TabsContent>
 
-        <TabsContent value="verification" className="space-y-6 mt-6">
+        {!isAdmin && (
+          <TabsContent value="verification" className="space-y-6 mt-6">
           {kycLoading ? (
             <div className="flex justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -367,6 +372,7 @@ const VendorProfile = () => {
             </Card>
           )}
         </TabsContent>
+        )}
       </Tabs>
     </div>
   );
