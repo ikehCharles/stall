@@ -3,12 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Briefcase } from 'lucide-react';
+import { ArrowLeft, Briefcase, LayoutGrid, Map } from 'lucide-react';
 import { useMarkets } from '@/hooks/useMarkets';
 import { useStallInstances } from '@/hooks/useStallInstances';
 import { useStallHolds } from '@/hooks/useStallHolds';
 import { useBookingDates } from '@/hooks/useBookingDates';
 import { FCABookingModal } from '@/components/admin/fca/FCABookingModal';
+import { StallCanvasView } from '@/components/shared/StallCanvasView';
 import { Loader2 } from 'lucide-react';
 import { format, eachDayOfInterval, startOfDay } from 'date-fns';
 
@@ -28,6 +29,7 @@ const FCAStallBooking = () => {
   const navigate = useNavigate();
   const [selectedStall, setSelectedStall] = useState<StallInstance | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'canvas'>('list');
 
   const market = useMarkets();
   const stalls = useStallInstances(marketId || '');
@@ -71,6 +73,12 @@ const FCAStallBooking = () => {
     );
   };
 
+  const getStallColorForFCA = (stall: StallInstance) => {
+    const available = isStallAvailable(stall);
+    if (available) return '#22c55e'; // green - available
+    return '#ef4444'; // red - fully booked
+  };
+
   if (stalls.isLoading || market.isLoading) {
     return (
       <div className="p-6">
@@ -109,46 +117,94 @@ const FCAStallBooking = () => {
             </p>
           </div>
         </div>
-        <Badge variant="outline">
-          <Briefcase className="h-4 w-4 mr-2" />
-          FCA Mode
-        </Badge>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {stalls.data?.map((stall) => {
-          const available = isStallAvailable(stall);
-          const statusVariant = available ? 'default' : 'destructive';
-          const statusText = available ? 'Available' : 'Booked';
-
-          return (
-            <Card 
-              key={stall.id} 
-              className={`cursor-pointer transition-all hover:shadow-lg ${
-                available ? 'hover:border-primary' : 'opacity-60'
-              }`}
-              onClick={() => handleStallClick(stall)}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('list')}
             >
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <CardTitle className="text-lg">{stall.label}</CardTitle>
-                  <Badge variant={statusVariant}>
-                    {statusText}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="text-sm text-muted-foreground">
-                  <strong>Template:</strong> {stall.stall_templates?.name || 'N/A'}
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  <strong>Price:</strong> ${(stall.price_override || stall.stall_templates?.price || 0).toFixed(2)}/day
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+              <LayoutGrid className="h-4 w-4 mr-2" />
+              List View
+            </Button>
+            <Button
+              variant={viewMode === 'canvas' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('canvas')}
+            >
+              <Map className="h-4 w-4 mr-2" />
+              Canvas View
+            </Button>
+          </div>
+          <Badge variant="outline">
+            <Briefcase className="h-4 w-4 mr-2" />
+            FCA Mode
+          </Badge>
+        </div>
       </div>
+
+      {viewMode === 'list' ? (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {stalls.data?.map((stall) => {
+            const available = isStallAvailable(stall);
+            const statusVariant = available ? 'default' : 'destructive';
+            const statusText = available ? 'Available' : 'Booked';
+
+            return (
+              <Card 
+                key={stall.id} 
+                className={`cursor-pointer transition-all hover:shadow-lg ${
+                  available ? 'hover:border-primary' : 'opacity-60'
+                }`}
+                onClick={() => handleStallClick(stall)}
+              >
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <CardTitle className="text-lg">{stall.label}</CardTitle>
+                    <Badge variant={statusVariant}>
+                      {statusText}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="text-sm text-muted-foreground">
+                    <strong>Template:</strong> {stall.stall_templates?.name || 'N/A'}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    <strong>Price:</strong> ${(stall.price_override || stall.stall_templates?.price || 0).toFixed(2)}/day
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <span className="mr-2">🗺️</span>
+              Stall Layout - {currentMarket.name}
+            </CardTitle>
+            <div className="flex items-center space-x-4 text-sm">
+              <div className="flex items-center">
+                <div className="w-4 h-4 bg-green-500 rounded mr-2"></div>
+                Available
+              </div>
+              <div className="flex items-center">
+                <div className="w-4 h-4 bg-red-500 rounded mr-2"></div>
+                Fully Booked
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <StallCanvasView
+              stalls={stalls.data || []}
+              onStallClick={handleStallClick}
+              getStallColor={getStallColorForFCA}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       <FCABookingModal
         open={showModal}
