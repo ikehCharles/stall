@@ -160,7 +160,6 @@ const BookingDetails = () => {
     return groups.join(', ');
   };
 
-  console.warn(booking.payment_status, "payment status");
 
   const isPaymentAvailable = booking && 
     booking.status === 'approved' &&  // Must be approved by admin first
@@ -192,6 +191,7 @@ const BookingDetails = () => {
   
 
   const makePayment = () => {
+    console.warn("payment switch", ENV.PAYMENT_SWITCH)
     if(ENV.PAYMENT_SWITCH === PAYMENT_SWITCH_ENUM.SIMULATION) {
       setPaymentModalOpen(true);
       return

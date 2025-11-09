@@ -78,14 +78,15 @@ export const MarketDialog = ({ open, onOpenChange, market, onSuccess }: MarketDi
       const filePath = `market-banners/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('business-logos')
+        .from('market')
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
       const { data } = supabase.storage
-        .from('business-logos')
+        .from('market')
         .getPublicUrl(filePath);
+
 
       setBannerUrl(data.publicUrl);
       form.setValue('banner_url', data.publicUrl);
