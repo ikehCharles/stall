@@ -16,6 +16,8 @@ import { KYCPagination } from '@/components/admin/KYCPagination';
 import { KYCAuditHistory } from '@/components/admin/KYCAuditHistory';
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
+import { PermissionGate } from '@/components/PermissionGate';
+import { PERMISSIONS } from '@/lib/permissions';
 
 interface KYCApplication {
   id: string;
@@ -124,7 +126,7 @@ export const KYCReview = () => {
       if (error) throw error;
 
       // Handle the data with proper type conversion
-      const processedData = (data || []).map((item: any) => ({
+      const processedData = (data || []).map((item) => ({
         ...item,
         profiles: item.profiles && typeof item.profiles === 'object' && !('error' in item.profiles) 
           ? item.profiles 
@@ -443,7 +445,9 @@ export const KYCReview = () => {
                     <TableHead>Phone</TableHead>
                     <TableHead>Submitted</TableHead>
                     <TableHead>Status</TableHead>
+                    <PermissionGate permissions={[PERMISSIONS.KYC.REVIEW]}>
                     <TableHead>Actions</TableHead>
+                    </PermissionGate>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -457,6 +461,8 @@ export const KYCReview = () => {
                       <TableCell>{kyc.contact_phone}</TableCell>
                       <TableCell>{format(new Date(kyc.submitted_at), 'MMM d, y')}</TableCell>
                       <TableCell>{getStatusBadge(kyc.status)}</TableCell>
+                      <PermissionGate permissions={[PERMISSIONS.KYC.REVIEW]}>
+
                       <TableCell>
                         <Button 
                           variant="outline" 
@@ -467,6 +473,7 @@ export const KYCReview = () => {
                           Review
                         </Button>
                       </TableCell>
+                      </PermissionGate>
                     </TableRow>
                   ))}
                 </TableBody>

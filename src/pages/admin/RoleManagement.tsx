@@ -31,38 +31,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Plus, Shield, Lock, Edit, Trash2 } from "lucide-react";
+import { Loader2, Plus, Shield, Lock, Edit, Trash2, Edit2 } from "lucide-react";
 import { toast } from "sonner";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PERMISSIONS } from "@/lib/permissions";
 import { PermissionGate } from "@/components/PermissionGate";
+import { RolePayload, Permission, RoleWithPermissions, useCreateOrUpdateRole, usePermissionsList, useRolesWithPermissions } from "@/hooks/useRolesAndPermissions";
 
-interface Role {
-  id: string;
-  key: string;
-  name: string;
-  description: string | null;
-  is_system: boolean;
-  created_at: string;
-}
-
-interface Permission {
-  id: string;
-  key: string;
-  name: string;
-  description: string | null;
-  category: string;
-}
-
-interface RoleWithPermissions extends Role {
-  permissions: string[];
-}
 
 export default function RoleManagement() {
   const queryClient = useQueryClient();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [editingRole, setEditingRole] = useState<RoleWithPermissions | null>(null);
-  const [newRole, setNewRole] = useState({
+  const [editingRole, setEditingRole] = useState<RoleWithPermissions | null>(
+    null
+  );
+  const [role, setRole] = useState<RolePayload>({
     key: "",
     name: "",
     description: "",
@@ -70,59 +53,10 @@ export default function RoleManagement() {
   });
 
   // Fetch all roles with their permissions
-  const { data: roles, isLoading: rolesLoading } = useQuery({
-    queryKey: ["roles-management"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("roles")
-        .select(`
-          id,
-          key,
-          name,
-          description,
-          is_system,
-          created_at
-        `)
-        .order("name");
-
-      if (error) throw error;
-
-      // Fetch permissions for each role
-      const rolesWithPermissions = await Promise.all(
-        (data || []).map(async (role) => {
-          const { data: permData } = await supabase
-            .from("role_permissions")
-            .select(`
-              permissions:permission_id (
-                key
-              )
-            `)
-            .eq("role_id", role.id);
-
-          return {
-            ...role,
-            permissions: permData?.map((p: any) => p.permissions.key) || [],
-          };
-        })
-      );
-
-      return rolesWithPermissions as RoleWithPermissions[];
-    },
-  });
+  const { data: roles, isLoading: rolesLoading } = useRolesWithPermissions();
 
   // Fetch all available permissions
-  const { data: permissions } = useQuery({
-    queryKey: ["permissions-list"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("permissions")
-        .select("id, key, name, description, category")
-        .order("category, name");
-
-      if (error) throw error;
-      return data as Permission[];
-    },
-  });
+  const { data: permissions } = usePermissionsList();
 
   // Group permissions by category
   const permissionsByCategory = permissions?.reduce((acc, perm) => {
@@ -134,50 +68,7 @@ export default function RoleManagement() {
   }, {} as Record<string, Permission[]>);
 
   // Create role mutation
-  const createRole = useMutation({
-    mutationFn: async (roleData: typeof newRole) => {
-      // Create role
-      const { data: role, error: roleError } = await supabase
-        .from("roles")
-        .insert({
-          key: roleData.key,
-          name: roleData.name,
-          description: roleData.description,
-          is_system: false,
-        })
-        .select()
-        .single();
-
-      if (roleError) throw roleError;
-
-      // Assign permissions
-      if (roleData.permissions.length > 0) {
-        const permissionIds = permissions
-          ?.filter((p) => roleData.permissions.includes(p.key))
-          .map((p) => p.id);
-
-        const { error: permError } = await supabase
-          .from("role_permissions")
-          .insert(
-            permissionIds?.map((permId) => ({
-              role_id: role.id,
-              permission_id: permId,
-            })) || []
-          );
-
-        if (permError) throw permError;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["roles-management"] });
-      toast.success("Role created successfully");
-      setIsCreateDialogOpen(false);
-      setNewRole({ key: "", name: "", description: "", permissions: [] });
-    },
-    onError: (error: Error) => {
-      toast.error("Failed to create role: " + error.message);
-    },
-  });
+  const createOrUpdateRole = useCreateOrUpdateRole();
 
   // Delete role mutation
   const deleteRole = useMutation({
@@ -194,13 +85,31 @@ export default function RoleManagement() {
     },
   });
 
-  const handleCreateRole = () => {
-    if (!newRole.key || !newRole.name) {
+  const handleCreateRole = async () => {
+    if (!role.key || !role.name) {
       toast.error("Please fill in all required fields");
       return;
     }
-    createRole.mutate(newRole);
+    try {
+      if(editingRole){
+        setRole({...role, id: editingRole.id})
+      }
+      await createOrUpdateRole.mutate(role);
+      setIsCreateDialogOpen(false);
+      setRole({ key: "", name: "", description: "", permissions: [] });
+
+    } catch (error) {
+      setIsCreateDialogOpen(false);
+      setRole({ key: "", name: "", description: "", permissions: [] });
+
+    }
   };
+
+  const editRole = (role: RoleWithPermissions) => {
+    setRole(role);
+    setEditingRole(role);
+    setIsCreateDialogOpen(true);
+  }
 
   if (rolesLoading) {
     return (
@@ -214,24 +123,33 @@ export default function RoleManagement() {
     <div className="container mx-auto py-8 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Role Management</h1>
+          <h1 className="text-3xl font-bold text-foreground">
+            Role Management
+          </h1>
           <p className="text-muted-foreground mt-2">
             Manage roles and their associated permissions
           </p>
         </div>
-        <PermissionGate permissions={[PERMISSIONS.ROLES.CREATE]}>
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <PermissionGate permissions={[PERMISSIONS.ROLES.CREATE, PERMISSIONS.ROLES.MANAGE]}>
+          <Dialog
+            open={isCreateDialogOpen}
+            onOpenChange={(open)=>{
+              setIsCreateDialogOpen(open);
+              setEditingRole(null);
+              setRole({ key: "", name: "", description: "", permissions: [] });
+            }}
+          >
             <DialogTrigger asChild>
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
                 Create Role
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogContent className="max-w-xl max-h-[80vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Create New Role</DialogTitle>
+                <DialogTitle>{editingRole ? 'Edit' : 'Create New'} Role</DialogTitle>
                 <DialogDescription>
-                  Define a new role and assign permissions
+                 {editingRole ? 'Edit role' : 'Define a new role'}  and assign permissions
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
@@ -240,8 +158,10 @@ export default function RoleManagement() {
                   <Input
                     id="key"
                     placeholder="e.g., moderator"
-                    value={newRole.key}
-                    onChange={(e) => setNewRole({ ...newRole, key: e.target.value })}
+                    value={role.key}
+                    onChange={(e) =>
+                      setRole({ ...role, key: e.target.value })
+                    }
                   />
                 </div>
                 <div>
@@ -249,8 +169,10 @@ export default function RoleManagement() {
                   <Input
                     id="name"
                     placeholder="e.g., Moderator"
-                    value={newRole.name}
-                    onChange={(e) => setNewRole({ ...newRole, name: e.target.value })}
+                    value={role.name}
+                    onChange={(e) =>
+                      setRole({ ...role, name: e.target.value })
+                    }
                   />
                 </div>
                 <div>
@@ -258,58 +180,70 @@ export default function RoleManagement() {
                   <Textarea
                     id="description"
                     placeholder="Describe this role..."
-                    value={newRole.description}
-                    onChange={(e) => setNewRole({ ...newRole, description: e.target.value })}
+                    value={role.description}
+                    onChange={(e) =>
+                      setRole({ ...role, description: e.target.value })
+                    }
                   />
                 </div>
                 <div>
                   <Label>Permissions</Label>
-                  <div className="mt-2 space-y-4 border rounded-lg p-4 max-h-[300px] overflow-y-auto">
-                    {Object.entries(permissionsByCategory || {}).map(([category, perms]) => (
-                      <div key={category}>
-                        <h4 className="font-semibold text-sm mb-2 capitalize">
-                          {category}
-                        </h4>
-                        <div className="space-y-2 ml-4">
-                          {perms.map((perm) => (
-                            <div key={perm.id} className="flex items-start space-x-2">
-                              <Checkbox
-                                id={perm.id}
-                                checked={newRole.permissions.includes(perm.key)}
-                                onCheckedChange={(checked) => {
-                                  if (checked) {
-                                    setNewRole({
-                                      ...newRole,
-                                      permissions: [...newRole.permissions, perm.key],
-                                    });
-                                  } else {
-                                    setNewRole({
-                                      ...newRole,
-                                      permissions: newRole.permissions.filter(
-                                        (k) => k !== perm.key
-                                      ),
-                                    });
-                                  }
-                                }}
-                              />
-                              <div className="grid gap-1 leading-none">
-                                <label
-                                  htmlFor={perm.id}
-                                  className="text-sm font-medium cursor-pointer"
-                                >
-                                  {perm.name}
-                                </label>
-                                {perm.description && (
-                                  <p className="text-xs text-muted-foreground">
-                                    {perm.description}
-                                  </p>
-                                )}
+                  <div className="mt-2 space-y-4 border rounded-lg p-4 max-h-[200px] overflow-y-auto">
+                    {Object.entries(permissionsByCategory || {}).map(
+                      ([category, perms]) => (
+                        <div key={category}>
+                          <h4 className="font-semibold text-sm mb-2 capitalize">
+                            {category}
+                          </h4>
+                          <div className="space-y-2 ml-4">
+                            {perms.map((perm) => (
+                              <div
+                                key={perm.id}
+                                className="flex items-start space-x-2"
+                              >
+                                <Checkbox
+                                  id={perm.id}
+                                  checked={role.permissions.includes(
+                                    perm.key
+                                  )}
+                                  onCheckedChange={(checked) => {
+                                    if (checked) {
+                                      setRole({
+                                        ...role,
+                                        permissions: [
+                                          ...role.permissions,
+                                          perm.key,
+                                        ],
+                                      });
+                                    } else {
+                                      setRole({
+                                        ...role,
+                                        permissions: role.permissions.filter(
+                                          (k) => k !== perm.key
+                                        ),
+                                      });
+                                    }
+                                  }}
+                                />
+                                <div className="grid gap-1 leading-none">
+                                  <label
+                                    htmlFor={perm.id}
+                                    className="text-sm font-medium cursor-pointer"
+                                  >
+                                    {perm.name}
+                                  </label>
+                                  {perm.description && (
+                                    <p className="text-xs text-muted-foreground">
+                                      {perm.description}
+                                    </p>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      )
+                    )}
                   </div>
                 </div>
               </div>
@@ -320,11 +254,14 @@ export default function RoleManagement() {
                 >
                   Cancel
                 </Button>
-                <Button onClick={handleCreateRole} disabled={createRole.isPending}>
-                  {createRole.isPending && (
+                <Button
+                  onClick={ handleCreateRole}
+                  disabled={createOrUpdateRole.isPending}
+                >
+                  {createOrUpdateRole.isPending && (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   )}
-                  Create Role
+                  {editingRole ? 'Update' : 'Create'} Role
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -356,17 +293,27 @@ export default function RoleManagement() {
                 </div>
                 <PermissionGate permissions={[PERMISSIONS.ROLES.MANAGE]}>
                   {!role.is_system && (
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => {
-                        if (confirm(`Delete role "${role.name}"?`)) {
-                          deleteRole.mutate(role.id);
-                        }
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                            editRole(role)
+                        }}
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => {
+                          if (confirm(`Delete role "${role.name}"?`)) {
+                            deleteRole.mutate(role.id);
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   )}
                 </PermissionGate>
               </div>

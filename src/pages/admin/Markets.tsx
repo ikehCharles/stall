@@ -9,10 +9,12 @@ import { useMarkets, useUpdateMarket } from '@/hooks/useMarkets';
 import { MarketDialog } from '@/components/admin/MarketDialog';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { PERMISSIONS } from '@/lib/permissions';
+import { PermissionGate } from '@/components/PermissionGate';
 
 const Markets = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [editingMarket, setEditingMarket] = useState<any>(null);
+  const [editingMarket, setEditingMarket] = useState(null);
   const { data: markets, isLoading } = useMarkets();
   const updateMarket = useUpdateMarket();
 
@@ -52,10 +54,12 @@ const Markets = () => {
           <h1 className="text-3xl font-bold text-foreground">Markets</h1>
           <p className="text-muted-foreground mt-1">Manage your marketplace events</p>
         </div>
+        <PermissionGate permissions={[PERMISSIONS.MARKETS.MANAGE]}>
         <Button onClick={() => setIsCreateDialogOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Create Market
         </Button>
+        </PermissionGate>
       </div>
 
       <Card>
@@ -74,7 +78,10 @@ const Markets = () => {
                   <TableHead>Theme</TableHead>
                   <TableHead>Dates</TableHead>
                   <TableHead>Status</TableHead>
+                  <PermissionGate permissions={[PERMISSIONS.MARKETS.MANAGE]}>
+
                   <TableHead>Actions</TableHead>
+                  </PermissionGate>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -90,6 +97,8 @@ const Markets = () => {
                         {market.status}
                       </Badge>
                     </TableCell>
+                    <PermissionGate permissions={[PERMISSIONS.MARKETS.MANAGE]}>
+
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Button
@@ -145,6 +154,7 @@ const Markets = () => {
                         )}
                       </div>
                     </TableCell>
+                    </PermissionGate>
                   </TableRow>
                 ))}
               </TableBody>

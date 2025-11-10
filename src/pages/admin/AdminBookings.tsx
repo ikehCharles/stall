@@ -10,6 +10,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useAdminBookings, useAdminApproveBooking, useAdminDeclineBooking } from "@/hooks/useAdminBookings";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Check, X } from "lucide-react";
+import { PermissionGate } from "@/components/PermissionGate";
+import { PERMISSIONS } from "@/lib/permissions";
 
 const AdminBookings = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -145,7 +147,10 @@ const AdminBookings = () => {
                   <TableHead>Amount</TableHead>
                   <TableHead>Booking Status</TableHead>
                   <TableHead>Payment Status</TableHead>
+                  <PermissionGate permissions={[PERMISSIONS.BOOKINGS.MANAGE]}>
+
                   <TableHead>Actions</TableHead>
+                  </PermissionGate>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -165,6 +170,8 @@ const AdminBookings = () => {
                       <TableCell>${booking.total_amount}</TableCell>
                       <TableCell>{getStatusBadge(booking.status)}</TableCell>
                       <TableCell>{getPaymentStatusBadge(booking.payment_status)}</TableCell>
+                      <PermissionGate permissions={[PERMISSIONS.BOOKINGS.MANAGE]}>
+
                       <TableCell>
                         <div className="flex space-x-2">
                           {booking.status === 'pending' && (
@@ -194,6 +201,7 @@ const AdminBookings = () => {
                           </Button>
                         </div>
                       </TableCell>
+                      </PermissionGate>
                     </TableRow>
                   ))
                 )}

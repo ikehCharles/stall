@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "./use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useParams } from "react-router-dom";
+import { QueryKeysEnum } from "@/lib/enums";
 
 export const useCreatePayment = () => {
   const queryClient = useQueryClient();
@@ -19,12 +20,12 @@ export const useCreatePayment = () => {
       return data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["vendor-bookings"] });
+      queryClient.invalidateQueries({ queryKey: [QueryKeysEnum.vendorBookings] });
       toast({
         title: "Payment Booking Created",
         description: "The payment booking has been created successfully.",
       });
-      window.location.href = data.links.find((l: any) => l.rel === "payer-action")?.href;
+      window.location.href = data.links.find((l) => l.rel === "payer-action")?.href;
     },
     onError: (error) => {
       toast({
@@ -55,7 +56,7 @@ export const useCapturePayment = () => {
       return data;
     },
     onSuccess: (res) => {
-      queryClient.invalidateQueries({ queryKey: ["vendor-bookings"] });
+      queryClient.invalidateQueries({ queryKey: [QueryKeysEnum.vendorBookings] });
       toast({
         title: "Payment Booking Confirmed",
         description: "The payment booking has been confirmed successfully.",

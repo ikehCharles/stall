@@ -2,6 +2,7 @@ import { ReactElement } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
+import { RolesEnum } from '@/lib/enums';
 
 interface ProtectedRouteProps {
   children: ReactElement;
@@ -49,17 +50,15 @@ export const ProtectedRoute = ({
     
     if (!hasAccess) {
       // Redirect to appropriate dashboard based on role
-      const defaultPath = roleKey === 'admin' 
-        ? '/admin' 
-        : '/vendor';
+      const defaultPath = roleKey === RolesEnum.vendor ? '/vendor' : '/admin' 
       return <Navigate to={fallbackPath || defaultPath} replace />;
     }
   }
   
   // Legacy role-based check (for backward compatibility)
-  if (requiredRole && (!userProfile?.role || userProfile.role !== requiredRole)) {
-    const redirectPath = userProfile?.role === 'admin' ? '/admin' : '/vendor';
-    return <Navigate to={redirectPath} replace />;
+  if (!userProfile?.role_key) {
+    const defaultPath = roleKey === RolesEnum.vendor ? '/vendor' : '/admin';
+    return <Navigate to={defaultPath} replace />;
   }
 
   return children;

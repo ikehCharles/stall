@@ -165,8 +165,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Ensure phone number is in E.164 format
       let formattedPhone = phoneNumber;
       if (phoneNumber && !phoneNumber.startsWith('+')) {
-        // If no country code, assume US (+1) for backwards compatibility
-        formattedPhone = `+1${phoneNumber.replace(/\D/g, '')}`;
+        // If no country code, assume UK (+44) for backwards compatibility
+        formattedPhone = `+44${phoneNumber.replace(/\D/g, '').slice(-10)}`;
       }
       
       // Validate the formatted phone number

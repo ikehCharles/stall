@@ -25,117 +25,38 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Shield, Mail, User } from "lucide-react";
+import { Loader2, Shield, Mail, User, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PERMISSIONS } from "@/lib/permissions";
 import { PermissionGate } from "@/components/PermissionGate";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import UserRegister from "../auth/UserRegister";
+import { useRoles, useUpdateUserRole, useUsersRoles } from "@/hooks/useRolesAndPermissions";
 
-interface UserProfile {
-  id: string;
-  email: string;
-  full_name: string | null;
-  created_at: string;
-  role_key: string | null;
-  role_name: string | null;
-  role_id: string | null;
-}
 
-interface Role {
-  id: string;
-  key: string;
-  name: string;
-}
+
 
 export default function UserManagement() {
   const queryClient = useQueryClient();
   const { hasPermission } = usePermissions();
+  const { data: roles } = useRoles();
   const canAssignRoles = hasPermission(PERMISSIONS.ROLES.ASSIGN);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [newUser, setNewUser] = useState({
+    key: "",
+    name: "",
+    description: "",
+    permissions: [] as string[],
+  });
 
   // Fetch all users with their roles
-  const { data: users, isLoading: usersLoading } = useQuery({
-    queryKey: ["users-management"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select(`
-          id,
-          email,
-          full_name,
-          created_at
-        `)
-        .order("created_at", { ascending: false });
+  const { data: users, isLoading: usersLoading } = useUsersRoles();
 
-      if (error) throw error;
-
-      // Fetch user roles separately
-      const usersWithRoles = await Promise.all(
-        (data || []).map(async (user) => {
-          const { data: roleData } = await supabase
-            .from("user_roles")
-            .select(`
-              role_id,
-              roles:role_id (
-                id,
-                key,
-                name
-              )
-            `)
-            .eq("user_id", user.id)
-            .single();
-
-          return {
-            ...user,
-            role_key: roleData?.roles?.key || null,
-            role_name: roleData?.roles?.name || null,
-            role_id: roleData?.role_id || null,
-          };
-        })
-      );
-
-      return usersWithRoles as UserProfile[];
-    },
-  });
-
-  // Fetch available roles
-  const { data: roles } = useQuery({
-    queryKey: ["roles-list"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("roles")
-        .select("id, key, name")
-        .order("name");
-
-      if (error) throw error;
-      return data as Role[];
-    },
-  });
+  
 
   // Mutation to update user role
-  const updateUserRole = useMutation({
-    mutationFn: async ({ userId, roleId }: { userId: string; roleId: string }) => {
-      // First, delete existing role assignment
-      await supabase.from("user_roles").delete().eq("user_id", userId);
-
-      // Then insert new role assignment
-      const { error } = await supabase
-        .from("user_roles")
-        .insert({
-          user_id: userId,
-          role_id: roleId,
-          assigned_by: (await supabase.auth.getUser()).data.user?.id,
-        });
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["users-management"] });
-      toast.success("User role updated successfully");
-    },
-    onError: (error: Error) => {
-      toast.error("Failed to update user role: " + error.message);
-    },
-  });
+  const updateUserRole = useUpdateUserRole();
 
   if (usersLoading) {
     return (
@@ -145,14 +66,41 @@ export default function UserManagement() {
     );
   }
 
+
+
+
+
   return (
     <div className="container mx-auto py-8 space-y-6">
+            <div className="flex justify-between items-center">
+
       <div>
         <h1 className="text-3xl font-bold text-foreground">User Management</h1>
         <p className="text-muted-foreground mt-2">
           Manage user accounts and role assignments
         </p>
       </div>
+      <PermissionGate permissions={[PERMISSIONS.USERS.INVITE]}>
+          <Dialog modal={true} open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Create User
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-sm max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Create New User</DialogTitle>
+                <DialogDescription>
+                  Create a new user account and assign roles
+                </DialogDescription>
+              </DialogHeader>
+              
+              <UserRegister />
+            </DialogContent>
+          </Dialog>
+        </PermissionGate>
+        </div>
 
       <Card>
         <CardHeader>

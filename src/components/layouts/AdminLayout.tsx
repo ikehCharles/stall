@@ -25,7 +25,7 @@ const AdminLayout = () => {
       name: 'Markets', 
       href: '/admin/markets', 
       icon: Map,
-      permissions: [PERMISSIONS.MARKETS.MANAGE]
+      permissions: [PERMISSIONS.MARKETS.MANAGE, PERMISSIONS.MARKETS.VIEW]
     },
     { 
       name: 'Templates', 
@@ -37,7 +37,7 @@ const AdminLayout = () => {
       name: 'All Bookings', 
       href: '/admin/bookings', 
       icon: FileText,
-      permissions: [PERMISSIONS.BOOKINGS.VIEW_ALL, PERMISSIONS.BOOKINGS.MANAGE]
+      permissions: [PERMISSIONS.BOOKINGS.VIEW_ALL, PERMISSIONS.BOOKINGS.MANAGE, PERMISSIONS.BOOKINGS.CREATE_ANY]
     },
     { 
       name: 'KYC Review', 
@@ -49,13 +49,13 @@ const AdminLayout = () => {
       name: 'Users', 
       href: '/admin/users', 
       icon: Users,
-      permissions: [PERMISSIONS.USERS.VIEW]
+      permissions: [PERMISSIONS.USERS.VIEW, PERMISSIONS.USERS.MANAGE, PERMISSIONS.USERS.INVITE]
     },
     { 
       name: 'Roles', 
       href: '/admin/roles', 
       icon: Shield,
-      permissions: [PERMISSIONS.ROLES.VIEW]
+      permissions: [PERMISSIONS.ROLES.VIEW, PERMISSIONS.ROLES.CREATE, PERMISSIONS.ROLES.MANAGE]
     },
     { 
       name: 'FCA Mode', 
