@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
-import { Menu, X, BarChart3, Map, FileText, Settings, ShieldCheck, Square, Briefcase } from "lucide-react";
+import { Menu, X, BarChart3, Map, FileText, Settings, ShieldCheck, Square, Briefcase, Users, Shield } from "lucide-react";
+import { PermissionGate } from "@/components/PermissionGate";
+import { PERMISSIONS } from "@/lib/permissions";
 
 const AdminLayout = () => {
   const location = useLocation();
@@ -13,13 +15,60 @@ const AdminLayout = () => {
   const isFCAMode = location.pathname.startsWith('/admin/fca');
 
   const navigation = [
-    { name: 'Dashboard', href: '/admin', icon: BarChart3 },
-    { name: 'Markets', href: '/admin/markets', icon: Map },
-    { name: 'Templates', href: '/admin/templates', icon: Square },
-    { name: 'All Bookings', href: '/admin/bookings', icon: FileText },
-    { name: 'KYC Review', href: '/admin/kyc', icon: ShieldCheck },
-    { name: 'FCA Mode', href: '/admin/fca/markets', icon: Briefcase },
-    { name: 'Settings', href: '/admin/settings', icon: Settings },
+    { 
+      name: 'Dashboard', 
+      href: '/admin', 
+      icon: BarChart3,
+      permissions: [] // No special permissions needed for dashboard
+    },
+    { 
+      name: 'Markets', 
+      href: '/admin/markets', 
+      icon: Map,
+      permissions: [PERMISSIONS.MARKETS.MANAGE, PERMISSIONS.MARKETS.VIEW]
+    },
+    { 
+      name: 'Templates', 
+      href: '/admin/templates', 
+      icon: Square,
+      permissions: [PERMISSIONS.STALLS.MANAGE]
+    },
+    { 
+      name: 'All Bookings', 
+      href: '/admin/bookings', 
+      icon: FileText,
+      permissions: [PERMISSIONS.BOOKINGS.VIEW_ALL, PERMISSIONS.BOOKINGS.MANAGE, PERMISSIONS.BOOKINGS.CREATE_ANY]
+    },
+    { 
+      name: 'KYC Review', 
+      href: '/admin/kyc', 
+      icon: ShieldCheck,
+      permissions: [PERMISSIONS.KYC.REVIEW, PERMISSIONS.KYC.VIEW_ALL]
+    },
+    { 
+      name: 'Users', 
+      href: '/admin/users', 
+      icon: Users,
+      permissions: [PERMISSIONS.USERS.VIEW, PERMISSIONS.USERS.MANAGE, PERMISSIONS.USERS.INVITE]
+    },
+    { 
+      name: 'Roles', 
+      href: '/admin/roles', 
+      icon: Shield,
+      permissions: [PERMISSIONS.ROLES.VIEW, PERMISSIONS.ROLES.CREATE, PERMISSIONS.ROLES.MANAGE]
+    },
+    { 
+      name: 'FCA Mode', 
+      href: '/admin/fca/markets', 
+      icon: Briefcase,
+      permissions: [PERMISSIONS.VENDORS.LOOKUP, PERMISSIONS.PAYMENTS.COLLECT]
+    },
+    { 
+      name: 'Settings', 
+      href: '/admin/settings', 
+      icon: Settings,
+      permissions: [] // Available to all admins
+    },
   ];
 
   return (
@@ -64,20 +113,21 @@ const AdminLayout = () => {
                   const isActive = location.pathname === item.href;
                   
                   return (
-                    <Link
-                      key={item.name}
-                      to={item.href}
-                      onClick={() => setSidebarOpen(false)}
-                      className={cn(
-                        "group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-all duration-200",
-                        isActive
-                          ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-md"
-                          : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                      )}
-                    >
-                      <Icon className="mr-3 h-5 w-5" />
-                      {item.name}
-                    </Link>
+                    <PermissionGate key={item.name} permissions={item.permissions}>
+                      <Link
+                        to={item.href}
+                        onClick={() => setSidebarOpen(false)}
+                        className={cn(
+                          "group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-all duration-200",
+                          isActive
+                            ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-md"
+                            : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                        )}
+                      >
+                        <Icon className="mr-3 h-5 w-5" />
+                        {item.name}
+                      </Link>
+                    </PermissionGate>
                   );
                 })}
               </nav>

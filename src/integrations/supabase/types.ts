@@ -7,10 +7,30 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "13.0.4"
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -106,7 +126,7 @@ export type Database = {
           invoice_number: string
           market_id: string
           paid_amount: number
-          payment_status: Database["public"]["Enums"]["payment_status"]
+          payment_status: Database["public"]["Enums"]["payment_status"] | null
           price_per_day: number | null
           selected_dates: string[] | null
           status: Database["public"]["Enums"]["booking_status"]
@@ -124,7 +144,7 @@ export type Database = {
           invoice_number: string
           market_id: string
           paid_amount?: number
-          payment_status?: Database["public"]["Enums"]["payment_status"]
+          payment_status?: Database["public"]["Enums"]["payment_status"] | null
           price_per_day?: number | null
           selected_dates?: string[] | null
           status?: Database["public"]["Enums"]["booking_status"]
@@ -142,7 +162,7 @@ export type Database = {
           invoice_number?: string
           market_id?: string
           paid_amount?: number
-          payment_status?: Database["public"]["Enums"]["payment_status"]
+          payment_status?: Database["public"]["Enums"]["payment_status"] | null
           price_per_day?: number | null
           selected_dates?: string[] | null
           status?: Database["public"]["Enums"]["booking_status"]
@@ -364,6 +384,92 @@ export type Database = {
         }
         Relationships: []
       }
+      payments: {
+        Row: {
+          amount: number | null
+          booking_id: string | null
+          created_at: string
+          currency: string | null
+          id: string
+          invoice_number: string | null
+          metadata: Json | null
+          processed_at: string | null
+          provider: string
+          provider_event_id: string | null
+          provider_payment_id: string
+          raw_payload: Json | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number | null
+          booking_id?: string | null
+          created_at?: string
+          currency?: string | null
+          id?: string
+          invoice_number?: string | null
+          metadata?: Json | null
+          processed_at?: string | null
+          provider: string
+          provider_event_id?: string | null
+          provider_payment_id: string
+          raw_payload?: Json | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number | null
+          booking_id?: string | null
+          created_at?: string
+          currency?: string | null
+          id?: string
+          invoice_number?: string | null
+          metadata?: Json | null
+          processed_at?: string | null
+          provider?: string
+          provider_event_id?: string | null
+          provider_payment_id?: string
+          raw_payload?: Json | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      permissions: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          key: string
+          name: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          key: string
+          name: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          key?: string
+          name?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           address: string | null
@@ -396,6 +502,108 @@ export type Database = {
           full_name?: string | null
           id?: string
           phone_number?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      rbac_audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          after_state: Json | null
+          before_state: Json | null
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          metadata: Json | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          after_state?: Json | null
+          before_state?: Json | null
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          metadata?: Json | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          after_state?: Json | null
+          before_state?: Json | null
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          metadata?: Json | null
+        }
+        Relationships: []
+      }
+      role_permissions: {
+        Row: {
+          created_at: string
+          id: string
+          permission_id: string
+          role_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          permission_id: string
+          role_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          permission_id?: string
+          role_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "permissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_permissions_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      roles: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_system: boolean
+          key: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system?: boolean
+          key: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system?: boolean
+          key?: string
+          name?: string
           updated_at?: string
         }
         Relationships: []
@@ -552,24 +760,35 @@ export type Database = {
       }
       user_roles: {
         Row: {
-          created_at: string
+          assigned_at: string
+          assigned_by: string | null
           id: string
-          role: Database["public"]["Enums"]["app_role"]
+          role_id: string
           user_id: string
         }
         Insert: {
-          created_at?: string
+          assigned_at?: string
+          assigned_by?: string | null
           id?: string
-          role: Database["public"]["Enums"]["app_role"]
+          role_id: string
           user_id: string
         }
         Update: {
-          created_at?: string
+          assigned_at?: string
+          assigned_by?: string | null
           id?: string
-          role?: Database["public"]["Enums"]["app_role"]
+          role_id?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -602,9 +821,32 @@ export type Database = {
           total_amount: number
         }[]
       }
+      get_user_permissions: { Args: { user_uuid: string }; Returns: string[] }
       get_user_role: {
         Args: { user_uuid: string }
         Returns: Database["public"]["Enums"]["app_role"]
+      }
+      get_user_role_id: { Args: { user_uuid: string }; Returns: string }
+      get_user_role_key: { Args: { user_uuid: string }; Returns: string }
+      get_user_role_with_permissions: {
+        Args: { user_uuid: string }
+        Returns: {
+          permissions: string[]
+          role_key: string
+          role_name: string
+        }[]
+      }
+      has_all_permissions: {
+        Args: { permission_keys: string[]; user_uuid: string }
+        Returns: boolean
+      }
+      has_any_permission: {
+        Args: { permission_keys: string[]; user_uuid: string }
+        Returns: boolean
+      }
+      has_permission: {
+        Args: { permission_key: string; user_uuid: string }
+        Returns: boolean
       }
       is_stall_available: {
         Args: { market_id: string; stall_id: string }
@@ -623,11 +865,29 @@ export type Database = {
           user_id: string
         }[]
       }
+      save_role_with_permissions: {
+        Args: {
+          p_description: string
+          p_key: string
+          p_name: string
+          p_permission_keys: string[]
+          p_role_id?: string
+        }
+        Returns: string
+      }
+      simulate_payment_confirmed_admin: {
+        Args: { p_booking_id: string }
+        Returns: Json
+      }
       simulate_payment_failure: {
         Args: { p_booking_id: string }
         Returns: Json
       }
       simulate_payment_success: {
+        Args: { p_booking_id: string }
+        Returns: Json
+      }
+      simulate_payment_success_admin: {
         Args: { p_booking_id: string }
         Returns: Json
       }
@@ -771,6 +1031,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       app_role: ["vendor", "admin"],
@@ -790,3 +1053,4 @@ export const Constants = {
     },
   },
 } as const
+

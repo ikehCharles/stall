@@ -1,0 +1,288 @@
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { PhoneInput } from "@/components/ui/phone-input";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useAuth } from "@/contexts/AuthContext";
+import { useLoading } from "@/contexts/LoadingContext";
+import { EmailVerificationPending } from "@/components/auth/EmailVerificationPending";
+import { toast } from "sonner";
+import { Link, useNavigate } from "react-router-dom";
+import { isValidPhoneNumber } from "libphonenumber-js";
+import { Select } from "@radix-ui/react-select";
+import { set } from "date-fns";
+import {
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useRoles } from "@/hooks/useRolesAndPermissions";
+import { UserPayload, useUsers } from "@/hooks/useUsers";
+import { Checkbox } from "@/components/ui/checkbox";
+
+const UserRegister = () => {
+  const { data: roles } = useRoles();
+  const [payload, setPayload] = useState<UserPayload>({
+    email: "",
+    fullName: "",
+    phoneNumber: "",
+    roleId: "",
+    confirmEmail: false,
+    password: "",
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<{
+    email?: string;
+    phone?: string;
+    roleId?: string;
+    password?: string;
+  }>({});
+
+  const { signUp, verifyOTP } = useAuth();
+  const { startLoading, stopLoading } = useLoading();
+  const navigate = useNavigate();
+  const { mutate } = useUsers();
+
+  const handleRegister = async (e: React.FormEvent) => {
+    const { email, fullName, phoneNumber, roleId, password, confirmEmail } =
+      payload;
+    e.preventDefault();
+
+    if (confirmEmail && !password) {
+      setFieldErrors({ roleId: "Password is required" });
+      return;
+    }
+    if (!roleId) {
+      setFieldErrors({ roleId: "Kindly select a role" });
+      return;
+    }
+    // Validate phone number format
+    if (!isValidPhoneNumber(phoneNumber)) {
+      setError("Please enter a valid phone number");
+      return;
+    }
+    setError("");
+    setFieldErrors({});
+
+    // Normalize inputs
+    const normalizedEmail = email.toLowerCase().trim();
+    let formattedPhone = phoneNumber;
+    if (phoneNumber && !phoneNumber.trim().startsWith("+")) {
+      // If no country code, assume UK (+44) for backwards compatibility
+      formattedPhone = `+44${phoneNumber.replace(/\D/g, "").slice(-10)}`;
+    }
+
+    // Validate the formatted phone number
+    if (!isValidPhoneNumber(formattedPhone)) {
+      return { error: new Error("Invalid phone number format") };
+    }
+
+    const userPayload: UserPayload = {
+      fullName,
+      email: normalizedEmail,
+      phoneNumber: formattedPhone,
+      roleId,
+      confirmEmail,
+      password,
+    };
+    mutate(userPayload);
+  };
+
+  const handleVerifyOTP = async (e: React.FormEvent) => {
+    const { email } = payload;
+    e.preventDefault();
+    setIsLoading(true);
+    startLoading();
+    setError("");
+
+    const { error } = await verifyOTP(email, otpCode);
+
+    if (error) {
+      setError(error.message);
+      toast.error("Verification failed: " + error.message);
+    } else {
+      toast.success("Email verified successfully!");
+      navigate("/vendor");
+    }
+
+    setIsLoading(false);
+    stopLoading();
+  };
+
+  if (needsVerification) {
+    const verificationMode =
+      import.meta.env.AUTH_VERIFICATION_MODE || "magic-link";
+
+    if (verificationMode === "magic-link") {
+      return <EmailVerificationPending email={payload.email} />;
+    }
+
+    // Fallback to OTP verification for backward compatibility
+    return (
+      <form onSubmit={handleVerifyOTP} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="otpCode">Verification Code</Label>
+          <Input
+            id="otpCode"
+            type="text"
+            placeholder="Enter 6-digit code"
+            value={otpCode}
+            onChange={(e) => setOtpCode(e.target.value)}
+            maxLength={6}
+            required
+          />
+        </div>
+
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        <Button type="submit" className="w-full" disabled={isLoading}>
+          {isLoading ? "Verifying..." : "Verify Email"}
+        </Button>
+      </form>
+    );
+  }
+
+  return (
+    <form onSubmit={handleRegister} className="space-y-5">
+      <div className="space-y-2">
+        <Label htmlFor="fullName">Full Name</Label>
+        <Input
+          id="fullName"
+          type="text"
+          placeholder="Enter full name"
+          value={payload.fullName}
+          onChange={(e) => setPayload({ ...payload, fullName: e.target.value })}
+          required
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="email">Email</Label>
+        <Input
+          id="email"
+          type="email"
+          placeholder="Enter your email"
+          value={payload.email}
+          onChange={(e) => setPayload({ ...payload, email: e.target.value })}
+          required
+          className={fieldErrors.email ? "border-destructive" : ""}
+        />
+        {fieldErrors.email && (
+          <p className="text-sm text-destructive">{fieldErrors.email} </p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+              <Label htmlFor="phoneNumber">Phone Number</Label>
+              <div className={fieldErrors.phone ? "border border-destructive rounded-md" : ""}>
+                <PhoneInput
+                  id="phoneNumber"
+                  value={payload.phoneNumber}
+                  onChange={(value) => setPayload({ ...payload, phoneNumber: value })}
+                  placeholder="Enter your phone number"
+                  required
+                />
+              </div>
+              {fieldErrors.phone && (
+                <p className="text-sm text-destructive">
+                  {fieldErrors.phone}{" "}
+                </p>
+              )}
+            </div>
+
+      
+        <div className="space-y-2">
+          <Label htmlFor="roleId">Role</Label>
+          <div
+            className={
+              fieldErrors.roleId ? "border border-destructive rounded-md" : ""
+            }
+          >
+            <Select
+              value={payload.roleId || ""}
+              onValueChange={(roleId) => {
+                setFieldErrors({ ...fieldErrors, roleId: "" });
+                setPayload({ ...payload, roleId });
+              }}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Assign role" />
+              </SelectTrigger>
+              <SelectContent>
+                {roles?.map((role) => (
+                  <SelectItem key={role.id} value={role.id}>
+                    {role.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {fieldErrors.roleId && (
+            <p className="text-sm text-destructive">{fieldErrors.roleId}</p>
+          )}
+        </div>
+      
+
+      <div className="space-x-2 flex items-center">
+        <Checkbox
+          id="confirmEmail"
+          checked={payload.confirmEmail}
+          onCheckedChange={(e) => setPayload({ ...payload, confirmEmail: !!e })}
+        />
+        <Label className="" htmlFor="confirmEmail">Email Confirmed</Label>
+      </div>
+      {payload.confirmEmail && (
+      <div className="space-y-2">
+        <Label htmlFor="password">Password</Label>
+        <div
+          className={
+            fieldErrors.password ? "border border-destructive rounded-md" : ""
+          }
+        >
+          <Input
+            id="password"
+            type="password"
+            placeholder="Create a password"
+            value={payload.password}
+            onChange={(e) =>
+              setPayload({ ...payload, password: e.target.value })
+            }
+            required
+          />
+        </div>
+        {fieldErrors.password && (
+          <p className="text-sm text-destructive">{fieldErrors.password} </p>
+        )}
+      </div>
+      )}
+
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      <Button type="submit" className="w-full" disabled={isLoading}>
+        {isLoading ? "Creating User..." : "Create User"}
+      </Button>
+    </form>
+  );
+};
+
+export default UserRegister;

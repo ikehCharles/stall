@@ -24,6 +24,8 @@ import Settings from "./pages/admin/Settings";
 import Markets from "./pages/admin/Markets";
 import MarketCanvas from "./pages/admin/MarketCanvas";
 import StallTemplates from "./pages/admin/StallTemplates";
+import UserManagement from "./pages/admin/UserManagement";
+import RoleManagement from "./pages/admin/RoleManagement";
 import { KYCPage } from "./pages/vendor/KYCPage";
 import { KYCReview } from "./pages/admin/KYCReview";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
@@ -99,6 +101,8 @@ const AppContent = () => {
           <Route path="bookings" element={<AdminBookings />} />
           <Route path="bookings/:id" element={<BookingDetails />} />
           <Route path="kyc" element={<KYCReview />} />
+          <Route path="users" element={<UserManagement />} />
+          <Route path="roles" element={<RoleManagement />} />
           <Route path="settings" element={<Settings />} />
           
           {/* FCA Routes */}
