@@ -6,7 +6,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { useStallBookingDates } from "@/hooks/useBookingDates";
 import { useStallHolds } from "@/hooks/useStallHolds";
-import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from "date-fns";
+import { format, parseISO, isWithinInterval, startOfDay, endOfDay, isBefore, startOfToday } from "date-fns";
 import { AlertCircle, Info } from "lucide-react";
 
 interface BookingCalendarProps {
@@ -74,6 +74,9 @@ export function BookingCalendar({
   const isDayDisabled = (date: Date) => {
     const day = startOfDay(date);
     
+    if (isBefore(day, startOfToday())) {
+      return true;
+    }
     // Outside market period
     if (!isWithinInterval(day, { start: marketStart, end: marketEnd })) {
       return true;
