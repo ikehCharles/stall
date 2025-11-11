@@ -1,0 +1,278 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { ArrowLeft, Briefcase, Loader2 } from 'lucide-react';
+import { FCACollectSheet } from '@/components/admin/fca/FCACollectSheet';
+import { useCreateBooking, CreateBookingData } from '@/hooks/useBookings';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
+
+const FCACheckout = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [showCollectSheet, setShowCollectSheet] = useState(false);
+  const [bookingData, setBookingData] = useState<any>(null);
+  const [bookingId, setBookingId] = useState<string | null>(null);
+  const [isCreatingBooking, setIsCreatingBooking] = useState(false);
+  const createBooking = useCreateBooking();
+
+  useEffect(() => {
+    const stored = sessionStorage.getItem('fcaBooking');
+    if (!stored) {
+      toast({
+        title: 'No Booking Data',
+        description: 'Please select a stall and vendor first',
+        variant: 'destructive',
+      });
+      navigate('/admin/fca/markets');
+      return;
+    }
+
+    try {
+      const data = JSON.parse(stored);
+      if (!data.vendorId || !data.vendorDetails) {
+        throw new Error('Vendor information missing');
+      }
+      setBookingData(data);
+    } catch (error) {
+      toast({
+        title: 'Invalid Booking Data',
+        description: 'Please start over',
+        variant: 'destructive',
+      });
+      navigate('/admin/fca/markets');
+    }
+  }, [navigate]);
+
+  // Create booking when data is loaded
+  useEffect(() => {
+    if (!bookingData || bookingId || isCreatingBooking || !user) return;
+
+    const createFCABooking = async () => {
+      setIsCreatingBooking(true);
+      
+      const { marketId, vendorId, stallSelection } = bookingData;
+      const pricePerDay = stallSelection.stall.price_override || stallSelection.stall.stall_templates?.price || 0;
+
+      const bookingPayload: CreateBookingData = {
+        marketId,
+        stallIds: [stallSelection.stall.id],
+        totalAmount: stallSelection.totalCost,
+        selectedDates: stallSelection.selectedDates.map((date: Date) => format(new Date(date), 'yyyy-MM-dd')),
+        pricePerDay,
+        vendorId: vendorId,
+        createdByFcaId: user.id,
+        fcaNotes: 'FCA on-site booking - awaiting payment'
+      };
+
+      try {
+        const result = await createBooking.mutateAsync(bookingPayload);
+        setBookingId(result.id);
+        toast({
+          title: 'Booking Created',
+          description: 'Ready to collect payment',
+        });
+      } catch (error: any) {
+        toast({
+          title: 'Failed to Create Booking',
+          description: error.message || 'Please try again',
+          variant: 'destructive',
+        });
+        navigate('/admin/fca/markets');
+      } finally {
+        setIsCreatingBooking(false);
+      }
+    };
+
+    createFCABooking();
+  }, [bookingData, bookingId, isCreatingBooking, user, createBooking, navigate]);
+
+  const handlePaymentSuccess = async (method: 'card' | 'cash', bookingId: string) => {
+    if (!bookingData || !bookingId) return;
+
+    try {
+      // Update booking payment status via RPC
+      const { data, error } = await supabase.rpc('simulate_payment_success', {
+        p_booking_id: bookingId
+      });
+
+      if (error) throw error;
+
+      // Update FCA notes to include payment method
+      await supabase
+        .from('bookings')
+        .update({ 
+          fca_notes: `FCA on-site ${method} payment - collected and confirmed` 
+        })
+        .eq('id', bookingId);
+      
+      sessionStorage.removeItem('fcaBooking');
+
+      toast({
+        title: 'Payment Confirmed',
+        description: `${method === 'card' ? 'Card' : 'Cash'} payment of $${bookingData.stallSelection.totalCost.toFixed(2)} processed successfully`,
+      });
+
+      navigate(`/admin/fca/invoices/${bookingId}`);
+    } catch (error: any) {
+      toast({
+        title: 'Payment Failed',
+        description: error.message || 'Failed to process payment',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  if (!bookingData || isCreatingBooking || !bookingId) {
+    return (
+      <div className="p-6">
+        <div className="text-center py-12 space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+          <p className="text-muted-foreground">
+            {!bookingData ? 'Loading booking data...' : 'Creating booking...'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const { stallSelection, vendorDetails } = bookingData;
+
+  return (
+    <div className="p-6 space-y-6 max-w-2xl mx-auto">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" onClick={() => navigate('/admin/fca/markets')}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Markets
+          </Button>
+          <h1 className="text-2xl font-bold text-foreground">Payment Summary</h1>
+        </div>
+        <div className="flex items-center gap-3">
+          <Badge variant="outline">
+            <Briefcase className="h-4 w-4 mr-2" />
+            FCA Mode
+          </Badge>
+          <Button 
+            variant="outline"
+            onClick={() => navigate('/admin')}
+            size="sm"
+          >
+            Exit FCA Mode
+          </Button>
+        </div>
+      </div>
+
+      {vendorDetails && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Vendor Details</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Name:</span>
+              <span className="font-medium">{vendorDetails.full_name || 'N/A'}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Email:</span>
+              <span className="font-medium">{vendorDetails.email}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">KYC Status:</span>
+              <Badge variant="default">APPROVED</Badge>
+            </div>
+            {vendorDetails.company_name && (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Company:</span>
+                <span className="font-medium">{vendorDetails.company_name}</span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Booking Details</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Stall:</span>
+              <span className="font-medium">{stallSelection.stall.label}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Template:</span>
+              <span className="font-medium">{stallSelection.stall.stall_templates?.name || 'N/A'}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Days:</span>
+              <span className="font-medium">{stallSelection.selectedDates.length}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Price per Day:</span>
+              <span className="font-medium">
+                ${(stallSelection.stall.price_override || stallSelection.stall.stall_templates?.price || 0).toFixed(2)}
+              </span>
+            </div>
+          </div>
+
+          <Separator />
+
+          <div className="space-y-1">
+            <h4 className="text-sm font-medium">Selected Dates:</h4>
+            <div className="flex flex-wrap gap-2">
+              {stallSelection.selectedDates.map((date: Date, idx: number) => (
+                <Badge key={idx} variant="secondary">
+                  {format(new Date(date), 'MMM d, yyyy')}
+                </Badge>
+              ))}
+            </div>
+          </div>
+
+          <Separator />
+
+          <div className="space-y-2 pt-2">
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Subtotal:</span>
+              <span className="font-medium">${stallSelection.totalCost.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Tax (0%):</span>
+              <span className="font-medium">$0.00</span>
+            </div>
+            <Separator />
+            <div className="flex justify-between text-lg font-bold">
+              <span>Total Amount:</span>
+              <span>${stallSelection.totalCost.toFixed(2)}</span>
+            </div>
+          </div>
+
+          <Button 
+            className="w-full mt-4" 
+            size="lg"
+            onClick={() => setShowCollectSheet(true)}
+            disabled={!bookingId}
+          >
+            Collect Payment
+          </Button>
+        </CardContent>
+      </Card>
+
+      <FCACollectSheet
+        open={showCollectSheet}
+        onOpenChange={setShowCollectSheet}
+        amount={stallSelection.totalCost}
+        bookingId={bookingId}
+        onSuccess={handlePaymentSuccess}
+      />
+    </div>
+  );
+};
+
+export default FCACheckout;
