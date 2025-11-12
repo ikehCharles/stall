@@ -1,4 +1,6 @@
-set check_function_bodies = off;
+
+CREATE INDEX IF NOT EXISTS booking_dates_stall_instance_id_booking_date_idx
+  ON public.booking_dates (stall_instance_id, booking_date);
 
 CREATE OR REPLACE FUNCTION public.update_stall_status()
  RETURNS trigger
@@ -21,10 +23,12 @@ AS $function$BEGIN
     THEN 'BOOKED'::public.stall_status
     ELSE 'AVAILABLE'::public.stall_status
   END
-  WHERE si.id = NEW.stall_instance_id;
+  WHERE si.id = COALESCE(NEW.stall_instance_id, OLD.stall_instance_id);
   RETURN NEW;
 END;$function$
 ;
+
+DROP TRIGGER IF EXISTS update_stall_status ON public.booking_dates;
 
 CREATE TRIGGER update_stall_status AFTER DELETE OR UPDATE ON public.booking_dates FOR EACH ROW EXECUTE FUNCTION update_stall_status();
 

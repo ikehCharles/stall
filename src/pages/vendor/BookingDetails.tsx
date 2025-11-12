@@ -191,7 +191,6 @@ const BookingDetails = () => {
   
 
   const makePayment = () => {
-    console.warn("payment switch", ENV.PAYMENT_SWITCH)
     if(ENV.PAYMENT_SWITCH === PAYMENT_SWITCH_ENUM.SIMULATION) {
       setPaymentModalOpen(true);
       return

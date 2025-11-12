@@ -87,7 +87,6 @@ export const MarketDialog = ({ open, onOpenChange, market, onSuccess }: MarketDi
         .from('market')
         .getPublicUrl(filePath);
 
-
       setBannerUrl(data.publicUrl);
       form.setValue('banner_url', data.publicUrl);
       

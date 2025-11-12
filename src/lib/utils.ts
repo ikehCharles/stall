@@ -17,5 +17,3 @@ export const ENV = {
   AUTH_VERIFICATION_MODE: import.meta.env.VITE_AUTH_VERIFICATION_MODE,
   PAYMENT_SWITCH: import.meta.env.VITE_PAYMENT_SWITCH,
 };
-
-console.warn(ENV, "ENV")
