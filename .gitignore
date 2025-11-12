@@ -22,7 +22,11 @@ dist-ssr
 *.sln
 *.sw?
 .vscode 
+
 .env
-*.env
-*/.env
-.env.*
+.env/*
+supabase/.branches
+supabase/.temp/*
+supabase/.branches
+/supabase/.temp/*
+supabase/.temp/cli-latest

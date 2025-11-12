@@ -126,6 +126,10 @@ export interface CreateBookingData {
   totalAmount: number;
   selectedDates?: string[];
   pricePerDay?: number;
+  // FCA-specific fields
+  vendorId?: string;           // For FCA creating booking for vendor
+  createdByFcaId?: string;     // Track FCA user
+  fcaNotes?: string;           // Optional notes
 }
 
 export const useCreateBooking = () => {
@@ -135,6 +139,9 @@ export const useCreateBooking = () => {
     mutationFn: async (bookingData: CreateBookingData) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No authenticated user');
+
+      // Use vendorId if provided (FCA creating for vendor), otherwise current user
+      const bookingUserId = bookingData.vendorId || user.id;
 
       // Validate 5-day maximum
       const daysCount = bookingData.selectedDates?.length || 1;
@@ -153,20 +160,25 @@ export const useCreateBooking = () => {
 
       const pricePerDay = bookingData.pricePerDay || (bookingData.totalAmount / daysCount);
 
+      // Determine status based on FCA context (auto-approve FCA bookings)
+      const bookingStatus = bookingData.createdByFcaId ? 'approved' : 'pending';
+
       // Create the booking with hold expiry and new status
       const { data: booking, error: bookingError } = await supabase
         .from('bookings')
         .insert({
-          user_id: user.id,
+          user_id: bookingUserId,                    // Vendor, not FCA
           market_id: bookingData.marketId,
           total_amount: bookingData.totalAmount,
           paid_amount: 0,
-          status: 'pending' as const,
+          status: bookingStatus,                     // 'approved' for FCA bookings
           invoice_number: invoiceNumber,
           selected_dates: bookingData.selectedDates,
           days_count: daysCount,
           price_per_day: pricePerDay,
-          hold_expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString() // 15-minute hold
+          hold_expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(), // 15-minute hold
+          created_by_fca_id: bookingData.createdByFcaId,  // Track FCA user
+          fca_notes: bookingData.fcaNotes                 // Optional notes
         })
         .select()
         .single();
@@ -210,7 +222,7 @@ export const useCreateBooking = () => {
       const { error: holdError } = await supabase
         .from('stall_holds')
         .delete()
-        .eq('user_id', user.id)
+        .eq('user_id', bookingUserId)
         .in('stall_instance_id', bookingData.stallIds);
 
       if (holdError) console.warn('Failed to clean up holds:', holdError);
@@ -219,6 +231,7 @@ export const useCreateBooking = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vendor-bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-bookings'] });
       queryClient.invalidateQueries({ queryKey: ['stall-instances'] });
       queryClient.invalidateQueries({ queryKey: ['booking-dates'] });
       queryClient.invalidateQueries({ queryKey: ['stall-holds'] });

@@ -3,8 +3,8 @@ export const config = {
 };
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
-const SUPABASE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
+const SUPABASE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const PAYPAL_WEBHOOK_ID = Deno.env.get('PAYPAL_WEBHOOK_ID');
 const PAYPAL_API_BASE = Deno.env.get('PAYPAL_API');
 const PAYPAL_CLIENT_ID = Deno.env.get('PAYPAL_API_CLIENT');
@@ -36,7 +36,7 @@ async function getPaypalAccessToken() {
   const j = await res.json();
   return j.access_token;
 }
-async function verifyPaypalWebhook(rawBody, headers) {
+async function verifyPaypalWebhook(rawBody: string, headers: Headers): Promise<boolean> {
   const accessToken = await getPaypalAccessToken();
   const transmissionId = headers.get('paypal-transmission-id');
   const transmissionTime = headers.get('paypal-transmission-time');
@@ -67,7 +67,7 @@ async function verifyPaypalWebhook(rawBody, headers) {
   const jr = await verifyRes.json();
   return jr.verification_status === 'SUCCESS';
 }
-async function upsertPayment(event) {
+async function upsertPayment(event: any) {
   const resource = event.resource || {};
   const provider = 'paypal';
   const provider_payment_id = resource.id || resource.sale_id || resource.billing_agreement_id || null;

@@ -18,10 +18,12 @@ import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { MarketStatusEnum } from "@/lib/enums";
 import { supabase } from "@/integrations/supabase/client";
+import { PERMISSIONS } from '@/lib/permissions';
+import { PermissionGate } from '@/components/PermissionGate';
 
 const Markets = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [editingMarket, setEditingMarket] = useState<any>(null);
+  const [editingMarket, setEditingMarket] = useState(null);
   const { data: markets, isLoading } = useMarkets();
   const updateMarket = useUpdateMarket();
 
@@ -81,10 +83,12 @@ const Markets = () => {
             Manage your marketplace events
           </p>
         </div>
+        <PermissionGate permissions={[PERMISSIONS.MARKETS.MANAGE]}>
         <Button onClick={() => setIsCreateDialogOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Create Market
         </Button>
+        </PermissionGate>
       </div>
 
       <Card>
@@ -103,7 +107,10 @@ const Markets = () => {
                   <TableHead>Theme</TableHead>
                   <TableHead>Dates</TableHead>
                   <TableHead>Status</TableHead>
+                  <PermissionGate permissions={[PERMISSIONS.MARKETS.MANAGE]}>
+
                   <TableHead>Actions</TableHead>
+                  </PermissionGate>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -120,6 +127,8 @@ const Markets = () => {
                         {market.status}
                       </Badge>
                     </TableCell>
+                    <PermissionGate permissions={[PERMISSIONS.MARKETS.MANAGE]}>
+
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Button
@@ -139,7 +148,7 @@ const Markets = () => {
                             variant="ghost"
                             size="sm"
                             onClick={() =>
-                              handleStatusChange(market.id, "PUBLISHED")
+                              handleStatusChange(market.id, MarketStatusEnum.PUBLISHED)
                             }
                             title="Publish market"
                           >
@@ -151,7 +160,7 @@ const Markets = () => {
                             variant="ghost"
                             size="sm"
                             onClick={() =>
-                              handleStatusChange(market.id, "DRAFT")
+                              handleStatusChange(market.id, MarketStatusEnum.DRAFT)
                             }
                             title="Unpublish market"
                           >
@@ -163,7 +172,7 @@ const Markets = () => {
                             variant="ghost"
                             size="sm"
                             onClick={() =>
-                              handleStatusChange(market.id, "ARCHIVED")
+                              handleStatusChange(market.id, MarketStatusEnum.ARCHIVED)
                             }
                             title="Archive market"
                           >
@@ -174,7 +183,7 @@ const Markets = () => {
                             variant="ghost"
                             size="sm"
                             onClick={() =>
-                              handleStatusChange(market.id, "DRAFT")
+                              handleStatusChange(market.id, MarketStatusEnum.DRAFT)
                             }
                             title="Unarchive market"
                           >
@@ -183,6 +192,7 @@ const Markets = () => {
                         )}
                       </div>
                     </TableCell>
+                    </PermissionGate>
                   </TableRow>
                 ))}
               </TableBody>

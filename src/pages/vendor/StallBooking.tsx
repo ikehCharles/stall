@@ -12,6 +12,7 @@ import { useStallHolds, useCleanupExpiredHolds } from "@/hooks/useStallHolds";
 import { useBookingDates } from "@/hooks/useBookingDates";
 import { EnhancedStallModal } from "@/components/vendor/EnhancedStallModal";
 import { StallHoldTimer } from "@/components/vendor/StallHoldTimer";
+import { StallCanvasView } from "@/components/shared/StallCanvasView";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -273,54 +274,11 @@ const EnhancedStallBooking = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="relative bg-muted/20 rounded-lg p-8 min-h-[400px]">
-                <svg  width="100%" height="350" viewBox="0 0 800 600">
-                  {stalls.map((stall) => {
-                    const fillColor = getStallColor(stall);
-                    const stallPrice = stall.price_override || stall.stall_templates?.price || 0;
-
-                    return (
-                      <g onClick={() => handleStallClick(stall)} key={stall.id}>
-                        <rect
-                          x={stall.x}
-                          y={stall.y}
-                          width={stall.width}
-                          height={stall.height}
-                          fill={fillColor}
-                          stroke="#ffffff"
-                          strokeWidth="2"
-                          rx="4"
-                          className="cursor-pointer hover:opacity-80 transition-opacity"
-                          
-                        />
-                        <text
-                          x={stall.x + stall.width / 2}
-                          y={stall.y + stall.height / 2}
-                          textAnchor="middle"
-                          dominantBaseline="middle"
-                          fill="white"
-                          fontSize="14"
-                          fontWeight="bold"
-                          cursor={"pointer"}
-                        >
-                          {stall.label}
-                        </text>
-                        <text
-                          x={stall.x + stall.width / 2}
-                          y={stall.y + stall.height / 2 + 15}
-                          textAnchor="middle"
-                          dominantBaseline="middle"
-                          fill="white"
-                          fontSize="10"
-                          cursor={"pointer"}
-                        >
-                          ${stallPrice}/day
-                        </text>
-                      </g>
-                    );
-                  })}
-                </svg>
-              </div>
+              <StallCanvasView
+                stalls={stalls}
+                onStallClick={handleStallClick}
+                getStallColor={getStallColor}
+              />
             </CardContent>
           </Card>
         </div>

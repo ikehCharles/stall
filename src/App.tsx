@@ -24,6 +24,8 @@ import Settings from "./pages/admin/Settings";
 import Markets from "./pages/admin/Markets";
 import MarketCanvas from "./pages/admin/MarketCanvas";
 import StallTemplates from "./pages/admin/StallTemplates";
+import UserManagement from "./pages/admin/UserManagement";
+import RoleManagement from "./pages/admin/RoleManagement";
 import { KYCPage } from "./pages/vendor/KYCPage";
 import { KYCReview } from "./pages/admin/KYCReview";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
@@ -31,6 +33,10 @@ import { LoadingProvider, useLoading } from "./contexts/LoadingContext";
 import { PageLoader } from "./components/ui/page-loader";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import BookingConfirmation from "./pages/vendor/BookingConfirmation";
+import FCAMarketView from "./pages/admin/fca/FCAMarketView";
+import FCAStallBooking from "./pages/admin/fca/FCAStallBooking";
+import FCACheckout from "./pages/admin/fca/FCACheckout";
+import FCAInvoiceView from "./pages/admin/fca/FCAInvoiceView";
 
 const queryClient = new QueryClient();
 
@@ -95,7 +101,15 @@ const AppContent = () => {
           <Route path="bookings" element={<AdminBookings />} />
           <Route path="bookings/:id" element={<BookingDetails />} />
           <Route path="kyc" element={<KYCReview />} />
+          <Route path="users" element={<UserManagement />} />
+          <Route path="roles" element={<RoleManagement />} />
           <Route path="settings" element={<Settings />} />
+          
+          {/* FCA Routes */}
+          <Route path="fca/markets" element={<FCAMarketView />} />
+          <Route path="fca/markets/:marketId" element={<FCAStallBooking />} />
+          <Route path="fca/checkout" element={<FCACheckout />} />
+          <Route path="fca/invoices/:id" element={<FCAInvoiceView />} />
         </Route>
         
         {/* Default Routes */}
