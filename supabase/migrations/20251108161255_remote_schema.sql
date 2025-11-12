@@ -1,3 +1,4 @@
+set check_function_bodies = off;
 
 CREATE OR REPLACE FUNCTION public.admin_approve_booking(p_booking_id uuid)
  RETURNS jsonb
