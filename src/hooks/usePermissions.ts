@@ -1,6 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
-import { PERMISSIONS, PERMISSION_ROUTES, Permission } from "@/lib/permissions";
-import { Navigate } from "react-router-dom";
+import { PERMISSIONS, PERMISSION_ROUTES } from "@/lib/permissions";
 
 /**
  * Hook to check user permissions in the RBAC system
@@ -48,9 +47,12 @@ export const usePermissions = () => {
     requiredPermissions: string[],
     requireAll = false
   ) => {
-
     const res = { redirectUrl: "", unauthorized: false };
-    const firstSegment = location.pathname.split("/")[1];
+
+    if (!userProfile?.permissions.length) {
+      res.unauthorized = true;
+      return res;
+    };
 
     let count = 0;
     userProfile.permissions.forEach((perm) => {
@@ -66,7 +68,9 @@ export const usePermissions = () => {
     }
 
     // if the current path is the first segment of the redirect url, remove it
-    if (res.redirectUrl === firstSegment) {
+    const firstSegment = location.pathname.split("/")?.[1];
+
+    if (firstSegment && res.redirectUrl === firstSegment) {
       res.redirectUrl = "";
     }
 
@@ -75,7 +79,6 @@ export const usePermissions = () => {
       : hasAnyPermission(requiredPermissions);
     if (!hasAccess) {
       res.unauthorized = true;
-      return res;
     }
 
     return res;

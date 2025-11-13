@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { parsePhoneNumber, isValidPhoneNumber } from "libphonenumber-js";
+import { isValidPhoneNumber } from "libphonenumber-js";
 import { useNavigate } from "react-router-dom";
 
 export interface UserProfile {
@@ -70,6 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const fetchUserProfile = async (userId: string) => {
     
+    setProfileLoading(true);
     try {
       // Get user profile
       const { data: profile, error: profileError } = await supabase

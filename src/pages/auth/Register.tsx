@@ -60,12 +60,10 @@ const Register = () => {
       p_phone: normalizedPhone,
     });
 
-    console.warn(profileCheckError, "Error", val)
 
     if (profileCheckError) {
       setError(profileCheckError.message);
       toast.error("Registration failed: " + profileCheckError.message);
-      setIsLoading(false);
       stopLoading();
       return;
     }

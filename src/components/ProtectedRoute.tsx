@@ -1,9 +1,7 @@
 import { ReactElement } from "react";
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
-import { RolesEnum } from "@/lib/enums";
-import { RoleRedirect } from "./RoleRedirect";
 
 interface ProtectedRouteProps {
   children: ReactElement;
@@ -17,14 +15,12 @@ export const ProtectedRoute = ({
   children,
   requiredPermissions = [],
   requireAll = false,
-  fallbackPath,
 }: ProtectedRouteProps) => {
   const { user, userProfile, loading, profileLoading } = useAuth();
   const { roleRedirectCheck } = usePermissions();
-  const location = useLocation();
 
   // Show loading state while checking auth
-  if (loading || profileLoading || (user && profileLoading) || !userProfile) {
+  if (loading || profileLoading || (user && profileLoading) || (user && !userProfile)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
         <div className="text-center">

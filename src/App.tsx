@@ -45,7 +45,6 @@ const queryClient = new QueryClient();
 const AppContent = () => {
   const { user, userProfile, loading, profileLoading } = useAuth();
   const { isLoading } = useLoading();
-  const { roleKey } = usePermissions();
 
   if (loading || profileLoading || (user && profileLoading)) {
     return (
