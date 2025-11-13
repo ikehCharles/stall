@@ -14,6 +14,7 @@ const AdminLayout = () => {
   const { userProfile, signOut } = useAuth();
   const isFCAMode = location.pathname.startsWith('/admin/fca');
 
+
   const navigation = [
     { 
       name: 'Dashboard', 

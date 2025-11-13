@@ -35,11 +35,6 @@ Deno.serve(async (req) => {
     }
   );
 
-  console.warn(
-    process.env.SUPABASE_SERVICE_ROLE_KEY,
-    "supabase key",
-    SUPABASE_SERVICE_ROLE_KEY
-  );
 
   try {
     // Identify the user
@@ -48,7 +43,7 @@ Deno.serve(async (req) => {
       error: userError,
     } = await supabaseClient.auth.getUser();
     if (userError || !user) {
-      return responseJSON(401, { error: "Unauthorized" });
+      return responseJSON(401, { error:{message: "Unauthorized" }});
     }
 
     // Fetch the user’s role_id from user_roles
@@ -59,7 +54,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (userRoleError || !userRole) {
-      return responseJSON(401, { error: "Profile not found" });
+      return responseJSON(401, { error:{message: "Profile not found" }});
     }
 
     // Check if role has permission "invite_users"
@@ -81,7 +76,7 @@ Deno.serve(async (req) => {
     const { fullName, email, phoneNumber, roleId, password, confirmEmail } =
       await req.json();
     if (!fullName || !email || !phoneNumber || !roleId) {
-      return responseJSON(400, { error: "Missing fields" });
+      return responseJSON(400, { error:{message: "Missing fields" }});
     }
 
     const supabaseAdmin = createClient(
@@ -118,11 +113,11 @@ Deno.serve(async (req) => {
     }
 
 
-    if (error) return responseJSON(400, { error: error.message });
+    if (error) return responseJSON(400, { error:{message: error.message }});
 
     return responseJSON(200, data);
   } catch (err) {
     console.error("Error creating user:", err);
-    return responseJSON(500, { error: "Failed to create user" });
+    return responseJSON(500, { error:{message: "Failed to create user" }});
   }
 });

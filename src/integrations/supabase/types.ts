@@ -865,6 +865,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      profile_checks: { Args: { p_phone: string }; Returns: Json }
       save_role_with_permissions: {
         Args: {
           p_description: string

@@ -82,4 +82,20 @@ BEGIN
 END;$function$
 ;
 
+INSERT INTO public.permissions (key, name, description, category)
+VALUES (
+  'users.view.self',
+  'View Own Profile',
+  'View and update own user profile details',
+  'users'
+)
+ON CONFLICT (key) DO NOTHING;
+
+INSERT INTO public.role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM public.roles r
+JOIN public.permissions p ON p.key = 'users.view.self'
+WHERE r.key IN ('admin', 'fca')
+ON CONFLICT (role_id, permission_id) DO NOTHING;
+
 

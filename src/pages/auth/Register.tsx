@@ -3,14 +3,21 @@ import { Button } from "@/components/ui/button";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLoading } from "@/contexts/LoadingContext";
 import { EmailVerificationPending } from "@/components/auth/EmailVerificationPending";
 import { toast } from "sonner";
 import { Link, useNavigate } from "react-router-dom";
-import { isValidPhoneNumber } from 'libphonenumber-js';
+import { isValidPhoneNumber } from "libphonenumber-js";
+import { supabase } from "@/integrations/supabase/client";
 
 const Register = () => {
   const [email, setEmail] = useState("");
@@ -21,7 +28,10 @@ const Register = () => {
   const [needsVerification, setNeedsVerification] = useState(false);
   const [otpCode, setOtpCode] = useState("");
   const [error, setError] = useState("");
-  const [fieldErrors, setFieldErrors] = useState<{email?: string; phone?: string}>({});
+  const [fieldErrors, setFieldErrors] = useState<{
+    email?: string;
+    phone?: string;
+  }>({});
 
   const { signUp, verifyOTP } = useAuth();
   const { startLoading, stopLoading } = useLoading();
@@ -29,13 +39,13 @@ const Register = () => {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate phone number format
     if (!isValidPhoneNumber(phoneNumber)) {
       setError("Please enter a valid phone number");
       return;
     }
-    
+
     setIsLoading(true);
     startLoading();
     setError("");
@@ -45,14 +55,40 @@ const Register = () => {
     const normalizedEmail = email.toLowerCase().trim();
     const normalizedPhone = phoneNumber.trim();
 
-    const { error } = await signUp(normalizedEmail, password, fullName, normalizedPhone);
+    // checks for duplicate phone number
+    const {error: profileCheckError, data: val} = await supabase.rpc("profile_checks", {
+      p_phone: normalizedPhone,
+    });
+
+    console.warn(profileCheckError, "Error", val)
+
+    if (profileCheckError) {
+      setError(profileCheckError.message);
+      toast.error("Registration failed: " + profileCheckError.message);
+      setIsLoading(false);
+      stopLoading();
+      return;
+    }
+
+    const { error } = await signUp(
+      normalizedEmail,
+      password,
+      fullName,
+      normalizedPhone
+    );
 
     if (error) {
       // Handle unique constraint violations
-      if (error.message.includes('profiles_email_unique') || error.message.includes('duplicate') && error.message.includes('email')) {
+      if (
+        error.message.includes("profiles_email_unique") ||
+        (error.message.includes("duplicate") && error.message.includes("email"))
+      ) {
         setFieldErrors({ email: "This email is already registered." });
         setError("");
-      } else if (error.message.includes('profiles_phone_number_unique') || error.message.includes('duplicate') && error.message.includes('phone')) {
+      } else if (
+        error.message.includes("profiles_phone_number_unique") ||
+        (error.message.includes("duplicate") && error.message.includes("phone"))
+      ) {
         setFieldErrors({ phone: "This phone number is already registered." });
         setError("");
       } else {
@@ -61,11 +97,16 @@ const Register = () => {
       }
     } else {
       setNeedsVerification(true);
-      const verificationMode = import.meta.env.AUTH_VERIFICATION_MODE || 'magic-link';
-      if (verificationMode === 'magic-link') {
-        toast.success("Registration successful! Please check your email for the verification link.");
+      const verificationMode =
+        import.meta.env.AUTH_VERIFICATION_MODE || "magic-link";
+      if (verificationMode === "magic-link") {
+        toast.success(
+          "Registration successful! Please check your email for the verification link."
+        );
       } else {
-        toast.success("Registration successful! Please check your email for verification code.");
+        toast.success(
+          "Registration successful! Please check your email for verification code."
+        );
       }
     }
 
@@ -94,9 +135,10 @@ const Register = () => {
   };
 
   if (needsVerification) {
-    const verificationMode = import.meta.env.AUTH_VERIFICATION_MODE || 'magic-link';
-    
-    if (verificationMode === 'magic-link') {
+    const verificationMode =
+      import.meta.env.AUTH_VERIFICATION_MODE || "magic-link";
+
+    if (verificationMode === "magic-link") {
       return <EmailVerificationPending email={email} />;
     }
 
@@ -105,7 +147,9 @@ const Register = () => {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold text-center">Verify Your Email</CardTitle>
+            <CardTitle className="text-2xl font-bold text-center">
+              Verify Your Email
+            </CardTitle>
             <CardDescription className="text-center">
               We sent a verification code to {email}
             </CardDescription>
@@ -124,7 +168,7 @@ const Register = () => {
                   required
                 />
               </div>
-              
+
               {error && (
                 <Alert variant="destructive">
                   <AlertDescription>{error}</AlertDescription>
@@ -145,7 +189,9 @@ const Register = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Create Account</CardTitle>
+          <CardTitle className="text-2xl font-bold text-center">
+            Create Account
+          </CardTitle>
           <CardDescription className="text-center">
             Register as a vendor to start booking stalls
           </CardDescription>
@@ -187,7 +233,13 @@ const Register = () => {
 
             <div className="space-y-2">
               <Label htmlFor="phoneNumber">Phone Number</Label>
-              <div className={fieldErrors.phone ? "border border-destructive rounded-md" : ""}>
+              <div
+                className={
+                  fieldErrors.phone
+                    ? "border border-destructive rounded-md"
+                    : ""
+                }
+              >
                 <PhoneInput
                   id="phoneNumber"
                   value={phoneNumber}
