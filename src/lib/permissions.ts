@@ -44,6 +44,7 @@ export const PERMISSIONS = {
   },
   USERS: {
     VIEW: 'users.view',
+    VIEW_SELF: 'users.view.self',
     INVITE: 'users.invite',
     MANAGE: 'users.manage',
   },
@@ -69,4 +70,9 @@ export const getAllPermissions = (): Permission[] => {
 // Helper function to check if a string is a valid permission
 export const isValidPermission = (permission: string): permission is Permission => {
   return getAllPermissions().includes(permission as Permission);
+};
+
+export const PERMISSION_ROUTES = {
+  [PERMISSIONS.USERS.VIEW_SELF]: "admin",
+  [PERMISSIONS.VENDORS.VIEW_SELF]: "vendor",
 };

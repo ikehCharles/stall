@@ -15,12 +15,12 @@ export interface UserPayload {
 }
 
 export const useUsers = () => {
-    const { startLoading, stopLoading } = useLoading();
+  const { startLoading, stopLoading } = useLoading();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (body: UserPayload) => {
-        startLoading()
+      startLoading();
       const { data, error } = await supabase.functions.invoke("invite-user", {
         body,
       });
@@ -28,8 +28,10 @@ export const useUsers = () => {
       return data;
     },
     onSuccess: () => {
-        stopLoading()
-      queryClient.invalidateQueries({ queryKey: [QueryKeysEnum.userManagement] });
+      stopLoading();
+      queryClient.invalidateQueries({
+        queryKey: [QueryKeysEnum.userManagement],
+      });
       toast({
         title: "User Invite Sent Successfully",
         // description: 'User can ',
@@ -37,8 +39,7 @@ export const useUsers = () => {
       });
     },
     onError(error) {
-        stopLoading()
-      console.warn(error);
+      stopLoading();
       // Handle unique constraint violations
       if (
         error.message.includes("profiles_email_unique") ||
@@ -66,6 +67,5 @@ export const useUsers = () => {
         });
       }
     },
-    
   });
 };

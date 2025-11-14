@@ -160,7 +160,6 @@ const BookingDetails = () => {
     return groups.join(', ');
   };
 
-  console.warn(booking.payment_status, "payment status");
 
   const isPaymentAvailable = booking && 
     booking.status === 'approved' &&  // Must be approved by admin first

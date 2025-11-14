@@ -27,7 +27,7 @@ type StallInstance = Database['public']['Tables']['stall_instances']['Row'] & {
     price: number;
     capacity: number;
   };
-  isBooked?: boolean;
+  isSelected?: boolean;
   isHeld?: boolean;
   selectedDates?: Date[];
 };
@@ -56,18 +56,22 @@ const EnhancedStallBooking = () => {
 
   const currentMarket = markets?.find(m => m.id === marketId);
 
+  console.warn(stallInstances, "stall instances", bookedDates)
+
   // Create enhanced stall instances with booking and hold status
-  const stalls: StallInstance[] = stallInstances?.map(stall => {
+  const stalls: StallInstance[] = stallInstances?.map((stall, _, arr) => {
     const stallBookedDates = bookedDates.filter(bd => 
       bd.stall_instance_id === stall.id
     ).map(bd => bd.booking_date);
+
+    
 
     // Check if this stall has any active holds
     const stallHeldDates = currentStallHolds[stall.id] || [];
 
     return {
       ...stall,
-      isBooked: stallBookedDates.length > 0,
+      isSelected: stallBookedDates.length > 0,
       isHeld: stallHeldDates.length > 0
     };
   }) || [];
@@ -158,10 +162,9 @@ const EnhancedStallBooking = () => {
   };
 
   const getStallColor = (stall: StallInstance) => {
-    const selection = selectedStalls.find(s => s.stall.id === stall.id);
-    if (selection) return '#3b82f6'; // blue - selected
-    if (stall.isBooked) return '#ef4444'; // red - booked
-    if (stall.isHeld) return '#f97316'; // orange - held
+    if (stall.status === 'BOOKED') return '#ef4444'; // red - booked
+    if (stall.isSelected) return '#3b82f6'; // blue - selected
+    // if (stall.isHeld) return '#f97316'; // orange - held
     return '#22c55e'; // green - available
   };
 
@@ -260,10 +263,10 @@ const EnhancedStallBooking = () => {
                   <div className="w-4 h-4 bg-red-500 rounded mr-2"></div>
                   Booked
                 </div>
-                <div className="flex items-center">
+                {/* <div className="flex items-center">
                   <div className="w-4 h-4 bg-orange-500 rounded mr-2"></div>
                   Held
-                </div>
+                </div> */}
                 <div className="flex items-center">
                   <div className="w-4 h-4 bg-blue-500 rounded mr-2"></div>
                   Selected

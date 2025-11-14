@@ -38,17 +38,8 @@ import { useRoles, useUpdateUserRole, useUsersRoles } from "@/hooks/useRolesAndP
 
 
 export default function UserManagement() {
-  const queryClient = useQueryClient();
-  const { hasPermission } = usePermissions();
   const { data: roles } = useRoles();
-  const canAssignRoles = hasPermission(PERMISSIONS.ROLES.ASSIGN);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [newUser, setNewUser] = useState({
-    key: "",
-    name: "",
-    description: "",
-    permissions: [] as string[],
-  });
 
   // Fetch all users with their roles
   const { data: users, isLoading: usersLoading } = useUsersRoles();
@@ -96,7 +87,7 @@ export default function UserManagement() {
                 </DialogDescription>
               </DialogHeader>
               
-              <UserRegister />
+              <UserRegister setDialogOpen={setIsCreateDialogOpen} />
             </DialogContent>
           </Dialog>
         </PermissionGate>
@@ -159,7 +150,7 @@ export default function UserManagement() {
                         }
                         disabled={updateUserRole.isPending}
                       >
-                        <SelectTrigger className="w-[180px]">
+                        <SelectTrigger className="w-full">
                           <SelectValue placeholder="Assign role" />
                         </SelectTrigger>
                         <SelectContent>

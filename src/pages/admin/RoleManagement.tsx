@@ -49,7 +49,7 @@ export default function RoleManagement() {
     key: "",
     name: "",
     description: "",
-    permissions: [] as string[],
+    permissions: [PERMISSIONS.USERS.VIEW_SELF] as string[],
   });
 
   // Fetch all roles with their permissions
@@ -136,7 +136,7 @@ export default function RoleManagement() {
             onOpenChange={(open)=>{
               setIsCreateDialogOpen(open);
               setEditingRole(null);
-              setRole({ key: "", name: "", description: "", permissions: [] });
+              setRole({ key: "", name: "", description: "", permissions: [PERMISSIONS.USERS.VIEW_SELF] });
             }}
           >
             <DialogTrigger asChild>

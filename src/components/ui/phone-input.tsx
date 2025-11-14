@@ -94,7 +94,7 @@ export const PhoneInput = ({
           }
         }
       } catch (error) {
-        console.log('Could not parse phone number:', value);
+        console.error('Could not parse phone number:', value);
       }
     }
     

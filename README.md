@@ -72,7 +72,6 @@ To connect a domain, navigate to Project > Settings > Domains and click Connect 
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
 
-
 ## Connecting via Local
 
 #### Requirement
@@ -100,6 +99,7 @@ Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-trick
 * Run Supabase locally: [`supabase init`](https://supabase.com/docs/reference/cli/usage#supabase-init) and [`supabase start`](https://supabase.com/docs/reference/cli/usage#supabase-start)
 * Manage database migrations: [`supabase migration`](https://supabase.com/docs/reference/cli/usage#supabase-migration)
 * Generate types directly from your database schema: [`supabase gen types`](https://supabase.com/docs/reference/cli/usage#supabase-gen)
+* Resetting local database... supabase db reset
 * CI/CD for releasing to production: [`supabase db push`](https://supabase.com/docs/reference/cli/usage#supabase-db-push)
 * Manage your Supabase projects: [`supabase projects`](https://supabase.com/docs/reference/cli/usage#supabase-projects)
 

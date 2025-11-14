@@ -1,14 +1,23 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Plus, Calendar, Eye, Edit, Archive, Play, Pause } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { useMarkets, useUpdateMarket } from '@/hooks/useMarkets';
-import { MarketDialog } from '@/components/admin/MarketDialog';
-import { toast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { Plus, Calendar, Eye, Edit, Archive, Play, Pause } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { useMarkets, useUpdateMarket } from "@/hooks/useMarkets";
+import { MarketDialog } from "@/components/admin/MarketDialog";
+import { toast } from "@/hooks/use-toast";
+import { format } from "date-fns";
+import { MarketStatusEnum } from "@/lib/enums";
+import { supabase } from "@/integrations/supabase/client";
 import { PERMISSIONS } from '@/lib/permissions';
 import { PermissionGate } from '@/components/PermissionGate';
 
@@ -18,28 +27,46 @@ const Markets = () => {
   const { data: markets, isLoading } = useMarkets();
   const updateMarket = useUpdateMarket();
 
-  const handleStatusChange = async (marketId: string, newStatus: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED') => {
+  const handleStatusChange = async (
+    marketId: string,
+    newStatus: MarketStatusEnum
+  ) => {
     try {
+      if (newStatus === MarketStatusEnum.PUBLISHED) {
+        const res = await supabase.from("stall_instances").select('*', { count: 'exact', head: true }).eq('market_id', marketId);
+        if (!res.count) {
+          toast({
+            title: "Error",
+            description: "Market has no stalls. Please add stalls before publishing.",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
       await updateMarket.mutateAsync({ id: marketId, status: newStatus });
       toast({
-        title: 'Market Updated',
+        title: "Market Updated",
         description: `Market status changed to ${newStatus.toLowerCase()}`,
       });
     } catch (error) {
       toast({
-        title: 'Error',
-        description: 'Failed to update market status',
-        variant: 'destructive',
+        title: "Error",
+        description: "Failed to update market status",
+        variant: "destructive",
       });
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'PUBLISHED': return 'bg-primary text-primary-foreground';
-      case 'DRAFT': return 'bg-secondary text-secondary-foreground';
-      case 'ARCHIVED': return 'bg-muted text-muted-foreground';
-      default: return 'bg-secondary text-secondary-foreground';
+      case "PUBLISHED":
+        return "bg-primary text-primary-foreground";
+      case "DRAFT":
+        return "bg-secondary text-secondary-foreground";
+      case "ARCHIVED":
+        return "bg-muted text-muted-foreground";
+      default:
+        return "bg-secondary text-secondary-foreground";
     }
   };
 
@@ -52,7 +79,9 @@ const Markets = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Markets</h1>
-          <p className="text-muted-foreground mt-1">Manage your marketplace events</p>
+          <p className="text-muted-foreground mt-1">
+            Manage your marketplace events
+          </p>
         </div>
         <PermissionGate permissions={[PERMISSIONS.MARKETS.MANAGE]}>
         <Button onClick={() => setIsCreateDialogOpen(true)}>
@@ -90,7 +119,8 @@ const Markets = () => {
                     <TableCell className="font-medium">{market.name}</TableCell>
                     <TableCell className="capitalize">{market.theme}</TableCell>
                     <TableCell>
-                      {format(new Date(market.start_at), 'MMM dd')} - {format(new Date(market.end_at), 'MMM dd, yyyy')}
+                      {format(new Date(market.start_at), "MMM dd")} -{" "}
+                      {format(new Date(market.end_at), "MMM dd, yyyy")}
                     </TableCell>
                     <TableCell>
                       <Badge className={getStatusColor(market.status)}>
@@ -113,31 +143,37 @@ const Markets = () => {
                             <Eye className="h-4 w-4" />
                           </Link>
                         </Button>
-                        {market.status === 'DRAFT' && (
+                        {market.status === "DRAFT" && (
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleStatusChange(market.id, 'PUBLISHED')}
+                            onClick={() =>
+                              handleStatusChange(market.id, MarketStatusEnum.PUBLISHED)
+                            }
                             title="Publish market"
                           >
                             <Play className="h-4 w-4" />
                           </Button>
                         )}
-                        {market.status === 'PUBLISHED' && (
+                        {market.status === "PUBLISHED" && (
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleStatusChange(market.id, 'DRAFT')}
+                            onClick={() =>
+                              handleStatusChange(market.id, MarketStatusEnum.DRAFT)
+                            }
                             title="Unpublish market"
                           >
                             <Pause className="h-4 w-4" />
                           </Button>
                         )}
-                        {market.status !== 'ARCHIVED' ? (
+                        {market.status !== "ARCHIVED" ? (
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleStatusChange(market.id, 'ARCHIVED')}
+                            onClick={() =>
+                              handleStatusChange(market.id, MarketStatusEnum.ARCHIVED)
+                            }
                             title="Archive market"
                           >
                             <Archive className="h-4 w-4" />
@@ -146,7 +182,9 @@ const Markets = () => {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleStatusChange(market.id, 'DRAFT')}
+                            onClick={() =>
+                              handleStatusChange(market.id, MarketStatusEnum.DRAFT)
+                            }
                             title="Unarchive market"
                           >
                             <Archive className="h-4 w-4" />

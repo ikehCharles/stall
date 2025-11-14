@@ -1,3 +1,8 @@
+export enum MarketStatusEnum {
+    DRAFT = "DRAFT",
+    PUBLISHED = "PUBLISHED",
+    ARCHIVED = "ARCHIVED",
+}
 export enum RolesEnum {
     admin = "admin",
     vendor = "vendor",
