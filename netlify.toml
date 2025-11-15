@@ -1,5 +1,5 @@
 [build]
-  publish = "build"   # or "dist" for Vue/Angular
+  publish = "dist"
   command = "npm run build"
 
 [[redirects]]
