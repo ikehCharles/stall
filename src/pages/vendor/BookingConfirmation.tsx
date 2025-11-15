@@ -40,6 +40,7 @@ const BookingConfirmation = () => {
 
   useEffect(() => {
     const intent = Number(queryParams.get("intent") || 0);
+    console.log("Payment intent:", intent, 'token', queryParams.get("token"), 'intent', INTENT.AUTHORIZE, 'capture', INTENT.CAPTURE);
     if (queryParams.get("token")) {
       if (intent === INTENT.AUTHORIZE) {
         authorizePayment(queryParams.get("token") || "");
@@ -47,6 +48,7 @@ const BookingConfirmation = () => {
         capturePayment(queryParams.get("token") || "");
       }
     } else {
+      console.warn("No payment token found in URL");
       navigate(`/vendor/bookings/${id}`);
     }
   }, []);
