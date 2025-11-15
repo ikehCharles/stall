@@ -117,7 +117,9 @@ const AppContent = () => {
           <Route
             path="bookings/:id/confirmation"
             element={
-              (
+              needsKYC ? (
+                <Navigate to="/vendor/profile?tab=verification" />
+              ) : (
                 <PermissionGate
                   fallback={<AccessDenied />}
                   permissions={[PERMISSIONS.VENDORS.VIEW_SELF]}
