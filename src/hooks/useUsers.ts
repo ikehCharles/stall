@@ -24,7 +24,8 @@ export const useUsers = () => {
       const { data, error } = await supabase.functions.invoke("invite-user", {
         body,
       });
-      if (error) throw error;
+
+      if (error || data.success === false) throw data || error;
       return data;
     },
     onSuccess: () => {
@@ -39,6 +40,7 @@ export const useUsers = () => {
       });
     },
     onError(error) {
+
       stopLoading();
       // Handle unique constraint violations
       if (

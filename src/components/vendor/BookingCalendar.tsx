@@ -41,7 +41,9 @@ export function BookingCalendar({
   const marketEnd = parseISO(marketEndDate);
 
   // Convert booked dates to Date objects
-  const bookedDateObjects = bookedDates.map(dateStr => parseISO(dateStr));
+  const reservedDateObjects = bookedDates.filter(d=>d.bookings?.status === 'reserved').map(dateStr => parseISO(dateStr.booking_date));
+
+  const bookedDateObjects = bookedDates.filter(d=>d.bookings?.status !== 'reserved').map(dateStr => parseISO(dateStr.booking_date));
   
   // Get dates that are held by others for this specific stall
   const heldDateStrings = stallHoldsData[stallInstanceId] || [];
@@ -88,13 +90,19 @@ export function BookingCalendar({
     )) {
       return true;
     }
-    
-    // Held by others
-    if (heldDates.some(heldDate => 
-      startOfDay(heldDate).getTime() === day.getTime()
+
+    if (reservedDateObjects.some(bookedDate => 
+      startOfDay(bookedDate).getTime() === day.getTime()
     )) {
       return true;
     }
+    
+    // Held by others
+    // if (heldDates.some(heldDate => 
+    //   startOfDay(heldDate).getTime() === day.getTime()
+    // )) {
+    //   return true;
+    // }
     
     return false;
   };
@@ -104,6 +112,11 @@ export function BookingCalendar({
     const isSelected = selectedDates.some(d => 
       startOfDay(d).getTime() === day.getTime()
     );
+
+    const isReserved = reservedDateObjects.some(bookedDate => 
+      startOfDay(bookedDate).getTime() === day.getTime()
+    );
+    
     const isBooked = bookedDateObjects.some(bookedDate => 
       startOfDay(bookedDate).getTime() === day.getTime()
     );
@@ -115,6 +128,7 @@ export function BookingCalendar({
       selected: isSelected,
       booked: isBooked,
       held: isHeld,
+      reserved: isReserved,
       disabled: isDayDisabled(date)
     };
   };
@@ -136,6 +150,10 @@ export function BookingCalendar({
           <div className="flex items-center gap-1">
             <div className="w-3 h-3 bg-destructive rounded"></div>
             <span>Booked</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 bg-[hsl(36.8421052631579,95%,52.94117647058824%)] rounded"></div>
+            <span>Reserved</span>
           </div>
           <div className="flex items-center gap-1">
             <div className="w-3 h-3 bg-orange-500 rounded"></div>
@@ -162,6 +180,7 @@ export function BookingCalendar({
             booked: (date) => getDayModifiers(date).booked,
             held: (date) => getDayModifiers(date).held,
             selected: (date) => getDayModifiers(date).selected,
+            reserved: (date) => getDayModifiers(date).reserved,
           }}
           modifiersStyles={{
             booked: {
@@ -170,6 +189,10 @@ export function BookingCalendar({
             },
             held: {
               backgroundColor: 'hsl(25, 95%, 53%)', // orange-500
+              color: 'white',
+            },
+            reserved: {
+              backgroundColor: 'hsl(36.8421052631579, 95%, 52.94117647058824%)',
               color: 'white',
             },
             selected: {

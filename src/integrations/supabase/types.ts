@@ -876,11 +876,19 @@ export type Database = {
         }
         Returns: string
       }
+      simulate_payment_cancelled_admin: {
+        Args: { p_booking_id: string }
+        Returns: Json
+      }
       simulate_payment_confirmed_admin: {
         Args: { p_booking_id: string }
         Returns: Json
       }
       simulate_payment_failure: {
+        Args: { p_booking_id: string }
+        Returns: Json
+      }
+      simulate_payment_failure_admin: {
         Args: { p_booking_id: string }
         Returns: Json
       }
@@ -901,9 +909,15 @@ export type Database = {
         | "completed"
         | "cancelled"
         | "expired"
+        | "reserved"
       kyc_status: "PENDING" | "APPROVED" | "REJECTED"
       market_status: "DRAFT" | "PUBLISHED" | "ARCHIVED"
-      payment_status: "pending" | "success" | "failed" | "cancelled"
+      payment_status:
+        | "pending"
+        | "success"
+        | "failed"
+        | "cancelled"
+        | "authorized"
       stall_date_status: "available" | "reserved" | "booked"
       stall_shape: "RECT" | "CIRCLE" | "POLY"
       stall_status: "AVAILABLE" | "BOOKED" | "BLOCKED"
@@ -1044,10 +1058,17 @@ export const Constants = {
         "completed",
         "cancelled",
         "expired",
+        "reserved",
       ],
       kyc_status: ["PENDING", "APPROVED", "REJECTED"],
       market_status: ["DRAFT", "PUBLISHED", "ARCHIVED"],
-      payment_status: ["pending", "success", "failed", "cancelled"],
+      payment_status: [
+        "pending",
+        "success",
+        "failed",
+        "cancelled",
+        "authorized",
+      ],
       stall_date_status: ["available", "reserved", "booked"],
       stall_shape: ["RECT", "CIRCLE", "POLY"],
       stall_status: ["AVAILABLE", "BOOKED", "BLOCKED"],

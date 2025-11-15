@@ -15,3 +15,9 @@ export enum QueryKeysEnum {
   rolesManagement = "roles-management",
   permissionsList = "permissions-list",
 }
+
+export enum INTENT {
+  AUTHORIZE,
+  CAPTURE,
+  VOID
+}

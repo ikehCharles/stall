@@ -1,5 +1,10 @@
-
-import { useParams, Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import {
+  useParams,
+  Link,
+  useLocation,
+  useNavigate,
+  useSearchParams,
+} from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,10 +15,9 @@ import { useBookingDatesForBooking } from "@/hooks/useBookingDatesForBooking";
 import { useStallInstances } from "@/hooks/useStallInstances";
 import { PaymentModal } from "@/components/vendor/PaymentModal";
 import { BookingHoldTimer } from "@/components/vendor/BookingHoldTimer";
-import { useAdminApproveBooking, useAdminDeclineBooking } from "@/hooks/useAdminBookings";
-import { useAuth } from "@/contexts/AuthContext";
-import { format } from "date-fns";
-import { Check, X } from "lucide-react";
+// import { useAdminApproveBooking, useAdminDeclineBooking } from "@/hooks/useAdminBookings";
+import { parseISO, format, differenceInCalendarDays } from "date-fns";
+import { Check, Loader, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -27,31 +31,35 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ENV, PAYMENT_SWITCH_ENUM } from "@/lib/utils";
 import { useCreatePayment } from "@/hooks/use-payment";
+import { INTENT } from "@/lib/enums";
+import {
+  useAdminBookings,
+  useAdminToggleAuthorizedBooking,
+  useAdminToggleBooking,
+} from "@/hooks/useAdminBookings";
 
 const BookingDetails = () => {
   const { id } = useParams<{ id: string }>();
-  const [searchParams] = useSearchParams()
+  const [searchParams] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const { userProfile } = useAuth();
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
-  const { data: booking, isLoading, error } = useBookingDetails(id || '');
-  const { data: bookingDates = [] } = useBookingDatesForBooking(id || '');
-  const { data: allStalls = [] } = useStallInstances(booking?.market_id || '');
-  const approveBooking = useAdminApproveBooking();
-  const declineBooking = useAdminDeclineBooking();
+  const { data: booking, isLoading, error } = useBookingDetails(id || "");
+  const { data: bookingDates = [] } = useBookingDatesForBooking(id || "");
+  const { data: allStalls = [] } = useStallInstances(booking?.market_id || "");
+  const toggleBooking = useAdminToggleBooking();
+  const toggleAuthorizedBooking = useAdminToggleAuthorizedBooking();
   const cancelBooking = useCancelBooking();
   const createPayment = useCreatePayment();
-  const isAdminView = location.pathname.includes('/admin/');
+  const isAdminView = location.pathname.includes("/admin/");
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
-
-   // look for search params status=processing and set dependency on payment_status, if it changes to success, remove search param
-   useEffect(() => {
-    if (searchParams.get('status') === 'processing') {
+  // look for search params status=processing and set dependency on payment_status, if it changes to success, remove search param
+  useEffect(() => {
+    if (searchParams.get("status") === "processing") {
       setIsProcessingPayment(true);
-      if (booking?.payment_status === 'success') {
+      if (booking?.payment_status === "success") {
         navigate(`/vendor/bookings/${id}`);
         setIsProcessingPayment(false);
       }
@@ -68,7 +76,7 @@ const BookingDetails = () => {
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-6">
-            {[1, 2].map(i => (
+            {[1, 2].map((i) => (
               <Card key={i}>
                 <CardHeader>
                   <div className="h-6 bg-gray-200 rounded w-40 animate-pulse"></div>
@@ -98,7 +106,9 @@ const BookingDetails = () => {
     return (
       <div className="text-center py-12">
         <h2 className="text-2xl font-bold">Booking not found</h2>
-        <p className="text-muted-foreground mt-2">The booking you're looking for could not be found.</p>
+        <p className="text-muted-foreground mt-2">
+          The booking you're looking for could not be found.
+        </p>
         <Button asChild className="mt-4">
           <Link to={isAdminView ? "/admin/bookings" : "/vendor/bookings"}>
             Back to Bookings
@@ -110,19 +120,19 @@ const BookingDetails = () => {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'pending':
+      case "pending":
         return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
-      case 'approved':
+      case "approved":
         return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
-      case 'completed':
+      case "completed":
         return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
-      case 'cancelled':
+      case "cancelled":
         return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
-      case 'expired':
+      case "expired":
         return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
-      case 'failed':
+      case "failed":
         return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
-      case 'success':
+      case "success":
         return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
       default:
         return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
@@ -130,79 +140,113 @@ const BookingDetails = () => {
   };
 
   const formatBookingDates = (dates: string[]) => {
-    if (dates.length === 0) return 'No dates selected';
-    
-    const sortedDates = dates.sort();
-    const formattedDates = sortedDates.map(date => format(new Date(date), 'MMM d'));
-    
+    if (dates.length === 0) return "No dates selected";
+  
+    // Parse all dates to ISO and sort chronologically
+    const parsedDates = dates
+      .map((d) => parseISO(d)) // parse ISO string safely
+      .sort((a, b) => a.getTime() - b.getTime());
+  
+    const formattedDates = parsedDates.map((d) => format(d, "MMM d"));
+  
     if (formattedDates.length <= 3) {
-      return formattedDates.join(', ');
+      return formattedDates.join(", ");
     }
-    
+  
     // Group consecutive dates
-    let groups: string[] = [];
+    const groups: string[] = [];
     let start = 0;
-    
-    for (let i = 1; i <= formattedDates.length; i++) {
-      if (i === formattedDates.length || 
-          new Date(sortedDates[i]).getTime() - new Date(sortedDates[i-1]).getTime() > 24 * 60 * 60 * 1000) {
+  
+    for (let i = 1; i <= parsedDates.length; i++) {
+      if (
+        i === parsedDates.length ||
+        differenceInCalendarDays(parsedDates[i], parsedDates[i - 1]) > 1
+      ) {
         if (i - start === 1) {
           groups.push(formattedDates[start]);
         } else if (i - start === 2) {
-          groups.push(`${formattedDates[start]}, ${formattedDates[i-1]}`);
+          groups.push(`${formattedDates[start]}, ${formattedDates[i - 1]}`);
         } else {
-          groups.push(`${formattedDates[start]}-${formattedDates[i-1]}`);
+          groups.push(`${formattedDates[start]}-${formattedDates[i - 1]}`);
         }
         start = i;
       }
     }
-    
-    return groups.join(', ');
+  
+    return groups.join(", ");
   };
 
-
-  const isPaymentAvailable = booking && 
-    booking.status === 'approved' &&  // Must be approved by admin first
-    (!booking.payment_status || ['failed'].includes(booking.payment_status))&& 
+  const isPaymentAvailable =
+    booking &&
+    booking.status === "pending" && // Admin approves later
+    (!booking.payment_status || ["failed"].includes(booking.payment_status)) &&
     booking.paid_amount < booking.total_amount &&
-    (!booking.hold_expires_at || new Date(booking.hold_expires_at) > new Date());
+    (!booking.hold_expires_at ||
+      new Date(booking.hold_expires_at) > new Date());
 
-  const isCancellable = booking &&
-    ['approved'].includes(booking.status) &&
-    booking.payment_status !== 'success';
+  const isCancellable =
+    booking &&
+    ["approved"].includes(booking.status) &&
+    booking.payment_status !== "success";
 
-  const bookedStallIds = booking?.booking_stalls?.map(bs => bs.stall_instance_id) || [];
+  const bookedStallIds =
+    booking?.booking_stalls?.map((bs) => bs.stall_instance_id) || [];
 
   const handleCancelBooking = async () => {
     if (!id) return;
     try {
       await cancelBooking.mutateAsync(id);
-      toast.success('Booking cancelled successfully');
+      toast.success("Booking cancelled successfully");
       setCancelDialogOpen(false);
-      navigate('/vendor/bookings');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to cancel booking');
-      console.error('Error cancelling booking:', error);
+      navigate("/vendor/bookings");
+    } catch (error) {
+      toast.error(error.message || "Failed to cancel booking");
+      console.error("Error cancelling booking:", error);
     }
   };
 
- 
-
-  
-
   const makePayment = () => {
-    if(ENV.PAYMENT_SWITCH === PAYMENT_SWITCH_ENUM.SIMULATION) {
+    if (ENV.PAYMENT_SWITCH === PAYMENT_SWITCH_ENUM.SIMULATION) {
       setPaymentModalOpen(true);
-      return
+      return;
     }
     createPayment.mutate({
       bookingId: booking.id,
-      amount: booking.total_amount
-    })
+      amount: booking.total_amount,
+      intent:
+        ENV.PAYMENT_INTENT === INTENT.AUTHORIZE
+          ? INTENT.AUTHORIZE
+          : INTENT.CAPTURE,
+    });
   };
 
+  const handleApprove = (bookingId: string) => {
+    if (ENV.PAYMENT_INTENT == INTENT.AUTHORIZE) {
+      toggleAuthorizedBooking.mutate({ bookingId, intent: INTENT.CAPTURE });
+      return;
+    }
+    if (ENV.PAYMENT_INTENT == INTENT.CAPTURE) {
+      toggleBooking.mutate({ bookingId, intent: INTENT.CAPTURE });
+      return;
+    }
 
-  
+    // error message for unsupported intent
+    toast.error("Unsupported payment intent configured.");
+  };
+
+  const handleDecline = (bookingId: string) => {
+    if (ENV.PAYMENT_INTENT == INTENT.AUTHORIZE) {
+      toggleAuthorizedBooking.mutate({ bookingId, intent: INTENT.VOID });
+      return;
+    }
+    if (ENV.PAYMENT_INTENT == INTENT.CAPTURE) {
+      toggleBooking.mutate({ bookingId, intent: INTENT.VOID });
+      return;
+    }
+
+    // error message for unsupported intent
+    toast.error("Unsupported payment intent configured.");
+  };
 
   return (
     <div className="space-y-8">
@@ -223,32 +267,36 @@ const BookingDetails = () => {
             </Button>
           )}
           {!isAdminView && isPaymentAvailable && (
-            <Button disabled={isProcessingPayment} onClick={makePayment}>
-              {isProcessingPayment ? "Processing Payment..." : "Make Payment"}
+            <Button disabled={isProcessingPayment || createPayment.isPending} onClick={makePayment}>
+              {isProcessingPayment ? "Processing Payment..." : createPayment.isPending ? <><Loader /> Make Payment</> : "Make Payment"}
             </Button>
           )}
           {!isAdminView && isCancellable && !isProcessingPayment && (
-            <Button 
+            <Button
               onClick={() => setCancelDialogOpen(true)}
               variant="destructive"
             >
               Cancel Booking
             </Button>
           )}
-          {isAdminView && booking?.status === 'pending' && (
+          {isAdminView && booking?.status === "pending" && (
             <>
-              <Button 
-                onClick={() => approveBooking.mutate(booking.id)}
-                disabled={approveBooking.isPending}
+              <Button
+                onClick={() => handleApprove(booking.id)}
+                disabled={
+                  toggleAuthorizedBooking.isPending || toggleBooking.isPending
+                }
                 className="bg-green-600 hover:bg-green-700"
               >
                 <Check className="w-4 h-4 mr-1" />
                 Approve
               </Button>
-              <Button 
+              <Button
                 variant="destructive"
-                onClick={() => declineBooking.mutate(booking.id)}
-                disabled={declineBooking.isPending}
+                onClick={() => handleDecline(booking.id)}
+                disabled={
+                  toggleAuthorizedBooking.isPending || toggleBooking.isPending
+                }
               >
                 <X className="w-4 h-4 mr-1" />
                 Decline
@@ -268,43 +316,62 @@ const BookingDetails = () => {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <h4 className="font-medium text-muted-foreground">Market Name</h4>
+                  <h4 className="font-medium text-muted-foreground">
+                    Market Name
+                  </h4>
                   <p className="text-lg">{booking.markets?.name}</p>
                 </div>
                 <div>
-                  <h4 className="font-medium text-muted-foreground">Market Start Date</h4>
+                  <h4 className="font-medium text-muted-foreground">
+                    Market Start Date
+                  </h4>
                   <p className="text-lg">
-                    {booking.markets?.start_at ? format(new Date(booking.markets.start_at), "PPPP") : 'N/A'}
+                    {booking.markets?.start_at
+                      ? format(new Date(booking.markets.start_at), "PPPP")
+                      : "N/A"}
                   </p>
                 </div>
                 <div>
-                  <h4 className="font-medium text-muted-foreground">Market End Date</h4>
+                  <h4 className="font-medium text-muted-foreground">
+                    Market End Date
+                  </h4>
                   <p className="text-lg">
-                    {booking.markets?.end_at ? format(new Date(booking.markets.end_at), "PPPP") : 'N/A'}
+                    {booking.markets?.end_at
+                      ? format(new Date(booking.markets.end_at), "PPPP")
+                      : "N/A"}
                   </p>
                 </div>
                 <div>
-                  <h4 className="font-medium text-muted-foreground">Booking Date</h4>
-                  <p className="text-lg">{format(new Date(booking.created_at), "PPP")}</p>
+                  <h4 className="font-medium text-muted-foreground">
+                    Booking Date
+                  </h4>
+                  <p className="text-lg">
+                    {format(new Date(booking.created_at), "PPP")}
+                  </p>
                 </div>
                 <div>
-                  <h4 className="font-medium text-muted-foreground">Invoice Number</h4>
+                  <h4 className="font-medium text-muted-foreground">
+                    Invoice Number
+                  </h4>
                   <p className="text-lg">{booking.invoice_number}</p>
                 </div>
                 <div>
-                  <h4 className="font-medium text-muted-foreground">Selected Dates</h4>
-                  <p className="text-lg">{formatBookingDates(bookingDates)}</p>
+                  <h4 className="font-medium text-muted-foreground">
+                    Selected Dates
+                  </h4>
+                  <p className="text-lg">{formatBookingDates(booking.selected_dates)}</p>
                 </div>
               </div>
-              
-              {booking.hold_expires_at && ['pending', 'failed'].includes(booking.payment_status) && (
-                <div className="pt-2">
-                  <BookingHoldTimer 
-                    bookingId={booking.id}
-                    expiresAt={booking.hold_expires_at}
-                  />
-                </div>
-              )}
+
+              {booking.hold_expires_at &&
+                ["pending", "failed"].includes(booking.payment_status) && (
+                  <div className="pt-2">
+                    <BookingHoldTimer
+                      bookingId={booking.id}
+                      expiresAt={booking.hold_expires_at}
+                    />
+                  </div>
+                )}
             </CardContent>
           </Card>
 
@@ -318,7 +385,7 @@ const BookingDetails = () => {
                   {/* Render all stalls */}
                   {allStalls.map((stall) => {
                     const isBooked = bookedStallIds.includes(stall.id);
-                    
+
                     return (
                       <g key={stall.id}>
                         <rect
@@ -326,8 +393,16 @@ const BookingDetails = () => {
                           y={stall.y}
                           width={stall.width}
                           height={stall.height}
-                          fill={isBooked ? "hsl(var(--primary))" : "hsl(var(--muted))"}
-                          stroke={isBooked ? "hsl(var(--primary-foreground))" : "hsl(var(--border))"}
+                          fill={
+                            isBooked
+                              ? "hsl(var(--primary))"
+                              : "hsl(var(--muted))"
+                          }
+                          stroke={
+                            isBooked
+                              ? "hsl(var(--primary-foreground))"
+                              : "hsl(var(--border))"
+                          }
                           strokeWidth="2"
                           rx="4"
                         />
@@ -336,7 +411,11 @@ const BookingDetails = () => {
                           y={stall.y + stall.height / 2}
                           textAnchor="middle"
                           dominantBaseline="middle"
-                          fill={isBooked ? "hsl(var(--primary-foreground))" : "hsl(var(--muted-foreground))"}
+                          fill={
+                            isBooked
+                              ? "hsl(var(--primary-foreground))"
+                              : "hsl(var(--muted-foreground))"
+                          }
                           fontSize="14"
                           fontWeight={isBooked ? "bold" : "normal"}
                         >
@@ -348,11 +427,17 @@ const BookingDetails = () => {
                 </svg>
                 <div className="mt-4 flex items-center space-x-4 text-sm">
                   <div className="flex items-center">
-                    <div className="w-4 h-4 rounded mr-2" style={{ backgroundColor: "hsl(var(--primary))" }}></div>
+                    <div
+                      className="w-4 h-4 rounded mr-2"
+                      style={{ backgroundColor: "hsl(var(--primary))" }}
+                    ></div>
                     Your Stalls
                   </div>
                   <div className="flex items-center">
-                    <div className="w-4 h-4 rounded mr-2" style={{ backgroundColor: "hsl(var(--muted))" }}></div>
+                    <div
+                      className="w-4 h-4 rounded mr-2"
+                      style={{ backgroundColor: "hsl(var(--muted))" }}
+                    ></div>
                     Other Stalls
                   </div>
                 </div>
@@ -372,29 +457,33 @@ const BookingDetails = () => {
                 <div className="flex justify-between">
                   <span>Booking Status:</span>
                   <Badge className={getStatusBadge(booking.status)}>
-                    {booking.status.charAt(0).toUpperCase() + booking.status.slice(1).replace('_', ' ')}
+                    {booking.status.charAt(0).toUpperCase() +
+                      booking.status.slice(1).replace("_", " ")}
                   </Badge>
                 </div>
                 <div className="flex justify-between">
                   <span>Payment Status:</span>
                   <Badge className={getStatusBadge(booking?.payment_status)}>
-                    {!booking.payment_status ? 'Pending' : booking.payment_status.charAt(0).toUpperCase() + booking.payment_status.slice(1)}
+                    {!booking.payment_status
+                      ? "Pending"
+                      : booking.payment_status.charAt(0).toUpperCase() +
+                        booking.payment_status.slice(1)}
                   </Badge>
                 </div>
                 <Separator />
-                
+
                 <div className="space-y-2">
                   <h4 className="font-medium">Stalls Booked</h4>
-                  {booking.booking_stalls?.map(bs => (
+                  {booking.booking_stalls?.map((bs) => (
                     <div key={bs.id} className="flex justify-between text-sm">
                       <span>Stall {bs.stall_instances?.label}</span>
                       <span>${bs.price_at_booking}</span>
                     </div>
                   ))}
                 </div>
-                
+
                 <Separator />
-                
+
                 <div className="space-y-2">
                   <div className="flex justify-between font-medium">
                     <span>Total Amount:</span>
@@ -416,29 +505,29 @@ const BookingDetails = () => {
           </Card>
         </div>
       </div>
-      
+
       {/* Payment Modal - only show for vendors */}
       {booking && !isAdminView && (
-        <PaymentModal 
+        <PaymentModal
           booking={booking}
           isOpen={paymentModalOpen}
           onClose={() => setPaymentModalOpen(false)}
         />
       )}
-      
+
       {/* Cancel Booking Dialog */}
       <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Cancel Booking?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to cancel this booking? This action cannot be undone.
-              All reserved stalls and dates will be released.
+              Are you sure you want to cancel this booking? This action cannot
+              be undone. All reserved stalls and dates will be released.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Keep Booking</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={handleCancelBooking}
               className="bg-red-600 hover:bg-red-700"
             >

@@ -1,32 +1,20 @@
-
 import { useParams, Link, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { useBookingDetails, useCancelBooking } from "@/hooks/useBookings";
+import { useBookingDetails } from "@/hooks/useBookings";
 import { useBookingDatesForBooking } from "@/hooks/useBookingDatesForBooking";
 import { useStallInstances } from "@/hooks/useStallInstances";
-import { PaymentModal } from "@/components/vendor/PaymentModal";
 import { BookingHoldTimer } from "@/components/vendor/BookingHoldTimer";
-import { useAdminApproveBooking, useAdminDeclineBooking } from "@/hooks/useAdminBookings";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
-import { Check, X } from "lucide-react";
-import { toast } from "sonner";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { ENV, PAYMENT_SWITCH_ENUM } from "@/lib/utils";
-import { useCapturePayment, useCreatePayment } from "@/hooks/use-payment";
+  useAuthorizePayment,
+  useCapturePayment,
+} from "@/hooks/use-payment";
+import { INTENT } from "@/lib/enums";
 
 const BookingConfirmation = () => {
   const { id } = useParams<{ id: string }>();
@@ -34,20 +22,36 @@ const BookingConfirmation = () => {
   const queryParams = new URLSearchParams(location.search);
   const navigate = useNavigate();
   const { userProfile } = useAuth();
-  const { data: bookingDates = [] } = useBookingDatesForBooking(id || '');
-  const { data: booking, isLoading: isLoadingBooking } = useBookingDetails(id || '');
-  const { data: allStalls = [] } = useStallInstances(booking?.market_id || '');
-const { mutateAsync: capturePayment, isPending: isLoading, error }  = useCapturePayment();
+  const { data: bookingDates = [] } = useBookingDatesForBooking(id || "");
+  const { data: booking, isLoading: isLoadingBooking } = useBookingDetails(
+    id || ""
+  );
+  const { data: allStalls = [] } = useStallInstances(booking?.market_id || "");
+  const {
+    mutateAsync: capturePayment,
+    isPending: isLoading,
+    error,
+  } = useCapturePayment();
+  const {
+    mutateAsync: authorizePayment,
+    isPending: isAuthorizeLoading,
+    error: authorizeError,
+  } = useAuthorizePayment();
 
-useEffect(()=>{
-  if (queryParams.get('token')) {
-    capturePayment(queryParams.get('token') || '')
-  }else{
-    navigate(`/vendor/bookings/${id}`)
-  }
-},[])
+  useEffect(() => {
+    const intent = Number(queryParams.get("intent") || 0);
+    if (queryParams.get("token")) {
+      if (intent === INTENT.AUTHORIZE) {
+        authorizePayment(queryParams.get("token") || "");
+      } else {
+        capturePayment(queryParams.get("token") || "");
+      }
+    } else {
+      navigate(`/vendor/bookings/${id}`);
+    }
+  }, []);
 
-  if (isLoading || isLoadingBooking) {
+  if (isLoading || isLoadingBooking || isAuthorizeLoading) {
     return (
       <div className="space-y-8">
         <div className="animate-pulse">
@@ -57,7 +61,7 @@ useEffect(()=>{
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-6">
-            {[1, 2].map(i => (
+            {[1, 2].map((i) => (
               <Card key={i}>
                 <CardHeader>
                   <div className="h-6 bg-gray-200 rounded w-40 animate-pulse"></div>
@@ -83,15 +87,15 @@ useEffect(()=>{
     );
   }
 
-  if (error) {
+  if (error || authorizeError) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-2xl font-bold">Error verifying payment</h2>
+        <h2 className="text-2xl font-bold">
+          Error {error ? "verifying" : "authorizing"} payment
+        </h2>
         <p className="text-muted-foreground mt-2">Kindly try again</p>
         <Button asChild className="mt-4">
-          <Link to={"/vendor/bookings"}>
-            Back to Bookings
-          </Link>
+          <Link to={"/vendor/bookings"}>Back to Bookings</Link>
         </Button>
       </div>
     );
@@ -99,19 +103,19 @@ useEffect(()=>{
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'pending':
+      case "pending":
         return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
-      case 'approved':
+      case "approved":
         return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
-      case 'completed':
+      case "completed":
         return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
-      case 'cancelled':
+      case "cancelled":
         return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
-      case 'expired':
+      case "expired":
         return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
-      case 'failed':
+      case "failed":
         return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
-      case 'success':
+      case "success":
         return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
       default:
         return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
@@ -119,57 +123,59 @@ useEffect(()=>{
   };
 
   const formatBookingDates = (dates: string[]) => {
-    if (dates.length === 0) return 'No dates selected';
-    
+    if (dates.length === 0) return "No dates selected";
+
     const sortedDates = dates.sort();
-    const formattedDates = sortedDates.map(date => format(new Date(date), 'MMM d'));
-    
+    const formattedDates = sortedDates.map((date) =>
+      format(new Date(date), "MMM d")
+    );
+
     if (formattedDates.length <= 3) {
-      return formattedDates.join(', ');
+      return formattedDates.join(", ");
     }
-    
+
     // Group consecutive dates
-    let groups: string[] = [];
+    const groups: string[] = [];
     let start = 0;
-    
+
     for (let i = 1; i <= formattedDates.length; i++) {
-      if (i === formattedDates.length || 
-          new Date(sortedDates[i]).getTime() - new Date(sortedDates[i-1]).getTime() > 24 * 60 * 60 * 1000) {
+      if (
+        i === formattedDates.length ||
+        new Date(sortedDates[i]).getTime() -
+          new Date(sortedDates[i - 1]).getTime() >
+          24 * 60 * 60 * 1000
+      ) {
         if (i - start === 1) {
           groups.push(formattedDates[start]);
         } else if (i - start === 2) {
-          groups.push(`${formattedDates[start]}, ${formattedDates[i-1]}`);
+          groups.push(`${formattedDates[start]}, ${formattedDates[i - 1]}`);
         } else {
-          groups.push(`${formattedDates[start]}-${formattedDates[i-1]}`);
+          groups.push(`${formattedDates[start]}-${formattedDates[i - 1]}`);
         }
         start = i;
       }
     }
-    
-    return groups.join(', ');
+
+    return groups.join(", ");
   };
 
-  const bookedStallIds = booking?.booking_stalls?.map(bs => bs.stall_instance_id) || [];
-
+  const bookedStallIds =
+    booking?.booking_stalls?.map((bs) => bs.stall_instance_id) || [];
 
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
           <Button asChild variant="ghost" className="mb-4">
-            <Link to={"/vendor/bookings"}>
-              ← Back to Bookings
-            </Link>
+            <Link to={"/vendor/bookings"}>← Back to Bookings</Link>
           </Button>
           <h1 className="text-3xl font-bold">Booking Details</h1>
           <p className="text-muted-foreground mt-1">{booking?.markets?.name}</p>
         </div>
         <div className="space-x-2">
-            <Button asChild variant="outline">
-              <Link to={`/vendor/invoice/${booking.id}`}>View Invoice</Link>
-            </Button>
-          
-        
+          <Button asChild variant="outline">
+            <Link to={`/vendor/invoice/${booking.id}`}>View Invoice</Link>
+          </Button>
         </div>
       </div>
 
@@ -183,43 +189,62 @@ useEffect(()=>{
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <h4 className="font-medium text-muted-foreground">Market Name</h4>
+                  <h4 className="font-medium text-muted-foreground">
+                    Market Name
+                  </h4>
                   <p className="text-lg">{booking.markets?.name}</p>
                 </div>
                 <div>
-                  <h4 className="font-medium text-muted-foreground">Market Start Date</h4>
+                  <h4 className="font-medium text-muted-foreground">
+                    Market Start Date
+                  </h4>
                   <p className="text-lg">
-                    {booking.markets?.start_at ? format(new Date(booking.markets.start_at), "PPPP") : 'N/A'}
+                    {booking.markets?.start_at
+                      ? format(new Date(booking.markets.start_at), "PPPP")
+                      : "N/A"}
                   </p>
                 </div>
                 <div>
-                  <h4 className="font-medium text-muted-foreground">Market End Date</h4>
+                  <h4 className="font-medium text-muted-foreground">
+                    Market End Date
+                  </h4>
                   <p className="text-lg">
-                    {booking.markets?.end_at ? format(new Date(booking.markets.end_at), "PPPP") : 'N/A'}
+                    {booking.markets?.end_at
+                      ? format(new Date(booking.markets.end_at), "PPPP")
+                      : "N/A"}
                   </p>
                 </div>
                 <div>
-                  <h4 className="font-medium text-muted-foreground">Booking Date</h4>
-                  <p className="text-lg">{format(new Date(booking.created_at), "PPP")}</p>
+                  <h4 className="font-medium text-muted-foreground">
+                    Booking Date
+                  </h4>
+                  <p className="text-lg">
+                    {format(new Date(booking.created_at), "PPP")}
+                  </p>
                 </div>
                 <div>
-                  <h4 className="font-medium text-muted-foreground">Invoice Number</h4>
+                  <h4 className="font-medium text-muted-foreground">
+                    Invoice Number
+                  </h4>
                   <p className="text-lg">{booking.invoice_number}</p>
                 </div>
                 <div>
-                  <h4 className="font-medium text-muted-foreground">Selected Dates</h4>
+                  <h4 className="font-medium text-muted-foreground">
+                    Selected Dates
+                  </h4>
                   <p className="text-lg">{formatBookingDates(bookingDates)}</p>
                 </div>
               </div>
-              
-              {booking.hold_expires_at && ['pending', 'failed'].includes(booking.payment_status) && (
-                <div className="pt-2">
-                  <BookingHoldTimer 
-                    bookingId={booking.id}
-                    expiresAt={booking.hold_expires_at}
-                  />
-                </div>
-              )}
+
+              {booking.hold_expires_at &&
+                ["pending", "failed"].includes(booking.payment_status) && (
+                  <div className="pt-2">
+                    <BookingHoldTimer
+                      bookingId={booking.id}
+                      expiresAt={booking.hold_expires_at}
+                    />
+                  </div>
+                )}
             </CardContent>
           </Card>
 
@@ -233,7 +258,7 @@ useEffect(()=>{
                   {/* Render all stalls */}
                   {allStalls.map((stall) => {
                     const isBooked = bookedStallIds.includes(stall.id);
-                    
+
                     return (
                       <g key={stall.id}>
                         <rect
@@ -241,8 +266,16 @@ useEffect(()=>{
                           y={stall.y}
                           width={stall.width}
                           height={stall.height}
-                          fill={isBooked ? "hsl(var(--primary))" : "hsl(var(--muted))"}
-                          stroke={isBooked ? "hsl(var(--primary-foreground))" : "hsl(var(--border))"}
+                          fill={
+                            isBooked
+                              ? "hsl(var(--primary))"
+                              : "hsl(var(--muted))"
+                          }
+                          stroke={
+                            isBooked
+                              ? "hsl(var(--primary-foreground))"
+                              : "hsl(var(--border))"
+                          }
                           strokeWidth="2"
                           rx="4"
                         />
@@ -251,7 +284,11 @@ useEffect(()=>{
                           y={stall.y + stall.height / 2}
                           textAnchor="middle"
                           dominantBaseline="middle"
-                          fill={isBooked ? "hsl(var(--primary-foreground))" : "hsl(var(--muted-foreground))"}
+                          fill={
+                            isBooked
+                              ? "hsl(var(--primary-foreground))"
+                              : "hsl(var(--muted-foreground))"
+                          }
                           fontSize="14"
                           fontWeight={isBooked ? "bold" : "normal"}
                         >
@@ -263,11 +300,17 @@ useEffect(()=>{
                 </svg>
                 <div className="mt-4 flex items-center space-x-4 text-sm">
                   <div className="flex items-center">
-                    <div className="w-4 h-4 rounded mr-2" style={{ backgroundColor: "hsl(var(--primary))" }}></div>
+                    <div
+                      className="w-4 h-4 rounded mr-2"
+                      style={{ backgroundColor: "hsl(var(--primary))" }}
+                    ></div>
                     Your Stalls
                   </div>
                   <div className="flex items-center">
-                    <div className="w-4 h-4 rounded mr-2" style={{ backgroundColor: "hsl(var(--muted))" }}></div>
+                    <div
+                      className="w-4 h-4 rounded mr-2"
+                      style={{ backgroundColor: "hsl(var(--muted))" }}
+                    ></div>
                     Other Stalls
                   </div>
                 </div>
@@ -287,29 +330,33 @@ useEffect(()=>{
                 <div className="flex justify-between">
                   <span>Booking Status:</span>
                   <Badge className={getStatusBadge(booking.status)}>
-                    {booking.status.charAt(0).toUpperCase() + booking.status.slice(1).replace('_', ' ')}
+                    {booking.status.charAt(0).toUpperCase() +
+                      booking.status.slice(1).replace("_", " ")}
                   </Badge>
                 </div>
                 <div className="flex justify-between">
                   <span>Payment Status:</span>
                   <Badge className={getStatusBadge(booking.payment_status)}>
-                    {!booking.payment_status ? 'Pending':booking.payment_status.charAt(0).toUpperCase() + booking.payment_status.slice(1)}
+                    {!booking.payment_status
+                      ? "Pending"
+                      : booking.payment_status.charAt(0).toUpperCase() +
+                        booking.payment_status.slice(1)}
                   </Badge>
                 </div>
                 <Separator />
-                
+
                 <div className="space-y-2">
                   <h4 className="font-medium">Stalls Booked</h4>
-                  {booking.booking_stalls?.map(bs => (
+                  {booking.booking_stalls?.map((bs) => (
                     <div key={bs.id} className="flex justify-between text-sm">
                       <span>Stall {bs.stall_instances?.label}</span>
                       <span>${bs.price_at_booking}</span>
                     </div>
                   ))}
                 </div>
-                
+
                 <Separator />
-                
+
                 <div className="space-y-2">
                   <div className="flex justify-between font-medium">
                     <span>Total Amount:</span>
@@ -331,8 +378,6 @@ useEffect(()=>{
           </Card>
         </div>
       </div>
-      
-      
     </div>
   );
 };

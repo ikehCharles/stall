@@ -56,7 +56,6 @@ const EnhancedStallBooking = () => {
 
   const currentMarket = markets?.find(m => m.id === marketId);
 
-  console.warn(stallInstances, "stall instances", bookedDates)
 
   // Create enhanced stall instances with booking and hold status
   const stalls: StallInstance[] = stallInstances?.map((stall, _, arr) => {
@@ -146,7 +145,7 @@ const EnhancedStallBooking = () => {
       
       toast({
         title: "Booking Created!",
-        description: "Redirecting to booking details to complete payment..."
+        description: "Redirecting to booking details to complete payment...Proceed to making payment"
       });
       
       // Navigate to booking details page

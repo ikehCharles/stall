@@ -101,7 +101,6 @@ serve(async (req) => {
     }
 
     const emailResult = await emailResponse.json();
-    console.log('Email sent successfully:', emailResult);
 
     return new Response(
       JSON.stringify({ 

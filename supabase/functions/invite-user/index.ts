@@ -113,7 +113,12 @@ Deno.serve(async (req) => {
     }
 
 
-    if (error) return responseJSON(400, { message: error.message });
+    if (error) {
+      return responseJSON(200, {
+        success: false,
+        message: error.message
+      });
+    }
 
     return responseJSON(200, data);
   } catch (err) {

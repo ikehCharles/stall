@@ -46,10 +46,10 @@ export const useStallBookingDates = (stallInstanceId: string) => {
           )
         `)
         .eq('stall_instance_id', stallInstanceId)
-        .in('bookings.status', ['pending', 'approved', 'completed']);
+        .in('bookings.status', ['pending', 'approved', 'completed', 'reserved']);
       
       if (error) throw error;
-      return data.map(item => item.booking_date);
+      return data;
     },
     enabled: !!stallInstanceId,
   });

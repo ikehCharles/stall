@@ -1,15 +1,17 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { BookingWithStalls } from './useBookings';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { BookingWithStalls } from "./useBookings";
+import { INTENT } from "@/lib/enums";
 
 export const useAdminBookings = () => {
   return useQuery({
-    queryKey: ['admin-bookings'],
+    queryKey: ["admin-bookings"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('bookings')
-        .select(`
+        .from("bookings")
+        .select(
+          `
           *,
           booking_stalls (
             *,
@@ -37,8 +39,9 @@ export const useAdminBookings = () => {
             end_at,
             theme
           )
-        `)
-        .order('created_at', { ascending: false });
+        `
+        )
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       return data as BookingWithStalls[];
@@ -46,59 +49,79 @@ export const useAdminBookings = () => {
   });
 };
 
-export const useAdminApproveBooking = () => {
+export const useAdminToggleAuthorizedBooking = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async (bookingId: string) => {
-      const { data, error } = await supabase.rpc('admin_approve_booking', {
-        p_booking_id: bookingId
-      });
+    mutationFn: async (param: { bookingId: string; intent: INTENT }) => {
+      const { data, error } = await supabase.functions.invoke(
+        "manage-authorized-paypal-order",
+        {
+          body: {
+            action: param.intent,
+            bookingId: param.bookingId,
+          },
+        }
+      );
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-bookings'] });
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-bookings"] });
       toast({
-        title: 'Booking Approved',
-        description: 'The booking has been approved successfully.',
+        title: res.message,
+        // description: res.message,
       });
     },
     onError: (error) => {
       toast({
-        title: 'Error',
-        description: error.message || 'Failed to approve booking.',
-        variant: 'destructive',
+        title: "Error",
+        description: error.message || "Failed to toggle booking.",
+        variant: "destructive",
       });
     },
   });
 };
 
-export const useAdminDeclineBooking = () => {
+export const useAdminToggleBooking = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async (bookingId: string) => {
-      const { data, error } = await supabase.rpc('admin_decline_booking', {
-        p_booking_id: bookingId
-      });
+    mutationFn: async (payload: { bookingId: string; intent: INTENT }) => {
+      let data, error;
+      if (payload.intent === INTENT.VOID) {
+        ({ data, error } = await supabase.functions.invoke(
+          "refund-paypal-order",
+          {
+            body: {
+              bookingId: payload.bookingId,
+            },
+          }
+        ));
+      } else {
+        ({ data, error } = await supabase.rpc("admin_approve_booking",
+          {
+            p_booking_id: payload.bookingId,
+          }
+        ));
+      }
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-bookings'] });
+    onSuccess: (res: { message: string }) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-bookings"] });
       toast({
-        title: 'Booking Declined',
-        description: 'The booking has been declined and holds released.',
+        title: res.message,
+        // description: res.message,
       });
     },
     onError: (error) => {
       toast({
-        title: 'Error',
-        description: error.message || 'Failed to decline booking.',
-        variant: 'destructive',
+        title: "Error",
+        description: error.message || "Failed to decline booking.",
+        variant: "destructive",
       });
     },
   });

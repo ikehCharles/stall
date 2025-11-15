@@ -154,15 +154,15 @@ serve(async (req)=>{
         if (error) {
           console.error('Error simulating payment success for payment capture', error);
           return new Response(JSON.stringify({
-            error: 'Error simulating payment failure'
+            error: 'Error simulating payment success'
           }), {
-            status: 200
+            status: 400
           });
         }
       }
       // On any failure event, simulate payment failure
     } else if (status.includes('failed') || status.includes('denied') || eventType.includes('FAILED')) {
-      const { error } = await supabase.rpc('simulate_payment_failure', {
+      const { error } = await supabase.rpc('simulate_payment_failure_admin', {
         p_booking_id: resource.custom_id
       });
       if (error) {

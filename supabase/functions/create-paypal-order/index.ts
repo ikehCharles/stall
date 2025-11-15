@@ -11,6 +11,13 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type"
 };
 
+
+enum INTENT {
+  AUTHORIZE,
+  CAPTURE,
+  VOID
+}
+
 // get access token using paypal credentials
 async function getAccessToken() {
   const auth = btoa(`${PAYPAL_CLIENT_ID}:${PAYPAL_SECRET}`);
@@ -33,7 +40,7 @@ Deno.serve(async (req)=>{
   }
   try {
     const supabaseClient = createClient(SUPABASEURL ?? '', SUPABASE_SERVICE_ROLE_KEY ?? '');
-    const { amount, bookingId } = await req.json();
+    const { amount, bookingId, intent } = await req.json();
     if (!amount || !bookingId) {
       return new Response(JSON.stringify({
         error: "Missing fields"
@@ -63,6 +70,7 @@ Deno.serve(async (req)=>{
       });
     }
 
+
     // create order and generate unique url for client to pay
     const orderRes = await fetch(`${PAYPAL_BASE}/v2/checkout/orders`, {
       method: "POST",
@@ -71,7 +79,7 @@ Deno.serve(async (req)=>{
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        intent: "CAPTURE",
+        intent: INTENT.AUTHORIZE == intent ? "AUTHORIZE" : "CAPTURE",
         purchase_units: [
           {
             reference_id: bookingId,
@@ -87,8 +95,8 @@ Deno.serve(async (req)=>{
             experience_context: {
               brand_name: "Example Inc.",
               landing_page: "NO_PREFERENCE",
-              user_action: "PAY_NOW",
-              return_url: `${CLIENT_BASEURL}/vendor/bookings/${bookingId}/confirmation`,
+              // user_action: "PAY_NOW",
+              return_url: `${CLIENT_BASEURL}/vendor/bookings/${bookingId}/confirmation?intent=${intent}`,
               cancel_url: `${CLIENT_BASEURL}/vendor/bookings`
             }
           }

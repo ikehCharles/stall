@@ -15,12 +15,16 @@ import {
 import { useRoles } from "@/hooks/useRolesAndPermissions";
 import { UserPayload, useUsers } from "@/hooks/useUsers";
 import { Checkbox } from "@/components/ui/checkbox";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
+import { useLoading } from "@/contexts/LoadingContext";
 
 interface UserRegisterProps {
   setDialogOpen: (open: boolean) => void;
 }
 const UserRegister: React.FC<UserRegisterProps> = (props) => {
   const { data: roles } = useRoles();
+  const { startLoading, stopLoading } = useLoading();
   const [payload, setPayload] = useState<UserPayload>({
     email: "",
     fullName: "",
@@ -73,6 +77,22 @@ const UserRegister: React.FC<UserRegisterProps> = (props) => {
       return { error: new Error("Invalid phone number format") };
     }
 
+    startLoading();
+    // checks for duplicate phone number
+    const { error: profileCheckError, data: val } = await supabase.rpc(
+      "profile_checks",
+      {
+        p_phone: formattedPhone,
+      }
+    );
+
+    if (profileCheckError) {
+      setError(profileCheckError.message);
+      stopLoading();
+      return;
+    }
+    stopLoading();
+
     const userPayload: UserPayload = {
       fullName,
       email: normalizedEmail,
@@ -82,7 +102,14 @@ const UserRegister: React.FC<UserRegisterProps> = (props) => {
       password,
     };
     mutate(userPayload, {
-      onSuccess: () => props.setDialogOpen(false),
+      onSuccess: () => {
+        console.log("user created successfully");
+        props.setDialogOpen(false)
+      },
+      onError:(err)=>{
+        console.warn(err, "error creating user");
+        setError(err.message);
+      }
     });
   };
 

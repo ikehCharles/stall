@@ -69,7 +69,7 @@ export function EnhancedStallModal({
   const handleDateSelect = async (dates: Date[]) => {
     setSelectedDates(dates);
     
-    if (dates.length > 0 && stall && market) {
+    if (stall && market) {
       // Check authentication before proceeding
       if (!user) {
         toast({
@@ -89,6 +89,8 @@ export function EnhancedStallModal({
           marketId: market.id,
           dates: dateStrings
         });
+
+        
         
         // Store the pricing information from the response
         if (response.days && response.price_per_day && response.total) {
@@ -101,13 +103,13 @@ export function EnhancedStallModal({
         
         // Set hold expiry to 5 minutes from now
         const expiry = new Date(Date.now() + 5 * 60 * 1000).toISOString();
-        setHoldExpiry(expiry);
+        setHoldExpiry(response.days ? expiry: null);
         
         toast({
-          title: "Stall Reserved",
-          description: `Stall ${stall.label} is held for 5 minutes. Total: $${response.total?.toFixed(2) || '0.00'}`
+          title: response.days ? "Stall Reserved" : "Stall Hold Released",
+          description: response.days ? `Stall ${stall.label} is held for 5 minutes. Total: $${response.total?.toFixed(2) || '0.00'}` : `All Hold on stall ${stall.label} has been released.`,
         });
-      } catch (error: any) {
+      } catch (error) {
         console.error('Hold creation error:', error);
         
         // Provide specific error messages based on the error

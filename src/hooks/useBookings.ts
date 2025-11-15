@@ -225,7 +225,6 @@ export const useCreateBooking = () => {
         .eq('user_id', bookingUserId)
         .in('stall_instance_id', bookingData.stallIds);
 
-      if (holdError) console.warn('Failed to clean up holds:', holdError);
 
       return booking;
     },
