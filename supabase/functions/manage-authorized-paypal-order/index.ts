@@ -55,12 +55,6 @@ Deno.serve(async (req) => {
 
     const authorizationId = existingPayment.provider_payment_id;
 
-    const { expiration_time } = existingPayment.raw_payload;
-    // confirm authorized payment isn't expired
-    if (!expiration_time || new Date(expiration_time) < new Date()) {
-      return responseJSON(400, { error: "Authorized payment has expired" });
-    }
-
     // fetch booking
     const { data: booking, error: bookingError } = await supabaseClient
       .from("bookings")
@@ -117,7 +111,7 @@ Deno.serve(async (req) => {
 
     if (action != INTENT.VOID) {
       const { error, data } = await supabaseClient.rpc(
-        "simulate_payment_confirmed_admin",
+        "simulate_booking_confirm_admin",
         {
           p_booking_id: bookingId,
         }
