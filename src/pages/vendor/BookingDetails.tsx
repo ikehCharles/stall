@@ -5,6 +5,7 @@ import {
   useNavigate,
   useSearchParams,
 } from "react-router-dom";
+import QRCode from "qrcode";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,7 +18,7 @@ import { PaymentModal } from "@/components/vendor/PaymentModal";
 import { BookingHoldTimer } from "@/components/vendor/BookingHoldTimer";
 // import { useAdminApproveBooking, useAdminDeclineBooking } from "@/hooks/useAdminBookings";
 import { parseISO, format, differenceInCalendarDays } from "date-fns";
-import { Check, Loader, X } from "lucide-react";
+import { Check, Loader, QrCode, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -37,6 +38,19 @@ import {
   useAdminToggleAuthorizedBooking,
   useAdminToggleBooking,
 } from "@/hooks/useAdminBookings";
+import {
+  Tooltip,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { TooltipContent } from "@radix-ui/react-tooltip";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import React from "react";
 
 const BookingDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -54,6 +68,7 @@ const BookingDetails = () => {
   const createPayment = useCreatePayment();
   const isAdminView = location.pathname.includes("/admin/");
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [invoiceQR, setInvoiceQR] = useState<string | null>(null);
 
   // look for search params status=processing and set dependency on payment_status, if it changes to success, remove search param
   useEffect(() => {
@@ -141,22 +156,22 @@ const BookingDetails = () => {
 
   const formatBookingDates = (dates: string[]) => {
     if (dates.length === 0) return "No dates selected";
-  
+
     // Parse all dates to ISO and sort chronologically
     const parsedDates = dates
       .map((d) => parseISO(d)) // parse ISO string safely
       .sort((a, b) => a.getTime() - b.getTime());
-  
+
     const formattedDates = parsedDates.map((d) => format(d, "MMM d"));
-  
+
     if (formattedDates.length <= 3) {
       return formattedDates.join(", ");
     }
-  
+
     // Group consecutive dates
     const groups: string[] = [];
     let start = 0;
-  
+
     for (let i = 1; i <= parsedDates.length; i++) {
       if (
         i === parsedDates.length ||
@@ -172,7 +187,7 @@ const BookingDetails = () => {
         start = i;
       }
     }
-  
+
     return groups.join(", ");
   };
 
@@ -248,295 +263,346 @@ const BookingDetails = () => {
     toast.error("Unsupported payment intent configured.");
   };
 
+  const generateQR = async () => {
+    const url = `${window.location.origin}/vendor/invoice/${booking.id}`;
+    const qr = await QRCode.toDataURL(url);
+    setInvoiceQR(qr);
+  };
+
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <Button asChild variant="ghost" className="mb-4">
-            <Link to={isAdminView ? "/admin/bookings" : "/vendor/bookings"}>
-              ← Back to Bookings
-            </Link>
-          </Button>
-          <h1 className="text-3xl font-bold">Booking Details</h1>
-          <p className="text-muted-foreground mt-1">{booking.markets?.name}</p>
-        </div>
-        <div className="space-x-2">
-          {!isAdminView && (
-            <Button asChild variant="outline">
-              <Link to={`/vendor/invoice/${booking.id}`}>View Invoice</Link>
+    <>
+      <div className="space-y-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <Button asChild variant="ghost" className="mb-4">
+              <Link to={isAdminView ? "/admin/bookings" : "/vendor/bookings"}>
+                ← Back to Bookings
+              </Link>
             </Button>
-          )}
-          {!isAdminView && isPaymentAvailable && (
-            <Button disabled={isProcessingPayment || createPayment.isPending} onClick={makePayment}>
-              {isProcessingPayment ? "Processing Payment..." : createPayment.isPending ? <><Loader /> Make Payment</> : "Make Payment"}
-            </Button>
-          )}
-          {!isAdminView && isCancellable && !isProcessingPayment && (
-            <Button
-              onClick={() => setCancelDialogOpen(true)}
-              variant="destructive"
-            >
-              Cancel Booking
-            </Button>
-          )}
-          {isAdminView && booking?.status === "pending" && (
-            <>
-              <Button
-                onClick={() => handleApprove(booking.id)}
-                disabled={
-                  toggleAuthorizedBooking.isPending || toggleBooking.isPending
-                }
-                className="bg-green-600 hover:bg-green-700"
-              >
-                <Check className="w-4 h-4 mr-1" />
-                Approve
+            <div className="flex items-center gap-2">
+              <h1 className="text-3xl font-bold">Booking Details</h1>
+            </div>
+            <p className="text-muted-foreground mt-1">
+              {booking.markets?.name}
+            </p>
+          </div>
+          <div className="space-x-2 flex items-center gap-2">
+            <Tooltip>
+              <TooltipContent className="bg-primary rounded text-secondary text-xs py-1 px-2">
+                View QR
+              </TooltipContent>
+              <TooltipTrigger>
+                <QrCode onClick={generateQR} />
+              </TooltipTrigger>
+            </Tooltip>
+            {!isAdminView && (
+              <Button asChild variant="outline">
+                <Link to={`/vendor/invoice/${booking.id}`}>View Invoice</Link>
               </Button>
+            )}
+
+            {!isAdminView && isPaymentAvailable && (
               <Button
-                variant="destructive"
-                onClick={() => handleDecline(booking.id)}
-                disabled={
-                  toggleAuthorizedBooking.isPending || toggleBooking.isPending
-                }
+                disabled={isProcessingPayment || createPayment.isPending}
+                onClick={makePayment}
               >
-                <X className="w-4 h-4 mr-1" />
-                Decline
-              </Button>
-            </>
-          )}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Booking Information */}
-        <div className="lg:col-span-2 space-y-6">
-          <Card className="shadow-lg">
-            <CardHeader>
-              <CardTitle>Event Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h4 className="font-medium text-muted-foreground">
-                    Market Name
-                  </h4>
-                  <p className="text-lg">{booking.markets?.name}</p>
-                </div>
-                <div>
-                  <h4 className="font-medium text-muted-foreground">
-                    Market Start Date
-                  </h4>
-                  <p className="text-lg">
-                    {booking.markets?.start_at
-                      ? format(new Date(booking.markets.start_at), "PPPP")
-                      : "N/A"}
-                  </p>
-                </div>
-                <div>
-                  <h4 className="font-medium text-muted-foreground">
-                    Market End Date
-                  </h4>
-                  <p className="text-lg">
-                    {booking.markets?.end_at
-                      ? format(new Date(booking.markets.end_at), "PPPP")
-                      : "N/A"}
-                  </p>
-                </div>
-                <div>
-                  <h4 className="font-medium text-muted-foreground">
-                    Booking Date
-                  </h4>
-                  <p className="text-lg">
-                    {format(new Date(booking.created_at), "PPP")}
-                  </p>
-                </div>
-                <div>
-                  <h4 className="font-medium text-muted-foreground">
-                    Invoice Number
-                  </h4>
-                  <p className="text-lg">{booking.invoice_number}</p>
-                </div>
-                <div>
-                  <h4 className="font-medium text-muted-foreground">
-                    Selected Dates
-                  </h4>
-                  <p className="text-lg">{formatBookingDates(booking.selected_dates)}</p>
-                </div>
-              </div>
-
-              {booking.hold_expires_at &&
-                ["pending", "failed"].includes(booking.payment_status) && (
-                  <div className="pt-2">
-                    <BookingHoldTimer
-                      bookingId={booking.id}
-                      expiresAt={booking.hold_expires_at}
-                    />
-                  </div>
+                {isProcessingPayment ? (
+                  "Processing Payment..."
+                ) : createPayment.isPending ? (
+                  <>
+                    <Loader /> Make Payment
+                  </>
+                ) : (
+                  "Make Payment"
                 )}
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-lg">
-            <CardHeader>
-              <CardTitle>Stall Layout</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="bg-muted/30 rounded-lg p-8">
-                <svg width="100%" height="300" viewBox="0 0 800 600">
-                  {/* Render all stalls */}
-                  {allStalls.map((stall) => {
-                    const isBooked = bookedStallIds.includes(stall.id);
-
-                    return (
-                      <g key={stall.id}>
-                        <rect
-                          x={stall.x}
-                          y={stall.y}
-                          width={stall.width}
-                          height={stall.height}
-                          fill={
-                            isBooked
-                              ? "hsl(var(--primary))"
-                              : "hsl(var(--muted))"
-                          }
-                          stroke={
-                            isBooked
-                              ? "hsl(var(--primary-foreground))"
-                              : "hsl(var(--border))"
-                          }
-                          strokeWidth="2"
-                          rx="4"
-                        />
-                        <text
-                          x={stall.x + stall.width / 2}
-                          y={stall.y + stall.height / 2}
-                          textAnchor="middle"
-                          dominantBaseline="middle"
-                          fill={
-                            isBooked
-                              ? "hsl(var(--primary-foreground))"
-                              : "hsl(var(--muted-foreground))"
-                          }
-                          fontSize="14"
-                          fontWeight={isBooked ? "bold" : "normal"}
-                        >
-                          {stall.label}
-                        </text>
-                      </g>
-                    );
-                  })}
-                </svg>
-                <div className="mt-4 flex items-center space-x-4 text-sm">
-                  <div className="flex items-center">
-                    <div
-                      className="w-4 h-4 rounded mr-2"
-                      style={{ backgroundColor: "hsl(var(--primary))" }}
-                    ></div>
-                    Your Stalls
-                  </div>
-                  <div className="flex items-center">
-                    <div
-                      className="w-4 h-4 rounded mr-2"
-                      style={{ backgroundColor: "hsl(var(--muted))" }}
-                    ></div>
-                    Other Stalls
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </Button>
+            )}
+            {!isAdminView && isCancellable && !isProcessingPayment && (
+              <Button
+                onClick={() => setCancelDialogOpen(true)}
+                variant="destructive"
+              >
+                Cancel Booking
+              </Button>
+            )}
+            {isAdminView && booking?.status === "pending" && (
+              <>
+                <Button
+                  onClick={() => handleApprove(booking.id)}
+                  disabled={
+                    toggleAuthorizedBooking.isPending || toggleBooking.isPending
+                  }
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  <Check className="w-4 h-4 mr-1" />
+                  Approve
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => handleDecline(booking.id)}
+                  disabled={
+                    toggleAuthorizedBooking.isPending || toggleBooking.isPending
+                  }
+                >
+                  <X className="w-4 h-4 mr-1" />
+                  Decline
+                </Button>
+              </>
+            )}
+          </div>
         </div>
 
-        {/* Payment Summary */}
-        <div>
-          <Card className="shadow-lg sticky top-6">
-            <CardHeader>
-              <CardTitle>Payment Summary</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span>Booking Status:</span>
-                  <Badge className={getStatusBadge(booking.status)}>
-                    {booking.status.charAt(0).toUpperCase() +
-                      booking.status.slice(1).replace("_", " ")}
-                  </Badge>
-                </div>
-                <div className="flex justify-between">
-                  <span>Payment Status:</span>
-                  <Badge className={getStatusBadge(booking?.payment_status)}>
-                    {!booking.payment_status
-                      ? "Pending"
-                      : booking.payment_status.charAt(0).toUpperCase() +
-                        booking.payment_status.slice(1)}
-                  </Badge>
-                </div>
-                <Separator />
-
-                <div className="space-y-2">
-                  <h4 className="font-medium">Stalls Booked</h4>
-                  {booking.booking_stalls?.map((bs) => (
-                    <div key={bs.id} className="flex justify-between text-sm">
-                      <span>Stall {bs.stall_instances?.label}</span>
-                      <span>${bs.price_at_booking}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <Separator />
-
-                <div className="space-y-2">
-                  <div className="flex justify-between font-medium">
-                    <span>Total Amount:</span>
-                    <span>${booking.total_amount}</span>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Booking Information */}
+          <div className="lg:col-span-2 space-y-6">
+            <Card className="shadow-lg">
+              <CardHeader>
+                <CardTitle>Event Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="font-medium text-muted-foreground">
+                      Market Name
+                    </h4>
+                    <p className="text-lg">{booking.markets?.name}</p>
                   </div>
-                  <div className="flex justify-between text-green-600">
-                    <span>Paid:</span>
-                    <span>${booking.paid_amount}</span>
+                  <div>
+                    <h4 className="font-medium text-muted-foreground">
+                      Market Start Date
+                    </h4>
+                    <p className="text-lg">
+                      {booking.markets?.start_at
+                        ? format(new Date(booking.markets.start_at), "PPPP")
+                        : "N/A"}
+                    </p>
                   </div>
-                  {booking.paid_amount < booking.total_amount && (
-                    <div className="flex justify-between text-red-600 font-medium">
-                      <span>Outstanding:</span>
-                      <span>${booking.total_amount - booking.paid_amount}</span>
+                  <div>
+                    <h4 className="font-medium text-muted-foreground">
+                      Market End Date
+                    </h4>
+                    <p className="text-lg">
+                      {booking.markets?.end_at
+                        ? format(new Date(booking.markets.end_at), "PPPP")
+                        : "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-muted-foreground">
+                      Booking Date
+                    </h4>
+                    <p className="text-lg">
+                      {format(new Date(booking.created_at), "PPP")}
+                    </p>
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-muted-foreground">
+                      Invoice Number
+                    </h4>
+                    <p className="text-lg">{booking.invoice_number}</p>
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-muted-foreground">
+                      Selected Dates
+                    </h4>
+                    <p className="text-lg">
+                      {formatBookingDates(booking.selected_dates)}
+                    </p>
+                  </div>
+                </div>
+
+                {booking.hold_expires_at &&
+                  ["pending", "failed"].includes(booking.payment_status) && (
+                    <div className="pt-2">
+                      <BookingHoldTimer
+                        bookingId={booking.id}
+                        expiresAt={booking.hold_expires_at}
+                      />
                     </div>
                   )}
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-lg">
+              <CardHeader>
+                <CardTitle>Stall Layout</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="bg-muted/30 rounded-lg p-8">
+                  <svg width="100%" height="300" viewBox="0 0 800 600">
+                    {/* Render all stalls */}
+                    {allStalls.map((stall) => {
+                      const isBooked = bookedStallIds.includes(stall.id);
+
+                      return (
+                        <g key={stall.id}>
+                          <rect
+                            x={stall.x}
+                            y={stall.y}
+                            width={stall.width}
+                            height={stall.height}
+                            fill={
+                              isBooked
+                                ? "hsl(var(--primary))"
+                                : "hsl(var(--muted))"
+                            }
+                            stroke={
+                              isBooked
+                                ? "hsl(var(--primary-foreground))"
+                                : "hsl(var(--border))"
+                            }
+                            strokeWidth="2"
+                            rx="4"
+                          />
+                          <text
+                            x={stall.x + stall.width / 2}
+                            y={stall.y + stall.height / 2}
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                            fill={
+                              isBooked
+                                ? "hsl(var(--primary-foreground))"
+                                : "hsl(var(--muted-foreground))"
+                            }
+                            fontSize="14"
+                            fontWeight={isBooked ? "bold" : "normal"}
+                          >
+                            {stall.label}
+                          </text>
+                        </g>
+                      );
+                    })}
+                  </svg>
+                  <div className="mt-4 flex items-center space-x-4 text-sm">
+                    <div className="flex items-center">
+                      <div
+                        className="w-4 h-4 rounded mr-2"
+                        style={{ backgroundColor: "hsl(var(--primary))" }}
+                      ></div>
+                      Your Stalls
+                    </div>
+                    <div className="flex items-center">
+                      <div
+                        className="w-4 h-4 rounded mr-2"
+                        style={{ backgroundColor: "hsl(var(--muted))" }}
+                      ></div>
+                      Other Stalls
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Payment Summary */}
+          <div>
+            <Card className="shadow-lg sticky top-6">
+              <CardHeader>
+                <CardTitle>Payment Summary</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span>Booking Status:</span>
+                    <Badge className={getStatusBadge(booking.status)}>
+                      {booking.status.charAt(0).toUpperCase() +
+                        booking.status.slice(1).replace("_", " ")}
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Payment Status:</span>
+                    <Badge className={getStatusBadge(booking?.payment_status)}>
+                      {!booking.payment_status
+                        ? "Pending"
+                        : booking.payment_status.charAt(0).toUpperCase() +
+                          booking.payment_status.slice(1)}
+                    </Badge>
+                  </div>
+                  <Separator />
+
+                  <div className="space-y-2">
+                    <h4 className="font-medium">Stalls Booked</h4>
+                    {booking.booking_stalls?.map((bs) => (
+                      <div key={bs.id} className="flex justify-between text-sm">
+                        <span>Stall {bs.stall_instances?.label}</span>
+                        <span>${bs.price_at_booking}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-2">
+                    <div className="flex justify-between font-medium">
+                      <span>Total Amount:</span>
+                      <span>${booking.total_amount}</span>
+                    </div>
+                    <div className="flex justify-between text-green-600">
+                      <span>Paid:</span>
+                      <span>${booking.paid_amount}</span>
+                    </div>
+                    {booking.paid_amount < booking.total_amount && (
+                      <div className="flex justify-between text-red-600 font-medium">
+                        <span>Outstanding:</span>
+                        <span>
+                          ${booking.total_amount - booking.paid_amount}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
+
+        {/* Payment Modal - only show for vendors */}
+        {booking && !isAdminView && (
+          <PaymentModal
+            booking={booking}
+            isOpen={paymentModalOpen}
+            onClose={() => setPaymentModalOpen(false)}
+          />
+        )}
+
+        {/* Cancel Booking Dialog */}
+        <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Cancel Booking?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to cancel this booking? This action cannot
+                be undone. All reserved stalls and dates will be released.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Keep Booking</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleCancelBooking}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Cancel Booking
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
 
-      {/* Payment Modal - only show for vendors */}
-      {booking && !isAdminView && (
-        <PaymentModal
-          booking={booking}
-          isOpen={paymentModalOpen}
-          onClose={() => setPaymentModalOpen(false)}
-        />
-      )}
-
-      {/* Cancel Booking Dialog */}
-      <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Cancel Booking?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to cancel this booking? This action cannot
-              be undone. All reserved stalls and dates will be released.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Keep Booking</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleCancelBooking}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Cancel Booking
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+      <Dialog
+        modal={true}
+        open={!!invoiceQR}
+        onOpenChange={(open) => setInvoiceQR("")}
+      >
+        <DialogContent className="max-w-xs max-h-[80vh] overflow-y-auto">
+          <div className="flex justify-center items-center">
+            <img
+              src={invoiceQR}
+              alt="Invoice QR Code"
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
