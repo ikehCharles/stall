@@ -110,7 +110,63 @@ const DialogDescription = React.forwardRef<
     {...props}
   />
 ))
-DialogDescription.displayName = DialogPrimitive.Description.displayName
+DialogDescription.displayName = DialogPrimitive.Description.displayName;
+
+
+
+
+type ConfirmDialogProps = {
+  title?: string;
+  description?: string;
+  onConfirm: () => void;
+  onCancel?: () => void;
+  confirmText?: string;
+  cancelText?: string;
+};
+
+const ConfirmDialog = ({
+  title = "Are you sure?",
+  description = "This action cannot be undone.",
+  onConfirm,
+  onCancel,
+  confirmText = "Confirm",
+  cancelText = "Cancel",
+}: ConfirmDialogProps) => {
+  const [open, setOpen] = React.useState(false);
+
+  const handleConfirm = () => {
+    onConfirm();
+    setOpen(false);
+  };
+
+  const handleCancel = () => {
+    onCancel?.();
+    setOpen(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <button>Delete</button>
+      </DialogTrigger>
+      <DialogPortal>
+        <DialogOverlay className="fixed inset-0 bg-black/50" />
+        <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white p-6 rounded-lg shadow-lg">
+          <DialogTitle className="text-lg font-bold">{title}</DialogTitle>
+          <DialogDescription className="mt-2">{description}</DialogDescription>
+
+          <div className="mt-4 flex justify-end gap-2">
+            <button onClick={handleCancel}>{cancelText}</button>
+            <button onClick={handleConfirm} className="bg-red-500 text-white px-4 py-1 rounded">
+              {confirmText}
+            </button>
+          </div>
+        </DialogContent>
+      </DialogPortal>
+    </Dialog>
+  );
+};
+
 
 export {
   Dialog,
@@ -123,4 +179,5 @@ export {
   DialogFooter,
   DialogTitle,
   DialogDescription,
+  ConfirmDialog
 }

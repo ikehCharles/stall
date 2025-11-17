@@ -236,7 +236,7 @@ const BookingConfirmation = () => {
                 </div>
               </div>
 
-              {booking.hold_expires_at &&
+              {/* {booking.hold_expires_at &&
                 ["pending", "failed"].includes(booking.payment_status) && (
                   <div className="pt-2">
                     <BookingHoldTimer
@@ -244,7 +244,7 @@ const BookingConfirmation = () => {
                       expiresAt={booking.hold_expires_at}
                     />
                   </div>
-                )}
+                )} */}
             </CardContent>
           </Card>
 

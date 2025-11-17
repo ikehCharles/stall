@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { useBookingDetails, useCancelBooking } from "@/hooks/useBookings";
+import { useBookingDetails, useCancelBooking, useReserveBooking } from "@/hooks/useBookings";
 import { useBookingDatesForBooking } from "@/hooks/useBookingDatesForBooking";
 import { useStallInstances } from "@/hooks/useStallInstances";
 import { PaymentModal } from "@/components/vendor/PaymentModal";
@@ -65,6 +65,7 @@ const BookingDetails = () => {
   const toggleBooking = useAdminToggleBooking();
   const toggleAuthorizedBooking = useAdminToggleAuthorizedBooking();
   const cancelBooking = useCancelBooking();
+  const reserveBooking = useReserveBooking();
   const createPayment = useCreatePayment();
   const isAdminView = location.pathname.includes("/admin/");
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
@@ -220,6 +221,18 @@ const BookingDetails = () => {
     }
   };
 
+  const handleReserveBooking = async () => {
+    if (!id) return;
+    try {
+      await reserveBooking.mutateAsync(id);
+      toast.success("Booking reserved successfully");
+      setCancelDialogOpen(false);
+    } catch (error) {
+      toast.error(error.message || "Failed to reserve booking");
+      console.error("Error reserving booking:", error);
+    }
+  };
+
   const makePayment = () => {
     if (ENV.PAYMENT_SWITCH === PAYMENT_SWITCH_ENUM.SIMULATION) {
       setPaymentModalOpen(true);
@@ -302,20 +315,35 @@ const BookingDetails = () => {
             )}
 
             {!isAdminView && isPaymentAvailable && (
-              <Button
-                disabled={isProcessingPayment || createPayment.isPending}
-                onClick={makePayment}
-              >
-                {isProcessingPayment ? (
-                  "Processing Payment..."
-                ) : createPayment.isPending ? (
-                  <>
-                    <Loader /> Make Payment
-                  </>
-                ) : (
-                  "Make Payment"
-                )}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  disabled={reserveBooking.isPending || isProcessingPayment || createPayment.isPending}
+                  onClick={handleReserveBooking}
+                >
+                  {reserveBooking.isPending ? (
+                    <>
+                      <Loader /> Pay Later
+                    </>
+                  ) : (
+                    "Pay Later"
+                  )}
+                </Button>
+
+                <Button
+                  disabled={isProcessingPayment || reserveBooking.isPending || createPayment.isPending}
+                  onClick={makePayment}
+                >
+                  {isProcessingPayment ? (
+                    "Processing Payment..."
+                  ) : createPayment.isPending ? (
+                    <>
+                      <Loader /> Make Payment
+                    </>
+                  ) : (
+                    "Make Payment"
+                  )}
+                </Button>
+              </div>
             )}
             {!isAdminView && isCancellable && !isProcessingPayment && (
               <Button
@@ -411,7 +439,7 @@ const BookingDetails = () => {
                   </div>
                 </div>
 
-                {booking.hold_expires_at &&
+                {/* {booking.hold_expires_at &&
                   ["pending", "failed"].includes(booking.payment_status) && (
                     <div className="pt-2">
                       <BookingHoldTimer
@@ -419,7 +447,7 @@ const BookingDetails = () => {
                         expiresAt={booking.hold_expires_at}
                       />
                     </div>
-                  )}
+                  )} */}
               </CardContent>
             </Card>
 
@@ -595,10 +623,7 @@ const BookingDetails = () => {
       >
         <DialogContent className="max-w-xs max-h-[80vh] overflow-y-auto">
           <div className="flex justify-center items-center">
-            <img
-              src={invoiceQR}
-              alt="Invoice QR Code"
-            />
+            <img src={invoiceQR} alt="Invoice QR Code" />
           </div>
         </DialogContent>
       </Dialog>

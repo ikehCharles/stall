@@ -53,7 +53,7 @@ export function BookingHoldTimer({ bookingId, expiresAt, onExpired }: BookingHol
       
       if (remaining <= 0 && !isExpired) {
         setIsExpired(true);
-        expireBookingMutation.mutate();
+        // expireBookingMutation.mutate();
       }
     };
 

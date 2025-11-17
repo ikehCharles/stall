@@ -19,5 +19,6 @@ export enum QueryKeysEnum {
 export enum INTENT {
   AUTHORIZE,
   CAPTURE,
-  VOID
+  VOID,
+  REFUND
 }

@@ -91,7 +91,7 @@ export const useAdminToggleBooking = () => {
   return useMutation({
     mutationFn: async (payload: { bookingId: string; intent: INTENT }) => {
       let data, error;
-      if (payload.intent === INTENT.VOID) {
+      if (payload.intent === INTENT.REFUND) {
         ({ data, error } = await supabase.functions.invoke(
           "refund-paypal-order",
           {
@@ -100,12 +100,14 @@ export const useAdminToggleBooking = () => {
             },
           }
         ));
+      } else if (payload.intent === INTENT.VOID) {
+        ({ data, error } = await supabase.rpc("admin_decline_booking", {
+          p_booking_id: payload.bookingId,
+        }));
       } else {
-        ({ data, error } = await supabase.rpc("admin_approve_booking",
-          {
-            p_booking_id: payload.bookingId,
-          }
-        ));
+        ({ data, error } = await supabase.rpc("admin_approve_booking", {
+          p_booking_id: payload.bookingId,
+        }));
       }
       if (error) throw error;
       return data;

@@ -103,11 +103,10 @@ const UserRegister: React.FC<UserRegisterProps> = (props) => {
     };
     mutate(userPayload, {
       onSuccess: () => {
-        console.log("user created successfully");
         props.setDialogOpen(false)
       },
       onError:(err)=>{
-        console.warn(err, "error creating user");
+        console.error(err, "error creating user");
         setError(err.message);
       }
     });

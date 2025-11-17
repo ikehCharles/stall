@@ -278,3 +278,26 @@ export const useCancelBooking = () => {
     },
   });
 };
+
+// Manual reserve booking functionality
+export const useReserveBooking = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (bookingId: string) => {
+      const { data, error } = await supabase.rpc('reserve_booking', {
+        p_booking_id: bookingId
+      });
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vendor-bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['booking-details'] });
+      queryClient.invalidateQueries({ queryKey: ['stall-holds'] });
+      queryClient.invalidateQueries({ queryKey: ['stall-instances'] });
+      queryClient.invalidateQueries({ queryKey: ['booking-dates'] });
+    },
+  });
+};

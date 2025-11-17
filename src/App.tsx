@@ -37,8 +37,7 @@ import FCAInvoiceView from "./pages/admin/fca/FCAInvoiceView";
 import { PERMISSIONS } from "./lib/permissions";
 import { AccessDenied } from "./pages/auth/unAuthorized";
 import { PermissionGate } from "./components/PermissionGate";
-import { usePermissions } from "./hooks/usePermissions";
-import { RolesEnum } from "./lib/enums";
+import { ConfirmProvider } from "./components/ui/confirmDialog";
 
 const queryClient = new QueryClient();
 
@@ -350,6 +349,7 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
+        <ConfirmProvider>
         <Toaster />
         <Sonner />
         <BrowserRouter>
@@ -359,6 +359,7 @@ const App = () => {
             </AuthProvider>
           </LoadingProvider>
         </BrowserRouter>
+        </ConfirmProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

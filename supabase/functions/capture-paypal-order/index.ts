@@ -34,7 +34,6 @@ async function insertPayment(event, supabase) {
     processed_at: new Date().toISOString(),
   };
 
-  console.warn("Inserting payment with payload:", payload);
   const { data, error } = await supabase
     .from("payments")
     .upsert(payload, {

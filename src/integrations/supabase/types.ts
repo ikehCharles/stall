@@ -866,6 +866,7 @@ export type Database = {
         }[]
       }
       profile_checks: { Args: { p_phone: string }; Returns: Json }
+      reserve_booking: { Args: { p_booking_id: string }; Returns: Json }
       save_role_with_permissions: {
         Args: {
           p_description: string
@@ -876,11 +877,11 @@ export type Database = {
         }
         Returns: string
       }
-      simulate_payment_cancelled_admin: {
+      simulate_booking_confirm_admin: {
         Args: { p_booking_id: string }
         Returns: Json
       }
-      simulate_payment_confirmed_admin: {
+      simulate_payment_cancelled_admin: {
         Args: { p_booking_id: string }
         Returns: Json
       }
@@ -889,6 +890,15 @@ export type Database = {
         Returns: Json
       }
       simulate_payment_failure_admin: {
+        Args: { p_booking_id: string }
+        Returns: Json
+      }
+      simulate_payment_refund: { Args: { p_booking_id: string }; Returns: Json }
+      simulate_payment_refund_admin: {
+        Args: { p_booking_id: string }
+        Returns: Json
+      }
+      simulate_payment_reserved_admin: {
         Args: { p_booking_id: string }
         Returns: Json
       }
@@ -918,6 +928,7 @@ export type Database = {
         | "failed"
         | "cancelled"
         | "authorized"
+        | "refunded"
       stall_date_status: "available" | "reserved" | "booked"
       stall_shape: "RECT" | "CIRCLE" | "POLY"
       stall_status: "AVAILABLE" | "BOOKED" | "BLOCKED"
@@ -1068,6 +1079,7 @@ export const Constants = {
         "failed",
         "cancelled",
         "authorized",
+        "refunded",
       ],
       stall_date_status: ["available", "reserved", "booked"],
       stall_shape: ["RECT", "CIRCLE", "POLY"],

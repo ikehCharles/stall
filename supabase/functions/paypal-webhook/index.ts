@@ -158,7 +158,6 @@ async function upsertPayment(event: any, mappedStatus: string) {
     })
     .select();
 
-  console.warn("Upsert result:", { data, error });
 
   if (error) throw error;
   return data;
@@ -188,19 +187,12 @@ serve(async (req) => {
 
     const event = JSON.parse(rawBody);
     const incomingStatus = mapPayPalEventToStatus(event);
-    console.warn(
-      "Received PayPal webhook event:",
-      incomingStatus,
-      "event",
-      event
-    );
     if (!incomingStatus) return new Response("Ignored event", { status: 200 });
 
     const resource = event.resource || {};
     const bookingId =
       resource.custom_id || resource.purchase_units?.[0]?.custom_id;
 
-    console.warn("Processing booking ID:", bookingId, "resource:", resource);
 
     // Fetch current payment status
     const { data: payment, error: paymentError } = await supabase
@@ -209,7 +201,6 @@ serve(async (req) => {
       .eq("provider_payment_id", resource.id || resource.sale_id)
       .single();
 
-    console.warn("Fetched payment:", payment, "error:", paymentError);
 
     if (paymentError && paymentError.code !== "PGRST116") {
       // PGRST116 = not found
@@ -220,13 +211,6 @@ serve(async (req) => {
     const currentStatus = payment?.status || "created";
     const currentRank = statusRank[currentStatus] || 0;
     const incomingRank = statusRank[incomingStatus] || 0;
-
-    console.warn(
-      "Current status:",
-      currentStatus,
-      "Incoming status:",
-      incomingStatus
-    );
 
     if (incomingRank <= currentRank) {
       console.error(
@@ -246,7 +230,7 @@ serve(async (req) => {
           p_booking_id: bookingId,
         }
       );
-      console.warn(data, "Simulating payment success for booking:", error);
+
       if (error)
         throw new Error(
           `RPC 'simulate_payment_success_admin' failed: ${error.message}`
@@ -258,7 +242,7 @@ serve(async (req) => {
           p_booking_id: bookingId,
         }
       );
-      console.warn(data, "Simulating payment reserved for booking:", error);
+
       if (error)
         throw new Error(
           `RPC simulate_payment_reserved_admin failed: ${error.message}`
@@ -270,7 +254,7 @@ serve(async (req) => {
           p_booking_id: bookingId,
         }
       );
-      console.warn(data, "Simulating payment cancelled for booking:", error);
+
       if (error)
         throw new Error(
           `RPC simulate_payment_cancelled_admin failed: ${error.message}`
@@ -282,7 +266,6 @@ serve(async (req) => {
           p_booking_id: bookingId,
         }
       );
-      console.warn(data, "Simulating payment refund for booking:", error);
 
       if (error)
         throw new Error(
@@ -295,7 +278,6 @@ serve(async (req) => {
           p_booking_id: bookingId,
         }
       );
-      console.warn(data, "Simulating payment failure for booking:", error);
 
       if (error)
         throw new Error(
