@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
+import { useCreateCred } from "@/hooks/useSettings";
 
 const Settings = () => {
   const [settings, setSettings] = useState({
@@ -17,26 +17,54 @@ const Settings = () => {
     smsNotifications: false,
     maxStallsPerVendor: 10,
     cancellationWindow: 48,
-    refundPolicy: "Cancellations made 48 hours before the event are eligible for full refund minus processing fees.",
-    termsAndConditions: "By booking a stall, vendors agree to follow all marketplace guidelines and policies."
+    refundPolicy:
+      "Cancellations made 48 hours before the event are eligible for full refund minus processing fees.",
+    termsAndConditions:
+      "By booking a stall, vendors agree to follow all marketplace guidelines and policies.",
   });
+  const createCredentials = useCreateCred();
+  const [zettleWebhookUrl, setZettleWebhookUrl] = useState("");
 
   const handleSave = () => {
     toast({
       title: "Settings Updated",
-      description: "Your platform settings have been successfully saved."
+      description: "Your platform settings have been successfully saved.",
     });
   };
 
   const handleChange = (field: string, value: any) => {
-    setSettings(prev => ({ ...prev, [field]: value }));
+    setSettings((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const saveZettleWebhook = async () => {
+    if(!zettleWebhookUrl) return;
+    const webhookUrlRegex = /^https?:\/\/[^\s/$.?#].[^\s]*$/i;
+    if (!webhookUrlRegex.test(zettleWebhookUrl)) {
+      setZettleWebhookUrl('')
+      toast({
+        title: "Invalid URL",
+        description: "Please enter a valid webhook URL.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const res = await createCredentials.mutateAsync({
+      source: "zettle",
+      key: "webhook_signing_key",
+      meta: {
+        url: zettleWebhookUrl,
+      },
+    });
   };
 
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
-        <p className="text-gray-600 mt-1">Configure platform settings and policies</p>
+        <p className="text-gray-600 mt-1">
+          Configure platform settings and policies
+        </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -55,7 +83,9 @@ const Settings = () => {
                 id="deposit"
                 type="number"
                 value={settings.depositPercentage}
-                onChange={(e) => handleChange('depositPercentage', Number(e.target.value))}
+                onChange={(e) =>
+                  handleChange("depositPercentage", Number(e.target.value))
+                }
                 min="0"
                 max="100"
               />
@@ -70,7 +100,9 @@ const Settings = () => {
                 id="platformFee"
                 type="number"
                 value={settings.platformFee}
-                onChange={(e) => handleChange('platformFee', Number(e.target.value))}
+                onChange={(e) =>
+                  handleChange("platformFee", Number(e.target.value))
+                }
                 min="0"
                 max="50"
               />
@@ -80,12 +112,16 @@ const Settings = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="cancellationWindow">Cancellation Window (hours)</Label>
+              <Label htmlFor="cancellationWindow">
+                Cancellation Window (hours)
+              </Label>
               <Input
                 id="cancellationWindow"
                 type="number"
                 value={settings.cancellationWindow}
-                onChange={(e) => handleChange('cancellationWindow', Number(e.target.value))}
+                onChange={(e) =>
+                  handleChange("cancellationWindow", Number(e.target.value))
+                }
                 min="1"
               />
               <p className="text-sm text-gray-600">
@@ -110,7 +146,9 @@ const Settings = () => {
                 id="maxStalls"
                 type="number"
                 value={settings.maxStallsPerVendor}
-                onChange={(e) => handleChange('maxStallsPerVendor', Number(e.target.value))}
+                onChange={(e) =>
+                  handleChange("maxStallsPerVendor", Number(e.target.value))
+                }
                 min="1"
               />
               <p className="text-sm text-gray-600">
@@ -128,7 +166,9 @@ const Settings = () => {
               <Switch
                 id="autoConfirm"
                 checked={settings.autoConfirmBookings}
-                onCheckedChange={(checked) => handleChange('autoConfirmBookings', checked)}
+                onCheckedChange={(checked) =>
+                  handleChange("autoConfirmBookings", checked)
+                }
               />
             </div>
           </CardContent>
@@ -153,7 +193,9 @@ const Settings = () => {
               <Switch
                 id="emailNotifications"
                 checked={settings.emailNotifications}
-                onCheckedChange={(checked) => handleChange('emailNotifications', checked)}
+                onCheckedChange={(checked) =>
+                  handleChange("emailNotifications", checked)
+                }
               />
             </div>
 
@@ -167,7 +209,9 @@ const Settings = () => {
               <Switch
                 id="smsNotifications"
                 checked={settings.smsNotifications}
-                onCheckedChange={(checked) => handleChange('smsNotifications', checked)}
+                onCheckedChange={(checked) =>
+                  handleChange("smsNotifications", checked)
+                }
               />
             </div>
           </CardContent>
@@ -187,7 +231,7 @@ const Settings = () => {
               <Textarea
                 id="refundPolicy"
                 value={settings.refundPolicy}
-                onChange={(e) => handleChange('refundPolicy', e.target.value)}
+                onChange={(e) => handleChange("refundPolicy", e.target.value)}
                 rows={4}
               />
             </div>
@@ -197,17 +241,47 @@ const Settings = () => {
               <Textarea
                 id="termsAndConditions"
                 value={settings.termsAndConditions}
-                onChange={(e) => handleChange('termsAndConditions', e.target.value)}
+                onChange={(e) =>
+                  handleChange("termsAndConditions", e.target.value)
+                }
                 rows={4}
               />
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Integration Settings */}
+        <Card className="shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <span className="mr-2">📋</span>
+              Integration Settings
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <div className="flex flex-col gap-2 w-full">
+              <Label htmlFor="refundPolicy">Zettle Webhook Url</Label>
+              <Input
+              className="w-full"
+                id="maxStalls"
+                value={zettleWebhookUrl}
+                onChange={(e) => {
+                  setZettleWebhookUrl(e.target.value);
+                }}
+                onBlur={saveZettleWebhook}
+              />
+              </div>
+            </div>
+
+            
           </CardContent>
         </Card>
       </div>
 
       {/* Save Button */}
       <div className="flex justify-end">
-        <Button 
+        <Button
           onClick={handleSave}
           className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
         >
@@ -217,5 +291,6 @@ const Settings = () => {
     </div>
   );
 };
+
 
 export default Settings;

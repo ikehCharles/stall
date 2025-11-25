@@ -2,7 +2,19 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
 
-type BookingDate = Database['public']['Tables']['booking_dates']['Row'];
+export interface BookingDate{
+  id: string;
+  booking_id: string;
+  stall_instance_id: string;
+  booking_date: string;
+  created_at: string;
+  bookings: {
+      id: string;
+      market_id: string;
+      status: "pending" | "cancelled" | "approved" | "completed" | "expired" | "reserved";
+      user_id: string;
+  };
+}
 
 export const useBookingDates = (marketId: string) => {
   return useQuery({

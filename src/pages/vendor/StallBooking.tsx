@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { useMarkets } from "@/hooks/useMarkets";
 import { useStallInstances } from "@/hooks/useStallInstances";
-import { useCreateBooking, CreateBookingData } from "@/hooks/useBookings";
+import { useCreateBooking, CreateBookingData, useReserveBooking } from "@/hooks/useBookings";
 import { useStallHolds, useCleanupExpiredHolds } from "@/hooks/useStallHolds";
 import { useBookingDates } from "@/hooks/useBookingDates";
 import { EnhancedStallModal } from "@/components/vendor/EnhancedStallModal";
@@ -46,7 +46,7 @@ const EnhancedStallBooking = () => {
   const [selectedStall, setSelectedStall] = useState<StallInstance | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-
+  const reserveBooking = useReserveBooking();
   const { data: markets } = useMarkets();
   const { data: stallInstances, isLoading: stallsLoading } = useStallInstances(marketId || '');
   const { data: currentStallHolds = {} } = useStallHolds(marketId || '');
@@ -122,7 +122,7 @@ const EnhancedStallBooking = () => {
     return selectedStalls.reduce((sum, selection) => sum + selection.selectedDates.length, 0);
   };
 
-  const handleCheckout = async () => {
+  const handleCheckout = async (payLater?: boolean) => {
     if (!marketId || selectedStalls.length === 0) return;
     
     try {
@@ -147,16 +147,20 @@ const EnhancedStallBooking = () => {
         title: "Booking Created!",
         description: "Redirecting to booking details to complete payment...Proceed to making payment"
       });
+
+    
+      if(payLater){
+        await reserveBooking.mutateAsync(booking.id);
+      }
       
       // Navigate to booking details page
       navigate(`/vendor/bookings/${booking.id}`);
     } catch (error) {
       toast({
-        title: "Booking Failed",
+        title: error || "Booking Failed",
         description: "There was an error processing your booking. Please try again.",
         variant: "destructive"
       });
-      console.error('Booking error:', error);
     }
   };
 
@@ -408,16 +412,25 @@ const EnhancedStallBooking = () => {
               </div>
             </div>
             <div className="flex space-x-2">
-              <Button 
-                onClick={handleCheckout} 
+            <Button 
+                onClick={()=>handleCheckout(true)} 
+                variant="outline"
                 className="flex-1"
-                disabled={createBooking.isPending}
+                disabled={createBooking.isPending || reserveBooking.isPending}
               >
-                {createBooking.isPending ? 'Processing...' : 'Confirm Booking'}
+                {reserveBooking.isPending ? 'Processing...' : 'Pay Later'}
               </Button>
-              <Button variant="outline" onClick={() => setIsCheckoutOpen(false)}>
+              <Button 
+                onClick={()=>handleCheckout()} 
+                className="flex-1"
+                disabled={createBooking.isPending || reserveBooking.isPending}
+              >
+                {createBooking.isPending ? 'Processing...' : 'Procced To Payment'}
+              </Button>
+              
+              {/* <Button variant="outline" onClick={() => setIsCheckoutOpen(false)}>
                 Cancel
-              </Button>
+              </Button> */}
             </div>
           </div>
         </DialogContent>

@@ -177,6 +177,8 @@ serve(async (req) => {
     const rawBody = await req.text();
     const headers = req.headers;
 
+    console.warn("Received PayPal webhook:", rawBody, 'parsed-->', JSON.parse(rawBody));
+
     // Validate webhook
     const valid = await verifyPaypalWebhook(rawBody, headers);
     if (!valid)

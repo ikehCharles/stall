@@ -6,6 +6,15 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export const isValidEmail = (val:string)=> /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+
+
+export const generateInvoiceUrl = (bookingId: string) => {
+  const url = `${window.location.origin}/vendor/invoice/${bookingId}`;
+  return url
+};
+
+
 
 export enum PAYMENT_SWITCH_ENUM {
   PAYPAL = "paypal",

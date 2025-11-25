@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
 
-type Market = Database['public']['Tables']['markets']['Row'];
+export type Market = Database['public']['Tables']['markets']['Row'];
 type MarketInsert = Database['public']['Tables']['markets']['Insert'];
 type MarketUpdate = Database['public']['Tables']['markets']['Update'];
 

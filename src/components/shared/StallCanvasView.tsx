@@ -1,19 +1,4 @@
-import type { Database } from "@/integrations/supabase/types";
-
-type StallInstance = Database['public']['Tables']['stall_instances']['Row'] & {
-  stall_templates?: {
-    name: string;
-    shape: Database['public']['Enums']['stall_shape'];
-    fill_color: string;
-    stroke_color: string;
-    price: number;
-    capacity: number;
-  };
-  isBooked?: boolean;
-  isHeld?: boolean;
-  selectedDates?: Date[];
-  price_override?: number | null;
-};
+import { StallInstance } from "@/hooks/useStallInstances";
 
 interface StallCanvasViewProps {
   stalls: StallInstance[];

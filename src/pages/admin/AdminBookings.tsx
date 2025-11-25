@@ -32,7 +32,7 @@ import {
   useAdminToggleAuthorizedBooking,
 } from "@/hooks/useAdminBookings";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Check, X } from "lucide-react";
+import { Check, Loader, X } from "lucide-react";
 import { PermissionGate } from "@/components/PermissionGate";
 import { PERMISSIONS } from "@/lib/permissions";
 import { ENV } from "@/lib/utils";
@@ -40,6 +40,12 @@ import { INTENT } from "@/lib/enums";
 import { toast } from "sonner";
 import { BookingWithStalls } from "@/hooks/useBookings";
 import { useConfirm } from "@/components/ui/confirmDialog";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  useReconcileOfflineBooking,
+  useSyncOfflineBooking,
+} from "@/hooks/useOfflineBooking";
+import { getPaymentStatusBadge, getStatusBadge } from "@/components/shared/statuses";
 
 const AdminBookings = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -48,60 +54,10 @@ const AdminBookings = () => {
   const { data: bookings, isLoading } = useAdminBookings();
   const toggleAuthorizedBooking = useAdminToggleAuthorizedBooking();
   const toggleBooking = useAdminToggleBooking();
+  const syncOffline = useSyncOfflineBooking();
+  const reconcileOffline = useReconcileOfflineBooking();
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "pending":
-        return (
-          <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
-            Pending
-          </Badge>
-        );
-      case "reserved":
-        return (
-          <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
-            Reserved
-          </Badge>
-        );
-      case "approved":
-        return (
-          <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-            Approved
-          </Badge>
-        );
-      case "completed":
-        return <Badge variant="default">Completed</Badge>;
-      case "cancelled":
-        return <Badge variant="destructive">Cancelled</Badge>;
-      case "expired":
-        return (
-          <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200">
-            Expired
-          </Badge>
-        );
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
-
-  const getPaymentStatusBadge = (status: string) => {
-    switch (status) {
-      case "authorized":
-        return <Badge variant="default">Authorized</Badge>;
-      case "success":
-        return <Badge variant="default">Paid</Badge>;
-      case "pending":
-        return <Badge variant="secondary">Captured</Badge>;
-      case "failed":
-        return <Badge variant="destructive">Failed</Badge>;
-      case "refunded":
-        return <Badge variant="destructive">Refunded</Badge>;
-      case "cancelled":
-        return <Badge variant="destructive">Cancelled</Badge>;
-      default:
-        return <Badge variant="outline">Pending</Badge>;
-    }
-  };
+  
 
   const filteredBookings =
     bookings?.filter((booking) => {
@@ -213,13 +169,40 @@ const AdminBookings = () => {
     );
   }, []);
 
+  const handleSyncBookings = async () => {
+    await syncOffline.mutateAsync();
+  };
+  const handleReconcileBookings = async () => {
+    await reconcileOffline.mutateAsync();
+  };
+
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">All Bookings</h1>
-        <p className="text-gray-600 mt-1">
-          Manage and review all vendor bookings
-        </p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">All Bookings</h1>
+          <p className="text-gray-600 mt-1">
+            Manage and review all vendor bookings
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            disabled={reconcileOffline.isPending}
+            onClick={handleReconcileBookings}
+            variant="default"
+          >
+            {reconcileOffline.isPending && <Loader />}
+            {' '}Reconcile Payments
+          </Button>
+          <Button
+            disabled={syncOffline.isPending}
+            onClick={handleSyncBookings}
+            variant="default"
+          >
+            {syncOffline.isPending && <Loader />}
+            {' '}Sync Bookings
+          </Button>
+        </div>
       </div>
 
       <Card className="shadow-lg">

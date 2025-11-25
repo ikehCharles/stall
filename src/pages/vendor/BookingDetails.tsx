@@ -11,7 +11,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { useBookingDetails, useCancelBooking, useReserveBooking } from "@/hooks/useBookings";
+import {
+  useBookingDetails,
+  useCancelBooking,
+  useReserveBooking,
+} from "@/hooks/useBookings";
 import { useBookingDatesForBooking } from "@/hooks/useBookingDatesForBooking";
 import { useStallInstances } from "@/hooks/useStallInstances";
 import { PaymentModal } from "@/components/vendor/PaymentModal";
@@ -30,7 +34,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ENV, PAYMENT_SWITCH_ENUM } from "@/lib/utils";
+import { ENV, PAYMENT_SWITCH_ENUM, generateInvoiceUrl } from "@/lib/utils";
 import { useCreatePayment } from "@/hooks/use-payment";
 import { INTENT } from "@/lib/enums";
 import {
@@ -277,7 +281,7 @@ const BookingDetails = () => {
   };
 
   const generateQR = async () => {
-    const url = `${window.location.origin}/vendor/invoice/${booking.id}`;
+    const url = generateInvoiceUrl(booking.id);
     const qr = await QRCode.toDataURL(url);
     setInvoiceQR(qr);
   };
@@ -287,7 +291,7 @@ const BookingDetails = () => {
       <div className="space-y-8">
         <div className="flex items-center justify-between">
           <div>
-            <Button asChild variant="ghost" className="mb-4">
+            <Button asChild variant="ghost" className="mb-4 ml-0 pl-0">
               <Link to={isAdminView ? "/admin/bookings" : "/vendor/bookings"}>
                 ← Back to Bookings
               </Link>
@@ -299,15 +303,13 @@ const BookingDetails = () => {
               {booking.markets?.name}
             </p>
           </div>
-          <div className="space-x-2 flex items-center gap-2">
-            <Tooltip>
-              <TooltipContent className="bg-primary rounded text-secondary text-xs py-1 px-2">
+          <div className="space-x-2 flex items-center justify-end flex-wrap gap-2">
+            
+              <Button onClick={generateQR} variant="outline">
+                <QrCode  />
                 View QR
-              </TooltipContent>
-              <TooltipTrigger>
-                <QrCode onClick={generateQR} />
-              </TooltipTrigger>
-            </Tooltip>
+                </Button>
+            
             {!isAdminView && (
               <Button asChild variant="outline">
                 <Link to={`/vendor/invoice/${booking.id}`}>View Invoice</Link>
@@ -315,9 +317,13 @@ const BookingDetails = () => {
             )}
 
             {!isAdminView && isPaymentAvailable && (
-              <div className="flex items-center gap-2">
-                <Button
-                  disabled={reserveBooking.isPending || isProcessingPayment || createPayment.isPending}
+              <div className="flex items-center flex-wrap gap-2">
+                {/* <Button
+                  disabled={
+                    reserveBooking.isPending ||
+                    isProcessingPayment ||
+                    createPayment.isPending
+                  }
                   onClick={handleReserveBooking}
                 >
                   {reserveBooking.isPending ? (
@@ -327,17 +333,21 @@ const BookingDetails = () => {
                   ) : (
                     "Pay Later"
                   )}
-                </Button>
+                </Button> */}
 
                 <Button
-                  disabled={isProcessingPayment || reserveBooking.isPending || createPayment.isPending}
+                  disabled={
+                    isProcessingPayment ||
+                    reserveBooking.isPending ||
+                    createPayment.isPending
+                  }
                   onClick={makePayment}
                 >
                   {isProcessingPayment ? (
                     "Processing Payment..."
                   ) : createPayment.isPending ? (
                     <>
-                      <Loader /> Make Payment
+                      <Loader className="animate-spin" /> Make Payment
                     </>
                   ) : (
                     "Make Payment"

@@ -42,32 +42,44 @@ const ConfirmContext = createContext<ConfirmContextType | null>(null);
   return (
     <ConfirmContext.Provider value={confirm}>
       {children}
-      <Dialog.Root open={state.open} onOpenChange={(open) => !open && handleClose(false)}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 bg-black/50" />
-          <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white p-6 rounded-lg shadow-lg">
-            <Dialog.Title className="text-lg font-bold">
-              {state.options?.title || "Are you sure?"}
-            </Dialog.Title>
-            <Dialog.Description className="mt-2">
-              {state.options?.description || "This action cannot be undone."}
-            </Dialog.Description>
-            <div className="mt-4 flex justify-end gap-2">
-              <button
-               className={"px-4 py-1 rounded" + state.options?.cancelClassName}
-              onClick={() => handleClose(false)}>
-                {state.options?.cancelText || "Cancel"}
-              </button>
-              <button
-                onClick={() => handleClose(true)}
-                className={`px-4 py-1 rounded ` + state.options?.confirmClassName || " bg-green-500 text-white"}
-              >
-                {state.options?.confirmText || "Confirm"}
-              </button>
-            </div>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
+      <Dialog.Root
+  open={state.open}
+  onOpenChange={(open) => !open && handleClose(false)}
+>
+  <Dialog.Portal>
+    {/* Overlay with higher z-index */}
+    <Dialog.Overlay className="fixed inset-0 bg-black/50 z-[9999]" />
+
+    {/* Content with higher z-index */}
+    <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white p-6 rounded-lg shadow-lg z-[10000]">
+      <Dialog.Title className="text-lg font-bold">
+        {state.options?.title || "Are you sure?"}
+      </Dialog.Title>
+      <Dialog.Description className="mt-2">
+        {state.options?.description || "This action cannot be undone."}
+      </Dialog.Description>
+      <div className="mt-4 flex justify-end gap-2">
+        <button
+          className={"px-4 py-1 rounded " + state.options?.cancelClassName}
+          onClick={() => handleClose(false)}
+        >
+          {state.options?.cancelText || "Cancel"}
+        </button>
+        <button
+          onClick={() => handleClose(true)}
+          className={
+            state.options?.confirmClassName
+              ? "px-4 py-1 rounded " + state.options?.confirmClassName
+              : "px-4 py-1 rounded bg-green-500 text-white"
+          }
+        >
+          {state.options?.confirmText || "Confirm"}
+        </button>
+      </div>
+    </Dialog.Content>
+  </Dialog.Portal>
+</Dialog.Root>
+
     </ConfirmContext.Provider>
   );
 };

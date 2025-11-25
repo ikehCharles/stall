@@ -18,21 +18,27 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useLoading } from "@/contexts/LoadingContext";
+import { User } from "@supabase/supabase-js";
 
 interface UserRegisterProps {
-  setDialogOpen: (open: boolean) => void;
+  onUserCreated: (user: {user: User}) => void;
+  user?: Partial<UserPayload>;
+  isVendor?: boolean;
+  disabled?: boolean;
 }
+
+const initialPayload = {
+  email: "",
+  fullName: "",
+  phoneNumber: "",
+  roleId: "",
+  confirmEmail: false,
+  password: "",
+};
 const UserRegister: React.FC<UserRegisterProps> = (props) => {
   const { data: roles } = useRoles();
   const { startLoading, stopLoading } = useLoading();
-  const [payload, setPayload] = useState<UserPayload>({
-    email: "",
-    fullName: "",
-    phoneNumber: "",
-    roleId: "",
-    confirmEmail: false,
-    password: "",
-  });
+  const [payload, setPayload] = useState<UserPayload>(initialPayload);
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<{
     email?: string;
@@ -44,16 +50,13 @@ const UserRegister: React.FC<UserRegisterProps> = (props) => {
   const { mutate, isPending } = useUsers();
 
   const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if(props.disabled) return;
     const { email, fullName, phoneNumber, roleId, password, confirmEmail } =
       payload;
-    e.preventDefault();
 
     if (confirmEmail && !password) {
-      setFieldErrors({ roleId: "Password is required" });
-      return;
-    }
-    if (!roleId) {
-      setFieldErrors({ roleId: "Kindly select a role" });
+      setFieldErrors({ password: "Password is required" });
       return;
     }
     // Validate phone number format
@@ -76,6 +79,7 @@ const UserRegister: React.FC<UserRegisterProps> = (props) => {
     if (!isValidPhoneNumber(formattedPhone)) {
       return { error: new Error("Invalid phone number format") };
     }
+
 
     startLoading();
     // checks for duplicate phone number
@@ -102,15 +106,20 @@ const UserRegister: React.FC<UserRegisterProps> = (props) => {
       password,
     };
     mutate(userPayload, {
-      onSuccess: () => {
-        props.setDialogOpen(false)
+      onSuccess: (data) => {
+        props.onUserCreated(data);
       },
-      onError:(err)=>{
+      onError: (err) => {
         console.error(err, "error creating user");
         setError(err.message);
-      }
+      },
     });
   };
+
+
+  useEffect(() => {
+    setPayload({ ...initialPayload, ...props.user });
+  }, [props.user]);
 
   return (
     <form onSubmit={handleRegister} className="space-y-5">
@@ -118,6 +127,7 @@ const UserRegister: React.FC<UserRegisterProps> = (props) => {
         <Label htmlFor="fullName">Full Name</Label>
         <Input
           id="fullName"
+          disabled={props.disabled}
           type="text"
           placeholder="Enter full name"
           value={payload.fullName}
@@ -131,6 +141,7 @@ const UserRegister: React.FC<UserRegisterProps> = (props) => {
         <Input
           id="email"
           type="email"
+          disabled={props.disabled}
           placeholder="Enter your email"
           value={payload.email}
           onChange={(e) => setPayload({ ...payload, email: e.target.value })}
@@ -151,6 +162,7 @@ const UserRegister: React.FC<UserRegisterProps> = (props) => {
         >
           <PhoneInput
             id="phoneNumber"
+            disabled={props.disabled}
             value={payload.phoneNumber}
             onChange={(value) => setPayload({ ...payload, phoneNumber: value })}
             placeholder="Enter your phone number"
@@ -162,7 +174,7 @@ const UserRegister: React.FC<UserRegisterProps> = (props) => {
         )}
       </div>
 
-      <div className="space-y-2">
+      {!props.isVendor && <div className="space-y-2">
         <Label htmlFor="roleId">Role</Label>
         <div
           className={
@@ -191,19 +203,20 @@ const UserRegister: React.FC<UserRegisterProps> = (props) => {
         {fieldErrors.roleId && (
           <p className="text-sm text-destructive">{fieldErrors.roleId}</p>
         )}
-      </div>
+      </div>}
 
-      <div className="space-x-2 flex items-center">
+      {!props.disabled && <div className="space-x-2 flex items-center">
         <Checkbox
           id="confirmEmail"
+          disabled={props.disabled}
           checked={payload.confirmEmail}
           onCheckedChange={(e) => setPayload({ ...payload, confirmEmail: !!e })}
         />
         <Label className="" htmlFor="confirmEmail">
           Email Confirmed
         </Label>
-      </div>
-      {payload.confirmEmail && (
+      </div>}
+      {payload.confirmEmail && !props.disabled && (
         <div className="space-y-2">
           <Label htmlFor="password">Password</Label>
           <div
@@ -215,6 +228,7 @@ const UserRegister: React.FC<UserRegisterProps> = (props) => {
               id="password"
               type="password"
               placeholder="Create a password"
+              disabled={props.disabled}
               value={payload.password}
               onChange={(e) =>
                 setPayload({ ...payload, password: e.target.value })
@@ -234,9 +248,12 @@ const UserRegister: React.FC<UserRegisterProps> = (props) => {
         </Alert>
       )}
 
-      <Button type="submit" className="w-full" disabled={isPending}>
+      {!props.disabled && !props.isVendor && <Button type="submit" className="w-full" disabled={isPending}>
         {isPending ? "Creating User..." : "Create User"}
-      </Button>
+      </Button>}
+      {!props.disabled && props.isVendor && <Button type="submit" className="w-full" disabled={isPending}>
+        {isPending ? "Creating Vendor..." : "Create Vendor"}
+      </Button>}
     </form>
   );
 };

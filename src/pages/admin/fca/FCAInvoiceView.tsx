@@ -40,7 +40,7 @@ const FCAInvoiceView = () => {
       });
 
       queryClient.invalidateQueries({ queryKey: ['booking', id] });
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: 'Payment Failed',
         description: error.message || 'Failed to process payment',

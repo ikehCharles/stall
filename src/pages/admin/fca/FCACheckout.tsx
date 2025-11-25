@@ -77,7 +77,7 @@ const FCACheckout = () => {
           title: 'Booking Created',
           description: 'Ready to collect payment',
         });
-      } catch (error: any) {
+      } catch (error) {
         toast({
           title: 'Failed to Create Booking',
           description: error.message || 'Please try again',
@@ -119,7 +119,7 @@ const FCACheckout = () => {
       });
 
       navigate(`/admin/fca/invoices/${bookingId}`);
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: 'Payment Failed',
         description: error.message || 'Failed to process payment',

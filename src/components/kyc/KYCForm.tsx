@@ -10,13 +10,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { isValidPhoneNumber } from 'libphonenumber-js';
+import { KYCApplication } from "@/hooks/useKYCAnalytics";
 
 interface KYCFormProps {
   onSubmit?: () => void;
-  existingKYC?: any;
+  existingKYC?: Partial<KYCApplication>;
+  externalUserId?: string;
+  partialUpload?: boolean
 }
 
-export const KYCForm = ({ onSubmit, existingKYC }: KYCFormProps) => {
+export const KYCForm = ({ onSubmit, existingKYC, externalUserId }: KYCFormProps) => {
+  
   const [formData, setFormData] = useState({
     businessName: "",
     contactEmail: "",
@@ -34,14 +38,15 @@ export const KYCForm = ({ onSubmit, existingKYC }: KYCFormProps) => {
   useEffect(() => {
     if (existingKYC) {
       // Load existing KYC data (draft or pending)
-      setFormData({
+      const initialData = {
         businessName: existingKYC.business_name || "",
         contactEmail: existingKYC.contact_email || "",
         contactPhone: existingKYC.contact_phone || "",
         businessType: existingKYC.business_type || "",
         businessAddress: existingKYC.business_address || "",
         taxId: existingKYC.tax_id || ""
-      });
+      };
+      setFormData(initialData);
     } else if (userProfile) {
       // Pre-populate with profile data for first-time users
       setFormData(prev => ({
@@ -60,6 +65,10 @@ export const KYCForm = ({ onSubmit, existingKYC }: KYCFormProps) => {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
+
+// if external (on user creation) or logged in user (vendor creation)
+    const userId = externalUserId || user.id
+
     e.preventDefault();
     
     if (!user) {
@@ -94,7 +103,7 @@ export const KYCForm = ({ onSubmit, existingKYC }: KYCFormProps) => {
       const { data: existingKYCData, error: fetchError } = await supabase
         .from('kyc_applications')
         .select('id')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .maybeSingle();
 
       if (fetchError && fetchError.code !== 'PGRST116') {
@@ -126,7 +135,7 @@ export const KYCForm = ({ onSubmit, existingKYC }: KYCFormProps) => {
         const { error: insertError } = await supabase
           .from('kyc_applications')
           .insert({
-            user_id: user.id,
+            user_id: userId,
             business_name: formData.businessName,
             contact_email: formData.contactEmail,
             contact_phone: formData.contactPhone,
@@ -143,7 +152,7 @@ export const KYCForm = ({ onSubmit, existingKYC }: KYCFormProps) => {
       }
 
       onSubmit?.();
-    } catch (error: any) {
+    } catch (error) {
       setError(error.message || "Failed to submit verification");
       toast.error(error.message || "Failed to submit verification");
     } finally {

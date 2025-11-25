@@ -9,7 +9,7 @@ export interface UserPayload {
   email: string;
   fullName: string;
   phoneNumber: string;
-  roleId: string;
+  roleId?: string;
   confirmEmail: boolean;
   password: string;
 }

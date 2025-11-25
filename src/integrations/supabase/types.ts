@@ -38,6 +38,8 @@ export type Database = {
         Row: {
           booking_date: string
           booking_id: string
+          checked_in_at: string | null
+          checked_in_by: string | null
           created_at: string
           id: string
           stall_instance_id: string
@@ -46,6 +48,8 @@ export type Database = {
         Insert: {
           booking_date: string
           booking_id: string
+          checked_in_at?: string | null
+          checked_in_by?: string | null
           created_at?: string
           id?: string
           stall_instance_id: string
@@ -54,6 +58,8 @@ export type Database = {
         Update: {
           booking_date?: string
           booking_id?: string
+          checked_in_at?: string | null
+          checked_in_by?: string | null
           created_at?: string
           id?: string
           stall_instance_id?: string
@@ -65,6 +71,13 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_dates_checked_in_by_fkey"
+            columns: ["checked_in_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -125,6 +138,8 @@ export type Database = {
           id: string
           invoice_number: string
           market_id: string
+          offline_invoice_id: string | null
+          offline_synced_at: string | null
           paid_amount: number
           payment_status: Database["public"]["Enums"]["payment_status"] | null
           price_per_day: number | null
@@ -143,6 +158,8 @@ export type Database = {
           id?: string
           invoice_number: string
           market_id: string
+          offline_invoice_id?: string | null
+          offline_synced_at?: string | null
           paid_amount?: number
           payment_status?: Database["public"]["Enums"]["payment_status"] | null
           price_per_day?: number | null
@@ -161,6 +178,8 @@ export type Database = {
           id?: string
           invoice_number?: string
           market_id?: string
+          offline_invoice_id?: string | null
+          offline_synced_at?: string | null
           paid_amount?: number
           payment_status?: Database["public"]["Enums"]["payment_status"] | null
           price_per_day?: number | null
@@ -179,6 +198,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      cred: {
+        Row: {
+          created_at: string
+          id: number
+          is_active: boolean
+          key: string
+          meta: Json
+          source: string
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          is_active: boolean
+          key: string
+          meta: Json
+          source: string
+          value: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          is_active?: boolean
+          key?: string
+          meta?: Json
+          source?: string
+          value?: string
+        }
+        Relationships: []
       }
       email_verifications: {
         Row: {
@@ -381,6 +430,36 @@ export type Database = {
           status?: Database["public"]["Enums"]["market_status"]
           theme?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      payment_sync: {
+        Row: {
+          account_id: string | null
+          created_at: string | null
+          id: string
+          last_synced_at: string | null
+          metadata: Json | null
+          provider: string
+          updated_at: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          created_at?: string | null
+          id?: string
+          last_synced_at?: string | null
+          metadata?: Json | null
+          provider: string
+          updated_at?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          created_at?: string | null
+          id?: string
+          last_synced_at?: string | null
+          metadata?: Json | null
+          provider?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -802,7 +881,15 @@ export type Database = {
         Args: { dates: string[]; market_id: string; stall_id: string }
         Returns: boolean
       }
+      checkin_vendor: {
+        Args: { p_booking_date_id: string; p_booking_id: string }
+        Returns: Json
+      }
       cleanup_expired_holds: { Args: never; Returns: number }
+      create_credentials: {
+        Args: { p_key: string; p_meta: Json; p_source: string; p_value: string }
+        Returns: undefined
+      }
       create_stall_hold: {
         Args: { p_dates: string[]; p_market_id: string; p_stall_id: string }
         Returns: Json
@@ -865,6 +952,10 @@ export type Database = {
           user_id: string
         }[]
       }
+      lookup_vendor_in_market: {
+        Args: { p_email: string; p_market_id: string }
+        Returns: Json
+      }
       profile_checks: { Args: { p_phone: string }; Returns: Json }
       reserve_booking: { Args: { p_booking_id: string }; Returns: Json }
       save_role_with_permissions: {
@@ -908,6 +999,10 @@ export type Database = {
       }
       simulate_payment_success_admin: {
         Args: { p_booking_id: string }
+        Returns: Json
+      }
+      undo_checkin_vendor: {
+        Args: { p_booking_date_id: string; p_booking_id: string }
         Returns: Json
       }
     }

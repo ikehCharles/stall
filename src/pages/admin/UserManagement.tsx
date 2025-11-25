@@ -87,7 +87,7 @@ export default function UserManagement() {
                 </DialogDescription>
               </DialogHeader>
               
-              <UserRegister setDialogOpen={setIsCreateDialogOpen} />
+              <UserRegister onUserCreated={()=>setIsCreateDialogOpen(false)} />
             </DialogContent>
           </Dialog>
         </PermissionGate>

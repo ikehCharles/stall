@@ -153,7 +153,7 @@ export const PhoneInput = ({
               role="combobox"
               aria-expanded={open}
               className={cn(
-                "w-[140px] justify-between rounded-r-none border-r-0",
+                "w-[100px] justify-between rounded-r-none border-r-0",
                 error && "border-destructive",
                 !isValid && "border-destructive"
               )}

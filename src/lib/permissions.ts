@@ -31,6 +31,7 @@ export const PERMISSIONS = {
     CREATE_ANY: 'bookings.create.any',
     CANCEL_SELF: 'bookings.cancel.self',
     MANAGE: 'bookings.manage',
+    UNDO_CHECKIN: 'bookings.undo.checkin'
   },
   INVOICES: {
     VIEW_SELF: 'invoices.view.self',
