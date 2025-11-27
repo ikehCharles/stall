@@ -14,7 +14,7 @@ create table "public"."cred" (
 alter table "public"."cred" enable row level security;
 
 create table "public"."payment_sync" (
-    "id" uuid not null default uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "provider" text not null,
     "account_id" text default 'default'::text,
     "last_synced_at" timestamp with time zone,
@@ -35,13 +35,10 @@ alter table "public"."bookings" add column "offline_synced_at" timestamp with ti
 
 CREATE UNIQUE INDEX cred_pkey ON public.cred USING btree (id);
 
-CREATE UNIQUE INDEX payment_sync_pkey ON public.payment_sync USING btree (id);
 
 CREATE UNIQUE INDEX payment_sync_provider_account_id_key ON public.payment_sync USING btree (provider, account_id);
 
 alter table "public"."cred" add constraint "cred_pkey" PRIMARY KEY using index "cred_pkey";
-
-alter table "public"."payment_sync" add constraint "payment_sync_pkey" PRIMARY KEY using index "payment_sync_pkey";
 
 alter table "public"."booking_dates" add constraint "booking_dates_checked_in_by_fkey" FOREIGN KEY (checked_in_by) REFERENCES profiles(id) not valid;
 
@@ -236,11 +233,6 @@ BEGIN
 
 END$function$
 ;
-
-INSERT INTO public.permissions (key, name, description, category) VALUES
-  -- Undo
-  ('bookings.undo.checkin', 'Undo Booking Checkin', 'Undo Booking check in', 'bookings');
-
 
 CREATE OR REPLACE FUNCTION public.undo_checkin_vendor(p_booking_id uuid, p_booking_date_id uuid)
  RETURNS jsonb
