@@ -48,6 +48,19 @@ alter table "public"."payment_sync" add constraint "payment_sync_provider_accoun
 
 set check_function_bodies = off;
 
+INSERT INTO public.permissions (key, name, description, category) VALUES
+  -- Bookings
+  ('bookings.undo.checkin', 'Undo Booking Checkin', 'Undo bookings checkin', 'bookings');
+
+INSERT INTO public.role_permissions (role_id, permission_id)
+SELECT 
+  r.id as role_id,
+  p.id as permission_id
+FROM public.roles r
+CROSS JOIN public.permissions p
+WHERE 
+  (r.key = 'admin' AND p.key = 'bookings.undo.checkin');
+
 CREATE OR REPLACE FUNCTION public.checkin_vendor(p_booking_id uuid, p_booking_date_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -394,8 +407,5 @@ to public
 using ((EXISTS ( SELECT 1
    FROM bookings
   WHERE ((bookings.id = booking_dates.booking_id) AND has_any_permission(auth.uid(), ARRAY['bookings.manage'::text, 'bookings.undo.checkin'::text])))));
-
-
-CREATE TRIGGER handle_updated_at BEFORE UPDATE ON public.payment_sync FOR EACH ROW EXECUTE FUNCTION moddatetime('updated_at');
 
 

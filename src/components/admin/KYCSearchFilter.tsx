@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { CalendarIcon, Search, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { useSearchParams } from 'react-router-dom';
 
 export interface KYCFilters {
   search: string;
@@ -24,10 +25,18 @@ interface KYCSearchFilterProps {
 export function KYCSearchFilter({ filters, onFiltersChange, onReset }: KYCSearchFilterProps) {
   const [dateFromOpen, setDateFromOpen] = useState(false);
   const [dateToOpen, setDateToOpen] = useState(false);
-
+  const [searchParams] = useSearchParams();
   const updateFilter = (key: keyof KYCFilters, value: any) => {
     onFiltersChange({ ...filters, [key]: value });
   };
+
+
+  useEffect(() => {
+    const contactEmail = searchParams.get("contactEmail") || "";
+    if (contactEmail && contactEmail !== filters.search) {
+      onFiltersChange({ ...filters, search: contactEmail });
+    }
+  }, [filters, onFiltersChange, searchParams]);
 
   const hasActiveFilters = Boolean(
     filters.search || 

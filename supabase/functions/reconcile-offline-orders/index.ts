@@ -163,10 +163,13 @@ Deno.serve(async () => {
       .eq('provider', PROVIDER)
       .eq('account_id', 'default')
 
-    return new Response(
-      `[${PROVIDER}] Success: ${processed} paid, ${refunded} refunded`,
-      { status: 200 }
-    )
+
+      return responseJSON(200, {
+        message: `Payments refreshed from ${PROVIDER} successfully`,
+        status: true
+      });
+
+    
 
   } catch (err) {
     console.error('Sync failed:', err)

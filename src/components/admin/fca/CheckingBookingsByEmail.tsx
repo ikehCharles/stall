@@ -175,7 +175,7 @@ const CheckingBookingsByEmail: React.FC<CheckingBookingsByEmailProps> = (
                 <div key={booking.id} className="space-y-4">
                   <Card
                     onClick={() => onSelectBooking(booking)}
-                    className="border-gray-300 hover:shadow-md transition-shadow"
+                    className="border-gray-300 cursor-pointer hover:shadow-md transition-shadow"
                   >
                     <CardContent className="space-y-4">
                       <div className="pb-3">

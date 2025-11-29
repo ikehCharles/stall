@@ -23,8 +23,21 @@ import { AlertCircle, Calendar, DollarSign } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Market } from "@/hooks/useMarkets";
 import { StallInstance } from "@/hooks/useStallInstances";
-import { BookingDate } from "@/hooks/useBookingDates";
 import { getKycBadge } from "@/components/shared/statuses";
+
+
+export interface SessionVendorStorage{
+  
+    marketId: string,
+    vendorId: string,
+    vendorDetails: Profile,
+    stallSelection: {
+      stall:StallInstance,
+      selectedDates: Date[],
+      totalCost: number,
+    },
+  
+}
 
 interface FCABookingModalProps {
   open: boolean;

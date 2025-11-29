@@ -57,7 +57,7 @@ export const getStatusBadge = (status: string) => {
       case "success":
         return <Badge variant="success">Paid</Badge>;
       case "pending":
-        return <Badge variant="secondary">Captured</Badge>;
+        return <Badge variant="pending">Awaiting Payment</Badge>;
       case "failed":
         return <Badge variant="destructive">Failed</Badge>;
       case "refunded":
@@ -65,7 +65,7 @@ export const getStatusBadge = (status: string) => {
       case "cancelled":
         return <Badge variant="destructive">Cancelled</Badge>;
       default:
-        return <Badge variant="outline">Pending</Badge>;
+        return <Badge variant="pending">Pending</Badge>;
     }
   };
 

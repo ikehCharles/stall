@@ -12,7 +12,7 @@ export const useSyncOfflineBooking = () => {
       mutationFn: async () => {
         const { data, error } = await supabase.functions.invoke("sync-offline-orders");
         if (error) throw error;
-        return data;
+        return data as {synced: number, message:string};
       },
       onSuccess: (res) => {
         queryClient.invalidateQueries({ queryKey: ["admin-bookings"] });

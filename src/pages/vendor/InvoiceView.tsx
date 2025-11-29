@@ -9,7 +9,7 @@ import { format } from "date-fns";
 const InvoiceView = () => {
   const { id } = useParams();
   const { data: booking, isLoading, error } = useBookingDetails(id || "");
-
+  const isAdminView = location.pathname.includes("/admin/");
   const handlePrint = () => {
     window.print();
   };
@@ -42,9 +42,11 @@ const InvoiceView = () => {
   return (
     <div className="max-w-4xl mx-auto overflow-auto space-y-6">
       <div className="flex items-center justify-between print:hidden">
-        <Button asChild variant="ghost">
+       <div>
+       {!isAdminView && <Button asChild variant="ghost">
           <Link to="/vendor/bookings">← Back to Bookings</Link>
-        </Button>
+        </Button>}
+        </div>
         <div className="space-x-2">
           <Button variant="outline" onClick={handlePrint}>
             Print Invoice

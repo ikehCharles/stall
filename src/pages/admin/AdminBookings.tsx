@@ -45,7 +45,10 @@ import {
   useReconcileOfflineBooking,
   useSyncOfflineBooking,
 } from "@/hooks/useOfflineBooking";
-import { getPaymentStatusBadge, getStatusBadge } from "@/components/shared/statuses";
+import {
+  getPaymentStatusBadge,
+  getStatusBadge,
+} from "@/components/shared/statuses";
 
 const AdminBookings = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -56,8 +59,6 @@ const AdminBookings = () => {
   const toggleBooking = useAdminToggleBooking();
   const syncOffline = useSyncOfflineBooking();
   const reconcileOffline = useReconcileOfflineBooking();
-
-  
 
   const filteredBookings =
     bookings?.filter((booking) => {
@@ -160,13 +161,16 @@ const AdminBookings = () => {
   };
 
   const canShowActions = useCallback((booking: BookingWithStalls) => {
-    if (booking.status === "reserved" || booking.payment_status === "pending") {
+    const { status, payment_status } = booking;
+    // reserved & authorized, INTENT = AUTHORIZED (on authorized charge account) OR INTENT = PAY LATER - (Approve and sync with POS)
+    if (status === "reserved") {
       return true;
     }
-    return (
-      ["success", "authorized"].includes(booking.payment_status) &&
-      ["pending", "reserved"].includes(booking.status)
-    );
+    // INTENT = CAPTURE 
+    if (status === "pending" && payment_status === "success") {
+      return true;
+    }
+    return false;
   }, []);
 
   const handleSyncBookings = async () => {
@@ -191,16 +195,14 @@ const AdminBookings = () => {
             onClick={handleReconcileBookings}
             variant="default"
           >
-            {reconcileOffline.isPending && <Loader />}
-            {' '}Reconcile Payments
+            {reconcileOffline.isPending && <Loader />} Reconcile Payments
           </Button>
           <Button
             disabled={syncOffline.isPending}
             onClick={handleSyncBookings}
             variant="default"
           >
-            {syncOffline.isPending && <Loader />}
-            {' '}Sync Bookings
+            {syncOffline.isPending && <Loader />} Sync Bookings
           </Button>
         </div>
       </div>

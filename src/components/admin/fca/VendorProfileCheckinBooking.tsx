@@ -181,7 +181,7 @@ const VendorCheckinBooking: React.FC<VendorCheckinBookingProps> = ({
                 {/* KYC Pending – Full width on mobile */}
                 {profile.kyc_status === "PENDING" && (
                   <a
-                    href="/admin/kyc"
+                    href={`/admin/kyc?contactEmail=${profile.email}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center justify-center gap-2"

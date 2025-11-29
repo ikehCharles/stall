@@ -71,3 +71,48 @@ export const useUsers = () => {
     },
   });
 };
+
+
+export function useUserProfile(userId?: string) {
+  return useQuery({
+    queryKey: ["user-profile", userId],
+    enabled: !!userId, // only run when user exists
+
+    queryFn: async () => {
+      const [{ data: profile }, { data: roleData }, { data: kycData }] =
+        await Promise.all([
+          supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
+          supabase.rpc("get_user_role_with_permissions", {
+            user_uuid: userId,
+          }),
+          supabase
+            .from("kyc_applications")
+            .select("status")
+            .eq("user_id", userId)
+            .maybeSingle(),
+        ]);
+
+      const roleInfo = Array.isArray(roleData) ? roleData[0] : roleData;
+
+      return {
+        id: userId,
+        email: profile?.email ?? "",
+        full_name: profile?.full_name ?? null,
+        phone_number: profile?.phone_number ?? null,
+        company_name: profile?.company_name ?? null,
+        address: profile?.address ?? null,
+        business_logo_url: profile?.business_logo_url ?? null,
+        role_key: roleInfo?.role_key ?? null,
+        role_name: roleInfo?.role_name ?? null,
+        permissions: roleInfo?.permissions ?? [],
+        role:
+          roleInfo?.role_key === "admin"
+            ? "admin"
+            : roleInfo?.role_key === "vendor"
+            ? "vendor"
+            : null,
+        kyc_status: kycData?.status ?? null,
+      };
+    },
+  });
+}
