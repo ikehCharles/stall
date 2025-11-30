@@ -61,7 +61,6 @@ const FCAInvoiceView = () => {
   };
 
   useEffect(() => {
-    console.warn("Hello");
     bookingRes.mutate(id);
   }, [id]);
 
