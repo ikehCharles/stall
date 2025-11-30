@@ -314,7 +314,7 @@ const FCACheckout = () => {
             </div>
           </div>
           <div>
-            {!bookingRes.data?.offline_invoice_id && (
+            {!bookingRes.data?.offline_invoice_id && bookingRes.data.payment_status !== 'success' && (
               <Button
                 className="w-full mt-4"
                 size="lg"

@@ -6,12 +6,13 @@ import {
   useSearchParams,
 } from "react-router-dom";
 import QRCode from "qrcode";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
+  BookingWithStalls,
   useBookingDetails,
   useCancelBooking,
   useReserveBooking,
@@ -75,6 +76,8 @@ const BookingDetails = () => {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [invoiceQR, setInvoiceQR] = useState<string | null>(null);
 
+
+  
   // look for search params status=processing and set dependency on payment_status, if it changes to success, remove search param
   useEffect(() => {
     if (searchParams.get("status") === "processing") {
@@ -85,6 +88,21 @@ const BookingDetails = () => {
       }
     }
   }, [booking?.payment_status, id, navigate, searchParams]);
+
+
+
+  const canShowActions = useCallback((booking: BookingWithStalls) => {
+    const { status, payment_status } = booking;
+    // reserved & authorized, INTENT = AUTHORIZED (on authorized charge account) OR INTENT = PAY LATER - (Approve and sync with POS)
+    if (status === "reserved") {
+      return true;
+    }
+    // INTENT = CAPTURE 
+    if (status === "pending" && payment_status === "success") {
+      return true;
+    }
+    return false;
+  }, []);
 
   if (isLoading) {
     return (
@@ -212,6 +230,8 @@ const BookingDetails = () => {
   const bookedStallIds =
     booking?.booking_stalls?.map((bs) => bs.stall_instance_id) || [];
 
+
+
   const handleCancelBooking = async () => {
     if (!id) return;
     try {
@@ -318,22 +338,7 @@ const BookingDetails = () => {
 
             {!isAdminView && isPaymentAvailable && (
               <div className="flex items-center flex-wrap gap-2">
-                {/* <Button
-                  disabled={
-                    reserveBooking.isPending ||
-                    isProcessingPayment ||
-                    createPayment.isPending
-                  }
-                  onClick={handleReserveBooking}
-                >
-                  {reserveBooking.isPending ? (
-                    <>
-                      <Loader /> Pay Later
-                    </>
-                  ) : (
-                    "Pay Later"
-                  )}
-                </Button> */}
+                
 
                 <Button
                   disabled={
@@ -363,7 +368,7 @@ const BookingDetails = () => {
                 Cancel Booking
               </Button>
             )}
-            {isAdminView && booking?.status === "pending" && (
+            {isAdminView && canShowActions(booking) && (
               <>
                 <Button
                   onClick={() => handleApprove(booking.id)}

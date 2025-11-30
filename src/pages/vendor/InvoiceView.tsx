@@ -5,6 +5,7 @@ import { Separator } from "@/components/ui/separator";
 import { useBookingDetails } from "@/hooks/useBookings";
 import { Loader2 } from "lucide-react";
 import { format } from "date-fns";
+import { getPaymentStatusBadge } from "@/components/shared/statuses";
 
 const InvoiceView = () => {
   const { id } = useParams();
@@ -42,10 +43,12 @@ const InvoiceView = () => {
   return (
     <div className="max-w-4xl mx-auto overflow-auto space-y-6">
       <div className="flex items-center justify-between print:hidden">
-       <div>
-       {!isAdminView && <Button asChild variant="ghost">
-          <Link to="/vendor/bookings">← Back to Bookings</Link>
-        </Button>}
+        <div>
+          {!isAdminView && (
+            <Button asChild variant="ghost">
+              <Link to="/vendor/bookings">← Back to Bookings</Link>
+            </Button>
+          )}
         </div>
         <div className="space-x-2">
           <Button variant="outline" onClick={handlePrint}>
@@ -231,17 +234,8 @@ const InvoiceView = () => {
 
             {/* Payment Status Badge */}
             <div className="mt-6 flex justify-end">
-              <div
-                className={`px-4 py-2 rounded-full text-sm font-medium ${
-                  booking.payment_status === "success"
-                    ? "bg-green-100 text-green-800"
-                    : booking.payment_status === "pending"
-                    ? "bg-yellow-100 text-yellow-800"
-                    : "bg-red-100 text-red-800"
-                }`}
-              >
-                Payment Status:{" "}
-                {booking.payment_status?.toUpperCase() || "PENDING"}
+              <div className={`pl-4 py-2 text-sm font-medium`}>
+                Payment Status: {getPaymentStatusBadge(booking.payment_status)}
               </div>
             </div>
 

@@ -68,7 +68,8 @@ const FCAStallBooking = () => {
     }
 
     await bookingRes.mutateAsync(bookingId);
-    setInvoiceUrl(text);
+    const adminInvoiceUrl = `/admin/fca/invoices/${bookingId}`
+    setInvoiceUrl(adminInvoiceUrl);
   };
 
   const handleVendorFound = (bookingsWithProfile: UserBookingsResponse) => {
@@ -151,7 +152,8 @@ const FCAStallBooking = () => {
   ) => {
     const invoiceUrl = generateInvoiceUrl(booking.id);
     await bookingRes.mutateAsync(booking.id);
-    setInvoiceUrl(invoiceUrl);
+    const adminInvoiceUrl = `/admin/fca/invoices/${booking.id}`
+    setInvoiceUrl(adminInvoiceUrl);
   };
 
   const onViewBookings = () => {

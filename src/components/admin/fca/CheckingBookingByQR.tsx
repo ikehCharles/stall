@@ -245,18 +245,23 @@ const CheckingBookingByQR: React.FC<CheckingBookingByQRProps> = (props) => {
     booking?.payment_status !== "success";
   const isPendingNoPaymentApproval =
     booking?.isCurrentMarket &&
-    (booking?.status === "reserved") &&
+    booking?.status === "reserved" &&
     booking?.payment_status !== "success";
 
-const isPendingCaptureApproval = booking?.isCurrentMarket &&
-(booking?.status === "pending") &&
-booking?.payment_status === "success";
+  const isPendingCaptureApproval =
+    booking?.isCurrentMarket &&
+    booking?.status === "pending" &&
+    booking?.payment_status === "success";
 
-const isPendingAuthorizedApproval = booking?.isCurrentMarket &&
-(booking?.status === "reserved") &&
-booking?.payment_status === "authorized";
+  const isPendingAuthorizedApproval =
+    booking?.isCurrentMarket &&
+    booking?.status === "reserved" &&
+    booking?.payment_status === "authorized";
 
-const isPendingApproval = isPendingCaptureApproval || isPendingNoPaymentApproval || isPendingAuthorizedApproval;
+  const isPendingApproval =
+    isPendingCaptureApproval ||
+    isPendingNoPaymentApproval ||
+    isPendingAuthorizedApproval;
 
   const showDefault =
     booking?.isCurrentMarket &&
@@ -272,14 +277,16 @@ const isPendingApproval = isPendingCaptureApproval || isPendingNoPaymentApproval
             <DialogTitle className="flex items-baseline md:items-center justify-between gap-2">
               <div className="flex flex-wrap items-start gap-2">
                 <span>FCA Booking - {market.name} </span>
-                <a
-                  href={invoiceUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-500 hover:underline"
-                >
-                  - {booking?.invoice_number}
-                </a>
+                {booking?.status !== 'pending' && (
+                  <a
+                    href={invoiceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-500 hover:underline"
+                  >
+                    - {booking?.invoice_number}
+                  </a>
+                )}
               </div>
 
               {booking && (
@@ -563,9 +570,7 @@ const isPendingApproval = isPendingCaptureApproval || isPendingNoPaymentApproval
 
           {isCompletedPaid && (
             <div className="space-y-6">
-              <h3 className="text-lg font-semibold mb-2">
-                Daily Check-In
-              </h3>
+              <h3 className="text-lg font-semibold mb-2">Daily Check-In</h3>
 
               {booking.booking_stalls.map((bs) => {
                 const datesForStall = booking.booking_dates?.filter(
@@ -790,16 +795,18 @@ const isPendingApproval = isPendingCaptureApproval || isPendingNoPaymentApproval
                 </CardContent>
               </Card>
 
-              <Button asChild size="lg" className="w-full">
-                <a
-                  href={invoiceUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-500 hover:underline"
-                >
-                  View Invoice
-                </a>
-              </Button>
+              {booking?.status !== "pending" && (
+                <Button asChild size="lg" className="w-full">
+                  <a
+                    href={invoiceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-500 hover:underline"
+                  >
+                    View Invoice
+                  </a>
+                </Button>
+              )}
             </div>
           )}
         </DialogContent>
