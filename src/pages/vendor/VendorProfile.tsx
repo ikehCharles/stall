@@ -347,7 +347,7 @@ const VendorProfile = () => {
             <KYCForm onSubmit={handleKYCSubmit} />
           ) : kycData ? (
             <div className="space-y-4">
-              <KYCStatus kycData={kycData} />
+              <KYCStatus onStartKYC={handleStartKYC} kycData={kycData} />
               {kycData.status !== 'APPROVED' && kycData.status !== 'REJECTED' && (
                 <div className="flex justify-center">
                   <Button onClick={handleStartKYC}>
