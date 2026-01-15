@@ -56,6 +56,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import React from "react";
+import CurrencyWrapper from "@/components/shared/currency";
 
 const BookingDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -76,8 +77,6 @@ const BookingDetails = () => {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [invoiceQR, setInvoiceQR] = useState<string | null>(null);
 
-
-  
   // look for search params status=processing and set dependency on payment_status, if it changes to success, remove search param
   useEffect(() => {
     if (searchParams.get("status") === "processing") {
@@ -89,15 +88,13 @@ const BookingDetails = () => {
     }
   }, [booking?.payment_status, id, navigate, searchParams]);
 
-
-
   const canShowActions = useCallback((booking: BookingWithStalls) => {
     const { status, payment_status } = booking;
     // reserved & authorized, INTENT = AUTHORIZED (on authorized charge account) OR INTENT = PAY LATER - (Approve and sync with POS)
     if (status === "reserved") {
       return true;
     }
-    // INTENT = CAPTURE 
+    // INTENT = CAPTURE
     if (status === "pending" && payment_status === "success") {
       return true;
     }
@@ -230,8 +227,6 @@ const BookingDetails = () => {
   const bookedStallIds =
     booking?.booking_stalls?.map((bs) => bs.stall_instance_id) || [];
 
-
-
   const handleCancelBooking = async () => {
     if (!id) return;
     try {
@@ -324,12 +319,11 @@ const BookingDetails = () => {
             </p>
           </div>
           <div className="space-x-2 flex items-center justify-end flex-wrap gap-2">
-            
-              <Button onClick={generateQR} variant="outline">
-                <QrCode  />
-                View QR
-                </Button>
-            
+            <Button onClick={generateQR} variant="outline">
+              <QrCode />
+              View QR
+            </Button>
+
             {!isAdminView && (
               <Button asChild variant="outline">
                 <Link to={`/vendor/invoice/${booking.id}`}>View Invoice</Link>
@@ -338,8 +332,6 @@ const BookingDetails = () => {
 
             {!isAdminView && isPaymentAvailable && (
               <div className="flex items-center flex-wrap gap-2">
-                
-
                 <Button
                   disabled={
                     isProcessingPayment ||
@@ -568,7 +560,9 @@ const BookingDetails = () => {
                     {booking.booking_stalls?.map((bs) => (
                       <div key={bs.id} className="flex justify-between text-sm">
                         <span>Stall {bs.stall_instances?.label}</span>
-                        <span>${bs.price_at_booking}</span>
+                        <span>
+                          <CurrencyWrapper amount={bs.price_at_booking} />
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -578,17 +572,22 @@ const BookingDetails = () => {
                   <div className="space-y-2">
                     <div className="flex justify-between font-medium">
                       <span>Total Amount:</span>
-                      <span>${booking.total_amount}</span>
+                      <span>
+                        <CurrencyWrapper amount={booking.total_amount} />
+                      </span>
                     </div>
                     <div className="flex justify-between text-green-600">
                       <span>Paid:</span>
-                      <span>${booking.paid_amount}</span>
+                      <span>
+                      <CurrencyWrapper amount={booking.paid_amount} />
+                      </span>
                     </div>
                     {booking.paid_amount < booking.total_amount && (
                       <div className="flex justify-between text-red-600 font-medium">
                         <span>Outstanding:</span>
                         <span>
-                          ${booking.total_amount - booking.paid_amount}
+                          <CurrencyWrapper amount={booking.total_amount - booking.paid_amount} />
+                      
                         </span>
                       </div>
                     )}

@@ -14,7 +14,19 @@ export const generateInvoiceUrl = (bookingId: string) => {
   return url
 };
 
+export const formatCurrency = (amount: number, currency?: string) => {
+  return new Intl.NumberFormat('en-GB', {
+      style: 'currency',
+      currency: currency || 'GBP',
+  }).format(amount);
+};
 
+export const getCurrencySymbol = (currency?: string) => {
+  return new Intl.NumberFormat('en-GB', {
+      style: 'currency',
+      currency: currency || 'GBP',
+  }).formatToParts(0).find(part => part.type === 'currency')?.value || currency;
+};
 
 export enum PAYMENT_SWITCH_ENUM {
   PAYPAL = "paypal",

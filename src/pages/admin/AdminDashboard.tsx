@@ -5,6 +5,7 @@ import { KYCMetricsCard } from "@/components/admin/KYCMetricsCard";
 import { ActivityFeed } from "@/components/admin/ActivityFeed";
 import { useAdminAnalytics } from "@/hooks/useAdminAnalytics";
 import { useStallOccupancy } from "@/hooks/useStallOccupancy";
+import { formatCurrency } from "@/lib/utils";
 
 const AdminDashboard = () => {
   const { data: analytics, isLoading: analyticsLoading } = useAdminAnalytics();
@@ -20,7 +21,7 @@ const AdminDashboard = () => {
     },
     {
       title: "Total Revenue",
-      value: `$${(analytics?.totalRevenue || 0).toFixed(2)}`,
+      value: `${formatCurrency(analytics?.totalRevenue || 0)}`,
       icon: "💰",
       gradient: "from-green-500 to-emerald-500",
       loading: analyticsLoading

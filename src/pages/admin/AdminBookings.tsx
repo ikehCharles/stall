@@ -49,6 +49,7 @@ import {
   getPaymentStatusBadge,
   getStatusBadge,
 } from "@/components/shared/statuses";
+import CurrencyWrapper from "@/components/shared/currency";
 
 const AdminBookings = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -166,7 +167,7 @@ const AdminBookings = () => {
     if (status === "reserved") {
       return true;
     }
-    // INTENT = CAPTURE 
+    // INTENT = CAPTURE
     if (status === "pending" && payment_status === "success") {
       return true;
     }
@@ -307,7 +308,9 @@ const AdminBookings = () => {
                       <TableCell>
                         {booking.booking_stalls?.length || 0}
                       </TableCell>
-                      <TableCell>${booking.total_amount}</TableCell>
+                      <TableCell>
+                        <CurrencyWrapper amount={booking.total_amount} />
+                      </TableCell>
                       <TableCell>{getStatusBadge(booking.status)}</TableCell>
                       <TableCell>
                         {getPaymentStatusBadge(booking.payment_status)}

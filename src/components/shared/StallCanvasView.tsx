@@ -1,4 +1,5 @@
 import { StallInstance } from "@/hooks/useStallInstances";
+import { formatCurrency } from "@/lib/utils";
 
 interface StallCanvasViewProps {
   stalls: StallInstance[];
@@ -48,7 +49,8 @@ export const StallCanvasView = ({ stalls, onStallClick, getStallColor }: StallCa
                 fontSize="10"
                 cursor={"pointer"}
               >
-                ${stallPrice}/day
+
+                {formatCurrency(stallPrice)}/day
               </text>
             </g>
           );

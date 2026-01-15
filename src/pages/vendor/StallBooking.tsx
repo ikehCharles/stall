@@ -2,12 +2,22 @@ import { useState, useEffect } from "react";
 import { useParams, Link, Navigate, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { useMarkets } from "@/hooks/useMarkets";
 import { useStallInstances } from "@/hooks/useStallInstances";
-import { useCreateBooking, CreateBookingData, useReserveBooking } from "@/hooks/useBookings";
+import {
+  useCreateBooking,
+  CreateBookingData,
+  useReserveBooking,
+} from "@/hooks/useBookings";
 import { useStallHolds, useCleanupExpiredHolds } from "@/hooks/useStallHolds";
 import { useBookingDates } from "@/hooks/useBookingDates";
 import { EnhancedStallModal } from "@/components/vendor/EnhancedStallModal";
@@ -17,11 +27,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { format } from "date-fns";
+import CurrencyWrapper from "@/components/shared/currency";
+import { formatCurrency } from "@/lib/utils";
 
-type StallInstance = Database['public']['Tables']['stall_instances']['Row'] & {
+type StallInstance = Database["public"]["Tables"]["stall_instances"]["Row"] & {
   stall_templates?: {
     name: string;
-    shape: Database['public']['Enums']['stall_shape'];
+    shape: Database["public"]["Enums"]["stall_shape"];
     fill_color: string;
     stroke_color: string;
     price: number;
@@ -43,44 +55,46 @@ const EnhancedStallBooking = () => {
   const { user: currentUser, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [selectedStalls, setSelectedStalls] = useState<StallSelection[]>([]);
-  const [selectedStall, setSelectedStall] = useState<StallInstance | null>(null);
+  const [selectedStall, setSelectedStall] = useState<StallInstance | null>(
+    null
+  );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const reserveBooking = useReserveBooking();
   const { data: markets } = useMarkets();
-  const { data: stallInstances, isLoading: stallsLoading } = useStallInstances(marketId || '');
-  const { data: currentStallHolds = {} } = useStallHolds(marketId || '');
-  const { data: bookedDates = [] } = useBookingDates(marketId || '');
+  const { data: stallInstances, isLoading: stallsLoading } = useStallInstances(
+    marketId || ""
+  );
+  const { data: currentStallHolds = {} } = useStallHolds(marketId || "");
+  const { data: bookedDates = [] } = useBookingDates(marketId || "");
   const createBooking = useCreateBooking();
   const cleanupHolds = useCleanupExpiredHolds();
 
-  const currentMarket = markets?.find(m => m.id === marketId);
-
+  const currentMarket = markets?.find((m) => m.id === marketId);
 
   // Create enhanced stall instances with booking and hold status
-  const stalls: StallInstance[] = stallInstances?.map((stall, _, arr) => {
-    const stallBookedDates = bookedDates.filter(bd => 
-      bd.stall_instance_id === stall.id
-    ).map(bd => bd.booking_date);
+  const stalls: StallInstance[] =
+    stallInstances?.map((stall, _, arr) => {
+      const stallBookedDates = bookedDates
+        .filter((bd) => bd.stall_instance_id === stall.id)
+        .map((bd) => bd.booking_date);
 
-    
+      // Check if this stall has any active holds
+      const stallHeldDates = currentStallHolds[stall.id] || [];
 
-    // Check if this stall has any active holds
-    const stallHeldDates = currentStallHolds[stall.id] || [];
-
-    return {
-      ...stall,
-      isSelected: stallBookedDates.length > 0,
-      isHeld: stallHeldDates.length > 0
-    };
-  }) || [];
+      return {
+        ...stall,
+        isSelected: stallBookedDates.length > 0,
+        isHeld: stallHeldDates.length > 0,
+      };
+    }) || [];
 
   const handleStallClick = (stall: StallInstance) => {
-    if (stall.status !== 'AVAILABLE') {
+    if (stall.status !== "AVAILABLE") {
       toast({
         title: "Stall Unavailable",
         description: "This stall is not available for booking",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -89,86 +103,103 @@ const EnhancedStallBooking = () => {
   };
 
   const handleSelectStall = (stall: StallInstance, selectedDates: Date[]) => {
-    const pricePerDay = stall.price_override || stall.stall_templates?.price || 0;
+    const pricePerDay =
+      stall.price_override || stall.stall_templates?.price || 0;
     const totalCost = pricePerDay * selectedDates.length;
 
     const newSelection: StallSelection = {
       stall,
       selectedDates,
-      totalCost
+      totalCost,
     };
 
-    setSelectedStalls(prev => {
+    setSelectedStalls((prev) => {
       // Remove any existing selection for this stall
-      const filtered = prev.filter(s => s.stall.id !== stall.id);
+      const filtered = prev.filter((s) => s.stall.id !== stall.id);
       return [...filtered, newSelection];
     });
 
     toast({
       title: "Stall Selected",
-      description: `Stall ${stall.label} selected for ${selectedDates.length} day${selectedDates.length > 1 ? 's' : ''}`
+      description: `Stall ${stall.label} selected for ${
+        selectedDates.length
+      } day${selectedDates.length > 1 ? "s" : ""}`,
     });
   };
 
   const handleRemoveStall = (stallId: string) => {
-    setSelectedStalls(prev => prev.filter(s => s.stall.id !== stallId));
+    setSelectedStalls((prev) => prev.filter((s) => s.stall.id !== stallId));
   };
 
   const getTotalCost = () => {
-    return selectedStalls.reduce((sum, selection) => sum + selection.totalCost, 0);
+    return selectedStalls.reduce(
+      (sum, selection) => sum + selection.totalCost,
+      0
+    );
   };
 
   const getTotalDays = () => {
-    return selectedStalls.reduce((sum, selection) => sum + selection.selectedDates.length, 0);
+    return selectedStalls.reduce(
+      (sum, selection) => sum + selection.selectedDates.length,
+      0
+    );
   };
 
   const handleCheckout = async (payLater?: boolean) => {
     if (!marketId || selectedStalls.length === 0) return;
-    
+
     try {
       // Prepare booking data with all selected dates
-      const allDates = Array.from(new Set(
-        selectedStalls.flatMap(selection => 
-          selection.selectedDates.map(date => date.toISOString().split('T')[0])
+      const allDates = Array.from(
+        new Set(
+          selectedStalls.flatMap((selection) =>
+            selection.selectedDates.map(
+              (date) => date.toISOString().split("T")[0]
+            )
+          )
         )
-      ));
+      );
 
       const bookingData: CreateBookingData = {
         marketId,
-        stallIds: selectedStalls.map(selection => selection.stall.id),
+        stallIds: selectedStalls.map((selection) => selection.stall.id),
         totalAmount: getTotalCost(),
         selectedDates: allDates,
-        pricePerDay: selectedStalls[0]?.stall.price_override || selectedStalls[0]?.stall.stall_templates?.price || 0
+        pricePerDay:
+          selectedStalls[0]?.stall.price_override ||
+          selectedStalls[0]?.stall.stall_templates?.price ||
+          0,
       };
 
       const booking = await createBooking.mutateAsync(bookingData);
-      
+
       toast({
         title: "Booking Created!",
-        description: "Redirecting to booking details to complete payment...Proceed to making payment"
+        description:
+          "Redirecting to booking details to complete payment...Proceed to making payment",
       });
 
-    
-      if(payLater){
+      if (payLater) {
         await reserveBooking.mutateAsync(booking.id);
       }
-      
+
       // Navigate to booking details page
       navigate(`/vendor/bookings/${booking.id}`);
     } catch (error) {
       toast({
         title: error || "Booking Failed",
-        description: "There was an error processing your booking. Please try again.",
-        variant: "destructive"
+        description:
+          "There was an error processing your booking. Please try again.",
+        variant: "destructive",
       });
     }
   };
 
   const getStallColor = (stall: StallInstance) => {
-    if (stall.status === 'BOOKED') return '#ef4444'; // red - booked
-    if (stall.isSelected) return '#3b82f6'; // blue - selected
+    if (stall.status === "BOOKED") return "#ef4444"; // red - booked
+    if (stall.isSelected) return "#3b82f6"; // blue - selected
     // if (stall.isHeld) return '#f97316'; // orange - held
-    return '#22c55e'; // green - available
+    return "#22c55e"; // green - available
   };
 
   // Show loading state while checking auth
@@ -230,7 +261,9 @@ const EnhancedStallBooking = () => {
             <Link to="/vendor/markets">← Back to Markets</Link>
           </Button>
           <h1 className="text-3xl font-bold">Market Not Found</h1>
-          <p className="text-muted-foreground mt-1">The selected market could not be found.</p>
+          <p className="text-muted-foreground mt-1">
+            The selected market could not be found.
+          </p>
         </div>
       </div>
     );
@@ -297,40 +330,58 @@ const EnhancedStallBooking = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               {selectedStalls.length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">No stalls selected</p>
+                <p className="text-muted-foreground text-center py-8">
+                  No stalls selected
+                </p>
               ) : (
                 <>
                   <div className="space-y-3">
                     {selectedStalls.map((selection) => (
-                      <div key={selection.stall.id} className="p-3 bg-primary/5 rounded-lg border">
+                      <div
+                        key={selection.stall.id}
+                        className="p-3 bg-primary/5 rounded-lg border"
+                      >
                         <div className="flex items-center justify-between mb-2">
-                          <div className="font-medium">Stall {selection.stall.label}</div>
+                          <div className="font-medium">
+                            Stall {selection.stall.label}
+                          </div>
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleRemoveStall(selection.stall.id)}
+                            onClick={() =>
+                              handleRemoveStall(selection.stall.id)
+                            }
                             className="text-destructive hover:text-destructive/80 h-auto p-1"
                           >
                             Remove
                           </Button>
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          {selection.selectedDates.length} day{selection.selectedDates.length > 1 ? 's' : ''} × ${selection.stall.price_override || selection.stall.stall_templates?.price || 0}/day
+                          {selection.selectedDates.length} day
+                          {selection.selectedDates.length > 1 ? "s" : ""} × 
+                          {formatCurrency(selection.stall.price_override ||
+                            selection.stall.stall_templates?.price ||
+                            0)}
+                          /day
                         </div>
                         <div className="flex flex-wrap gap-1 mt-1">
-                          {selection.selectedDates.map(date => (
-                            <Badge key={date.toISOString()} variant="outline" className="text-xs">
-                              {format(date, 'MMM d')}
+                          {selection.selectedDates.map((date) => (
+                            <Badge
+                              key={date.toISOString()}
+                              variant="outline"
+                              className="text-xs"
+                            >
+                              {format(date, "MMM d")}
                             </Badge>
                           ))}
                         </div>
                         <div className="font-semibold text-primary mt-2">
-                          ${selection.totalCost}
+                          <CurrencyWrapper amount={selection.totalCost} />
                         </div>
                       </div>
                     ))}
                   </div>
-                  
+
                   <div className="border-t pt-4 space-y-2">
                     <div className="flex justify-between text-sm">
                       <span>Total Stalls:</span>
@@ -342,16 +393,18 @@ const EnhancedStallBooking = () => {
                     </div>
                     <div className="flex justify-between items-center text-lg font-bold">
                       <span>Total Cost:</span>
-                      <span>${getTotalCost()}</span>
+                      <CurrencyWrapper amount={getTotalCost()} />
                     </div>
                   </div>
-                  
-                  <Button 
+
+                  <Button
                     className="w-full"
                     onClick={() => setIsCheckoutOpen(true)}
                     disabled={createBooking.isPending}
                   >
-                    {createBooking.isPending ? 'Processing...' : 'Proceed to Checkout'}
+                    {createBooking.isPending
+                      ? "Processing..."
+                      : "Proceed to Checkout"}
                   </Button>
                 </>
               )}
@@ -382,18 +435,27 @@ const EnhancedStallBooking = () => {
             <div className="space-y-3">
               {selectedStalls.map((selection) => (
                 <div key={selection.stall.id} className="border rounded p-3">
-                  <div className="font-medium">Stall {selection.stall.label}</div>
+                  <div className="font-medium">
+                    Stall {selection.stall.label}
+                  </div>
                   <div className="text-sm text-muted-foreground">
-                    {selection.selectedDates.length} day{selection.selectedDates.length > 1 ? 's' : ''}
+                    {selection.selectedDates.length} day
+                    {selection.selectedDates.length > 1 ? "s" : ""}
                   </div>
                   <div className="flex flex-wrap gap-1 mt-1">
-                    {selection.selectedDates.map(date => (
-                      <Badge key={date.toISOString()} variant="outline" className="text-xs">
-                        {format(date, 'MMM d')}
+                    {selection.selectedDates.map((date) => (
+                      <Badge
+                        key={date.toISOString()}
+                        variant="outline"
+                        className="text-xs"
+                      >
+                        {format(date, "MMM d")}
                       </Badge>
                     ))}
                   </div>
-                  <div className="text-right font-semibold">${selection.totalCost}</div>
+                  <div className="text-right font-semibold">
+                    <CurrencyWrapper amount={selection.totalCost} />
+                  </div>
                 </div>
               ))}
             </div>
@@ -408,26 +470,30 @@ const EnhancedStallBooking = () => {
               </div>
               <div className="flex justify-between font-bold text-lg">
                 <span>Total:</span>
-                <span>${getTotalCost()}</span>
+                <span>
+                  <CurrencyWrapper amount={getTotalCost()} />
+                </span>
               </div>
             </div>
             <div className="flex space-x-2">
-            <Button 
-                onClick={()=>handleCheckout(true)} 
+              <Button
+                onClick={() => handleCheckout(true)}
                 variant="outline"
                 className="flex-1"
                 disabled={createBooking.isPending || reserveBooking.isPending}
               >
-                {reserveBooking.isPending ? 'Processing...' : 'Pay Later'}
+                {reserveBooking.isPending ? "Processing..." : "Pay Later"}
               </Button>
-              <Button 
-                onClick={()=>handleCheckout()} 
+              <Button
+                onClick={() => handleCheckout()}
                 className="flex-1"
                 disabled={createBooking.isPending || reserveBooking.isPending}
               >
-                {createBooking.isPending ? 'Processing...' : 'Procced To Payment'}
+                {createBooking.isPending
+                  ? "Processing..."
+                  : "Procced To Payment"}
               </Button>
-              
+
               {/* <Button variant="outline" onClick={() => setIsCheckoutOpen(false)}>
                 Cancel
               </Button> */}

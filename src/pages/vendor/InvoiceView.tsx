@@ -6,6 +6,7 @@ import { useBookingDetails } from "@/hooks/useBookings";
 import { Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { getPaymentStatusBadge } from "@/components/shared/statuses";
+import CurrencyWrapper from "@/components/shared/currency";
 
 const InvoiceView = () => {
   const { id } = useParams();
@@ -188,10 +189,12 @@ const InvoiceView = () => {
                           </td>
                           <td className="py-3 px-4 text-right">{daysCount}</td>
                           <td className="py-3 px-4 text-right">
-                            ${pricePerDay.toFixed(2)}
+                            <CurrencyWrapper amount={pricePerDay} />
+                          
                           </td>
                           <td className="py-3 px-4 text-right">
-                            ${subtotal.toFixed(2)}
+                            <CurrencyWrapper amount={subtotal} />
+                           
                           </td>
                         </tr>
                       );
@@ -207,7 +210,9 @@ const InvoiceView = () => {
                 <div className="w-64 space-y-2">
                   <div className="flex justify-between">
                     <span>Subtotal:</span>
-                    <span>${totalAmount.toFixed(2)}</span>
+                    <span>
+                      <CurrencyWrapper amount={totalAmount} />
+                      </span>
                   </div>
                   <div className="flex justify-between">
                     <span>Tax (0%):</span>
@@ -216,16 +221,22 @@ const InvoiceView = () => {
                   <Separator />
                   <div className="flex justify-between text-lg font-bold">
                     <span>Total:</span>
-                    <span>${totalAmount.toFixed(2)}</span>
+                    <span>{
+                    <CurrencyWrapper amount={totalAmount} /> }</span>
                   </div>
                   <div className="flex justify-between text-green-600">
                     <span>Paid:</span>
-                    <span>${paidAmount.toFixed(2)}</span>
+                    <span>
+                      
+                      <CurrencyWrapper amount={paidAmount} />
+                      </span>
                   </div>
                   {outstandingAmount > 0 && (
                     <div className="flex justify-between text-destructive font-medium">
                       <span>Outstanding:</span>
-                      <span>${outstandingAmount.toFixed(2)}</span>
+                      <span>
+                      <CurrencyWrapper amount={outstandingAmount} />
+                      </span>
                     </div>
                   )}
                 </div>

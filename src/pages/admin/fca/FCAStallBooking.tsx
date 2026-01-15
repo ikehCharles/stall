@@ -24,6 +24,7 @@ import { FCAVendorCreationModal } from "@/components/admin/fca/FCAVendorCreation
 import { Booking } from "@/data/mockData";
 import { generateInvoiceUrl } from "@/lib/utils";
 import { PostgrestError } from "@supabase/supabase-js";
+import CurrencyWrapper from "@/components/shared/currency";
 
 const FCAStallBooking = () => {
   const { marketId } = useParams();
@@ -310,12 +311,13 @@ const FCAStallBooking = () => {
                     {stall.stall_templates?.name || "N/A"}
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    <strong>Price:</strong> $
-                    {(
+                    <strong>Price: </strong> 
+                    <CurrencyWrapper amount={(
                       stall.price_override ||
                       stall.stall_templates?.price ||
                       0
-                    ).toFixed(2)}
+                    )} />
+                    
                     /day
                   </div>
                 </CardContent>

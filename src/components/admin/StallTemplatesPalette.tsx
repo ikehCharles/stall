@@ -1,6 +1,7 @@
 import { Square, Circle, Hexagon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import CurrencyWrapper from '../shared/currency';
 
 interface StallTemplate {
   id: string;
@@ -96,7 +97,8 @@ export const StallTemplatesPalette = ({ templates }: StallTemplatesPaletteProps)
                   </div>
                   
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">${template.price}</span>
+                    <span className="text-sm font-medium">
+                      <CurrencyWrapper amount={template.price} /></span>
                     <span className="text-xs text-muted-foreground">
                       Cap: {template.capacity}
                     </span>

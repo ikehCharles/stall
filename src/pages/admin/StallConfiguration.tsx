@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { mockStalls, Stall } from "../../data/mockData";
+import CurrencyWrapper from "@/components/shared/currency";
 
 const StallConfiguration = () => {
   const [stalls, setStalls] = useState<Stall[]>(mockStalls);
@@ -86,7 +87,7 @@ const StallConfiguration = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="price">Price ($)</Label>
+                  <Label htmlFor="price">Price <CurrencyWrapper /></Label>
                   <Input
                     id="price"
                     type="number"
@@ -202,7 +203,7 @@ const StallConfiguration = () => {
                       fill="white"
                       fontSize="8"
                     >
-                      ${stall.price}
+                      <CurrencyWrapper amount={stall.price} />
                     </text>
                   </g>
                 ))}
@@ -234,7 +235,9 @@ const StallConfiguration = () => {
                   {stalls.map((stall) => (
                     <TableRow key={stall.id}>
                       <TableCell className="font-medium">{stall.label}</TableCell>
-                      <TableCell>${stall.price}</TableCell>
+                      <TableCell>
+                        <CurrencyWrapper amount={stall.price} />
+                        </TableCell>
                       <TableCell>
                         <span className={`px-2 py-1 rounded-full text-xs ${
                           stall.isBooked 

@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCreateStallTemplate, useUpdateStallTemplate } from '@/hooks/useStallTemplates';
 import { toast } from '@/hooks/use-toast';
+import CurrencyWrapper from '../shared/currency';
 
 const formSchema = z.object({
   name: z.string().min(1, 'Template name is required'),
@@ -283,7 +284,7 @@ export const StallTemplateDialog = ({ open, onOpenChange, template, onSuccess }:
                   name="price"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Default Price ($)</FormLabel>
+                      <FormLabel>Default Price <CurrencyWrapper /></FormLabel>
                       <FormControl>
                         <Input 
                           type="number" 

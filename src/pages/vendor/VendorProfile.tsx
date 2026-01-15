@@ -309,7 +309,7 @@ const VendorProfile = () => {
                         placeholder="+1 (555) 123-4567"
                       />
                     </div>
-                    <div className="space-y-2">
+                    {/* <div className="space-y-2">
                       <Label htmlFor="company_name">Company Name</Label>
                       <Input
                         id="company_name"
@@ -317,10 +317,8 @@ const VendorProfile = () => {
                         onChange={(e) => handleChange('company_name', e.target.value)}
                         disabled={!isEditing}
                       />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
+                    </div> */}
+                     <div className="space-y-2">
                     <Label htmlFor="address">Address</Label>
                     <Textarea
                       id="address"
@@ -331,6 +329,9 @@ const VendorProfile = () => {
                       placeholder="Enter your complete business address"
                     />
                   </div>
+                  </div>
+
+                 
                 </CardContent>
               </Card>
             </div>

@@ -1,12 +1,23 @@
-import { useState } from 'react';
-import { Plus, Edit, Trash2, Square, Circle, Hexagon } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { useStallTemplates, useDeleteStallTemplate } from '@/hooks/useStallTemplates';
-import { StallTemplateDialog } from '@/components/admin/StallTemplateDialog';
-import { toast } from '@/hooks/use-toast';
+import { useState } from "react";
+import { Plus, Edit, Trash2, Square, Circle, Hexagon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import {
+  useStallTemplates,
+  useDeleteStallTemplate,
+} from "@/hooks/useStallTemplates";
+import { StallTemplateDialog } from "@/components/admin/StallTemplateDialog";
+import { toast } from "@/hooks/use-toast";
+import CurrencyWrapper from "@/components/shared/currency";
 
 const StallTemplates = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -15,18 +26,18 @@ const StallTemplates = () => {
   const deleteTemplate = useDeleteStallTemplate();
 
   const handleDelete = async (templateId: string) => {
-    if (confirm('Are you sure you want to delete this template?')) {
+    if (confirm("Are you sure you want to delete this template?")) {
       try {
         await deleteTemplate.mutateAsync(templateId);
         toast({
-          title: 'Template Deleted',
-          description: 'Stall template has been deleted successfully',
+          title: "Template Deleted",
+          description: "Stall template has been deleted successfully",
         });
       } catch (error) {
         toast({
-          title: 'Error',
-          description: 'Failed to delete template',
-          variant: 'destructive',
+          title: "Error",
+          description: "Failed to delete template",
+          variant: "destructive",
         });
       }
     }
@@ -34,10 +45,14 @@ const StallTemplates = () => {
 
   const getShapeIcon = (shape: string) => {
     switch (shape) {
-      case 'RECT': return <Square className="h-4 w-4" />;
-      case 'CIRCLE': return <Circle className="h-4 w-4" />;
-      case 'POLY': return <Hexagon className="h-4 w-4" />;
-      default: return <Square className="h-4 w-4" />;
+      case "RECT":
+        return <Square className="h-4 w-4" />;
+      case "CIRCLE":
+        return <Circle className="h-4 w-4" />;
+      case "POLY":
+        return <Hexagon className="h-4 w-4" />;
+      default:
+        return <Square className="h-4 w-4" />;
     }
   };
 
@@ -53,10 +68,17 @@ const StallTemplates = () => {
 
     return (
       <svg width={size} height={size} className="border rounded">
-        {template.shape === 'CIRCLE' ? (
-          <circle cx={size/2} cy={size/2} r={size/2 - 2} {...props} />
+        {template.shape === "CIRCLE" ? (
+          <circle cx={size / 2} cy={size / 2} r={size / 2 - 2} {...props} />
         ) : (
-          <rect x={2} y={2} width={size-4} height={size-4} rx={4} {...props} />
+          <rect
+            x={2}
+            y={2}
+            width={size - 4}
+            height={size - 4}
+            rx={4}
+            {...props}
+          />
         )}
       </svg>
     );
@@ -70,8 +92,12 @@ const StallTemplates = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Stall Templates</h1>
-          <p className="text-muted-foreground mt-1">Create reusable stall designs</p>
+          <h1 className="text-3xl font-bold text-foreground">
+            Stall Templates
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Create reusable stall designs
+          </p>
         </div>
         <Button onClick={() => setIsCreateDialogOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
@@ -106,20 +132,25 @@ const StallTemplates = () => {
                     <TableCell>
                       <TemplatePreview template={template} />
                     </TableCell>
-                    <TableCell className="font-medium">{template.name}</TableCell>
+                    <TableCell className="font-medium">
+                      {template.name}
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         {getShapeIcon(template.shape)}
-                        <span className="capitalize">{template.shape.toLowerCase()}</span>
+                        <span className="capitalize">
+                          {template.shape.toLowerCase()}
+                        </span>
                       </div>
                     </TableCell>
                     <TableCell>
-                      {template.shape === 'CIRCLE' 
+                      {template.shape === "CIRCLE"
                         ? `r${template.radius}`
-                        : `${template.width}×${template.height}`
-                      }
+                        : `${template.width}×${template.height}`}
                     </TableCell>
-                    <TableCell>${template.price}</TableCell>
+                    <TableCell>
+                      <CurrencyWrapper amount={template.price} />
+                    </TableCell>
                     <TableCell>{template.capacity}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -147,7 +178,9 @@ const StallTemplates = () => {
             <div className="text-center py-8 text-muted-foreground">
               <Square className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No templates created yet</p>
-              <p className="text-sm">Create your first stall template to get started</p>
+              <p className="text-sm">
+                Create your first stall template to get started
+              </p>
             </div>
           )}
         </CardContent>

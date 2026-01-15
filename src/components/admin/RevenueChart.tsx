@@ -3,6 +3,8 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRevenueData } from "@/hooks/useRevenueData";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
+import CurrencyWrapper from "../shared/currency";
+import { formatCurrency } from "@/lib/utils";
 
 export const RevenueChart = () => {
   const { data, isLoading } = useRevenueData(30);
@@ -49,7 +51,7 @@ export const RevenueChart = () => {
               <YAxis 
                 stroke="hsl(var(--muted-foreground))"
                 fontSize={12}
-                tickFormatter={(value) => `$${value}`}
+                tickFormatter={(value) => formatCurrency(value)}
               />
               <ChartTooltip content={<ChartTooltipContent />} />
               <Line 

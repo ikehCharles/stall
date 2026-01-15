@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { useUpdateStallInstance, useDeleteStallInstance } from '@/hooks/useStallInstances';
 import { toast } from '@/hooks/use-toast';
+import CurrencyWrapper from '../shared/currency';
+import { formatCurrency } from '@/lib/utils';
 
 interface StallInstance {
   id: string;
@@ -258,7 +260,7 @@ export const StallPropertiesPanel = ({ stallId, stalls, onStallUpdate }: StallPr
           <div className="space-y-2">
             <div>
               <Label className="text-xs text-muted-foreground">
-                Template Price: ${template?.price || 0}
+                Template Price: <CurrencyWrapper amount={template?.price || 0} />
               </Label>
             </div>
             <div>
@@ -266,14 +268,14 @@ export const StallPropertiesPanel = ({ stallId, stalls, onStallUpdate }: StallPr
               <Input
                 type="number"
                 step="0.01"
-                placeholder={`Default: $${template?.price || 0}`}
+                placeholder={`Default: ${formatCurrency(template?.price || 0)}`}
                 value={selectedStall.price_override || ''}
                 onChange={(e) => handleUpdate('price_override', e.target.value ? Number(e.target.value) : null)}
                 className="text-sm"
               />
             </div>
             <div className="p-2 bg-accent/50 rounded text-sm">
-              <strong>Effective Price: ${effectivePrice}</strong>
+              <strong>Effective Price: <CurrencyWrapper amount={effectivePrice} /> </strong>
             </div>
           </div>
         </div>

@@ -10,6 +10,8 @@ import { BookingCalendar } from "./BookingCalendar";
 import { StallHoldTimer } from "./StallHoldTimer";
 import { useCreateStallHold } from "@/hooks/useStallHolds";
 import { format } from "date-fns";
+import { formatCurrency } from "@/lib/utils";
+import CurrencyWrapper from "../shared/currency";
 
 type StallInstance = Database['public']['Tables']['stall_instances']['Row'] & {
   stall_templates?: {
@@ -107,7 +109,7 @@ export function EnhancedStallModal({
         
         toast({
           title: response.days ? "Stall Reserved" : "Stall Hold Released",
-          description: response.days ? `Stall ${stall.label} is held for 5 minutes. Total: $${response.total?.toFixed(2) || '0.00'}` : `All Hold on stall ${stall.label} has been released.`,
+          description: response.days ? `Stall ${stall.label} is held for 5 minutes. Total: ${formatCurrency(response.total || 0)}` : `All Hold on stall ${stall.label} has been released.`,
         });
       } catch (error) {
         console.error('Hold creation error:', error);
@@ -190,7 +192,9 @@ export function EnhancedStallModal({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <h4 className="font-medium">Price per Day</h4>
-                  <p className="text-2xl font-bold text-primary">${pricePerDay}</p>
+                  <p className="text-2xl font-bold text-primary">
+                    <CurrencyWrapper amount={pricePerDay} />
+                    </p>
                 </div>
                 <div>
                   <h4 className="font-medium">Status</h4>
@@ -218,10 +222,12 @@ export function EnhancedStallModal({
                   <div className="col-span-2 pt-2 border-t">
                     <div className="flex justify-between items-center">
                       <span className="font-medium">Total Cost:</span>
-                      <span className="text-xl font-bold text-primary">${totalPrice.toFixed(2)}</span>
+                      <span className="text-xl font-bold text-primary">$
+                      <CurrencyWrapper amount={totalPrice} />
+                      </span>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {daysCount} day{daysCount > 1 ? 's' : ''} × ${pricePerDay.toFixed(2)}/day
+                      {daysCount} day{daysCount > 1 ? 's' : ''} × ${formatCurrency(pricePerDay)}/day
                     </p>
                     {holdResponse && (
                       <p className="text-xs text-green-600 mt-1">

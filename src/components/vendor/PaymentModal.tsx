@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -7,13 +7,14 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { BookingWithStalls } from '@/hooks/useBookings';
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { BookingWithStalls } from "@/hooks/useBookings";
+import CurrencyWrapper from "../shared/currency";
 
 interface PaymentModalProps {
   booking: BookingWithStalls;
@@ -28,55 +29,55 @@ export function PaymentModal({ booking, isOpen, onClose }: PaymentModalProps) {
 
   const paymentSuccessMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.rpc('simulate_payment_success', {
-        p_booking_id: booking.id
+      const { data, error } = await supabase.rpc("simulate_payment_success", {
+        p_booking_id: booking.id,
       });
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['booking-details'] });
-      queryClient.invalidateQueries({ queryKey: ['vendor-bookings'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-bookings'] });
+      queryClient.invalidateQueries({ queryKey: ["booking-details"] });
+      queryClient.invalidateQueries({ queryKey: ["vendor-bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-bookings"] });
       toast({
-        title: 'Payment Successful',
-        description: 'Your payment has been processed successfully.',
+        title: "Payment Successful",
+        description: "Your payment has been processed successfully.",
       });
       onClose();
     },
     onError: (error) => {
       toast({
-        title: 'Payment Failed',
-        description: error.message || 'An error occurred during payment.',
-        variant: 'destructive',
+        title: "Payment Failed",
+        description: error.message || "An error occurred during payment.",
+        variant: "destructive",
       });
     },
   });
 
   const paymentFailureMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.rpc('simulate_payment_failure', {
-        p_booking_id: booking.id
+      const { data, error } = await supabase.rpc("simulate_payment_failure", {
+        p_booking_id: booking.id,
       });
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['booking-details'] });
-      queryClient.invalidateQueries({ queryKey: ['vendor-bookings'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-bookings'] });
+      queryClient.invalidateQueries({ queryKey: ["booking-details"] });
+      queryClient.invalidateQueries({ queryKey: ["vendor-bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-bookings"] });
       toast({
-        title: 'Payment Failed',
-        description: 'Payment failed. Your booking status remains unchanged.',
-        variant: 'destructive',
+        title: "Payment Failed",
+        description: "Payment failed. Your booking status remains unchanged.",
+        variant: "destructive",
       });
       onClose();
     },
     onError: (error) => {
       toast({
-        title: 'Error',
-        description: error.message || 'An error occurred.',
-        variant: 'destructive',
+        title: "Error",
+        description: error.message || "An error occurred.",
+        variant: "destructive",
       });
     },
   });
@@ -117,18 +118,30 @@ export function PaymentModal({ booking, isOpen, onClose }: PaymentModalProps) {
               <span className="text-sm font-medium">Market:</span>
               <span className="text-sm">{booking.markets?.name}</span>
             </div>
-            
+
             <div className="flex justify-between items-center">
               <span className="text-sm font-medium">Booking Status:</span>
               <Badge variant="secondary">
-                {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                {booking.status.charAt(0).toUpperCase() +
+                  booking.status.slice(1)}
               </Badge>
             </div>
-            
+
             <div className="flex justify-between items-center">
               <span className="text-sm font-medium">Payment Status:</span>
-              <Badge variant={booking.payment_status === 'success' ? 'default' : booking.payment_status === 'failed' ? 'destructive' : 'secondary'}>
-                {!booking.payment_status ? 'Pending':booking.payment_status.charAt(0).toUpperCase() + booking.payment_status.slice(1)}
+              <Badge
+                variant={
+                  booking.payment_status === "success"
+                    ? "default"
+                    : booking.payment_status === "failed"
+                    ? "destructive"
+                    : "secondary"
+                }
+              >
+                {!booking.payment_status
+                  ? "Pending"
+                  : booking.payment_status.charAt(0).toUpperCase() +
+                    booking.payment_status.slice(1)}
               </Badge>
             </div>
 
@@ -137,22 +150,29 @@ export function PaymentModal({ booking, isOpen, onClose }: PaymentModalProps) {
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>Total Amount:</span>
-                <span>${booking.total_amount}</span>
+                <span>
+                  <CurrencyWrapper amount={booking.total_amount} />
+                </span>
               </div>
               <div className="flex justify-between text-sm text-muted-foreground">
                 <span>Already Paid:</span>
-                <span>${booking.paid_amount}</span>
+                <span>
+                  <CurrencyWrapper amount={booking.paid_amount} />
+                </span>
               </div>
               <div className="flex justify-between text-lg font-semibold">
                 <span>Outstanding:</span>
-                <span className="text-primary">${outstandingAmount}</span>
+                <span className="text-primary">
+                  <CurrencyWrapper amount={outstandingAmount} />
+                  </span>
               </div>
             </div>
           </div>
 
           <div className="bg-muted/50 p-3 rounded-lg">
             <p className="text-xs text-muted-foreground">
-              This is a payment simulation. Choose an outcome to test the booking flow.
+              This is a payment simulation. Choose an outcome to test the
+              booking flow.
             </p>
           </div>
         </div>
@@ -163,7 +183,7 @@ export function PaymentModal({ booking, isOpen, onClose }: PaymentModalProps) {
             disabled={isProcessing}
             className="flex-1"
           >
-            {isProcessing ? 'Processing...' : 'Simulate Success'}
+            {isProcessing ? "Processing..." : "Simulate Success"}
           </Button>
           <Button
             onClick={handleSimulateFailure}
@@ -171,7 +191,7 @@ export function PaymentModal({ booking, isOpen, onClose }: PaymentModalProps) {
             variant="destructive"
             className="flex-1"
           >
-            {isProcessing ? 'Processing...' : 'Simulate Failure'}
+            {isProcessing ? "Processing..." : "Simulate Failure"}
           </Button>
         </DialogFooter>
       </DialogContent>

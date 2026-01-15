@@ -24,19 +24,17 @@ import { toast } from "@/hooks/use-toast";
 import { Market } from "@/hooks/useMarkets";
 import { StallInstance } from "@/hooks/useStallInstances";
 import { getKycBadge } from "@/components/shared/statuses";
+import CurrencyWrapper from "@/components/shared/currency";
 
-
-export interface SessionVendorStorage{
-  
-    marketId: string,
-    vendorId: string,
-    vendorDetails: Profile,
-    stallSelection: {
-      stall:StallInstance,
-      selectedDates: Date[],
-      totalCost: number,
-    },
-  
+export interface SessionVendorStorage {
+  marketId: string;
+  vendorId: string;
+  vendorDetails: Profile;
+  stallSelection: {
+    stall: StallInstance;
+    selectedDates: Date[];
+    totalCost: number;
+  };
 }
 
 interface FCABookingModalProps {
@@ -117,12 +115,13 @@ export const FCABookingModal = ({
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Price per Day:</span>
                   <span className="font-medium">
-                    $
-                    {(
-                      stall?.price_override ||
-                      stall?.stall_templates?.price ||
-                      0
-                    ).toFixed(2)}
+                    <CurrencyWrapper
+                      amount={
+                        stall?.price_override ||
+                        stall?.stall_templates?.price ||
+                        0
+                      }
+                    />
                   </span>
                 </div>
               </div>
@@ -175,12 +174,13 @@ export const FCABookingModal = ({
                     <div className="flex justify-between">
                       <span className="font-semibold">Total:</span>
                       <span className="font-bold text-lg">
-                        $
-                        {(
-                          (stall?.price_override ||
-                            stall?.stall_templates?.price ||
-                            0) * selectedDates.length
-                        ).toFixed(2)}
+                        <CurrencyWrapper
+                          amount={
+                            (stall?.price_override ||
+                              stall?.stall_templates?.price ||
+                              0) * selectedDates.length
+                          }
+                        />
                       </span>
                     </div>
                   </div>

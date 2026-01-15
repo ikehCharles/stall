@@ -10,11 +10,9 @@ import { useStallInstances } from "@/hooks/useStallInstances";
 import { BookingHoldTimer } from "@/components/vendor/BookingHoldTimer";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
-import {
-  useAuthorizePayment,
-  useCapturePayment,
-} from "@/hooks/use-payment";
+import { useAuthorizePayment, useCapturePayment } from "@/hooks/use-payment";
 import { INTENT } from "@/lib/enums";
+import CurrencyWrapper from "@/components/shared/currency";
 
 const BookingConfirmation = () => {
   const { id } = useParams<{ id: string }>();
@@ -350,7 +348,9 @@ const BookingConfirmation = () => {
                   {booking.booking_stalls?.map((bs) => (
                     <div key={bs.id} className="flex justify-between text-sm">
                       <span>Stall {bs.stall_instances?.label}</span>
-                      <span>${bs.price_at_booking}</span>
+                      <span>
+                        <CurrencyWrapper amount={bs.price_at_booking} />
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -360,16 +360,24 @@ const BookingConfirmation = () => {
                 <div className="space-y-2">
                   <div className="flex justify-between font-medium">
                     <span>Total Amount:</span>
-                    <span>${booking.total_amount}</span>
+                    <span>
+                      <CurrencyWrapper amount={booking.total_amount} />
+                    </span>
                   </div>
                   <div className="flex justify-between text-green-600">
                     <span>Paid:</span>
-                    <span>${booking.paid_amount}</span>
+                    <span>
+                      <CurrencyWrapper amount={booking.paid_amount} />
+                    </span>
                   </div>
                   {booking.paid_amount < booking.total_amount && (
                     <div className="flex justify-between text-red-600 font-medium">
                       <span>Outstanding:</span>
-                      <span>${booking.total_amount - booking.paid_amount}</span>
+                      <span>
+                        <CurrencyWrapper
+                          amount={booking.total_amount - booking.paid_amount}
+                        />
+                      </span>
                     </div>
                   )}
                 </div>

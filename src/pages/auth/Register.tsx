@@ -64,6 +64,7 @@ const Register = () => {
     if (profileCheckError) {
       setError(profileCheckError.message);
       toast.error("Registration failed: " + profileCheckError.message);
+      setIsLoading(false);
       stopLoading();
       return;
     }

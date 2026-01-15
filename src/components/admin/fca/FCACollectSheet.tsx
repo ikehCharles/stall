@@ -21,6 +21,7 @@ import {
   useSyncOfflineBooking,
 } from "@/hooks/useOfflineBooking";
 import { UseMutationResult } from "@tanstack/react-query";
+import CurrencyWrapper from "@/components/shared/currency";
 
 interface FCACollectSheetProps {
   open: boolean;
@@ -112,7 +113,9 @@ export const FCACollectSheet = ({
         <div className="p-4 bg-muted rounded-lg">
           <div className="flex justify-between items-center">
             <span className="text-sm text-muted-foreground">Amount Due:</span>
-            <span className="text-2xl font-bold">${amount.toFixed(2)}</span>
+            <span className="text-2xl font-bold">
+              <CurrencyWrapper amount={amount} />
+            </span>
           </div>
         </div>
 

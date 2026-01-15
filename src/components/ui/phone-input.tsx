@@ -76,7 +76,7 @@ export const PhoneInput = ({
   error,
   id 
 }: PhoneInputProps) => {
-  const [selectedCountry, setSelectedCountry] = useState<Country>(countries[0]);
+  const [selectedCountry, setSelectedCountry] = useState<Country>(countries[1]);
   const [open, setOpen] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState("");
 

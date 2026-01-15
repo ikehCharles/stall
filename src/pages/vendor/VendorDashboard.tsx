@@ -3,6 +3,7 @@ import { KYCBanner } from "@/components/kyc/KYCBanner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useVendorBookings } from "@/hooks/useBookings";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatCurrency } from "@/lib/utils";
 
 const VendorDashboard = () => {
   const { userProfile } = useAuth();
@@ -26,13 +27,13 @@ const VendorDashboard = () => {
     },
     {
       title: "Total Paid",
-      value: `$${totalPaid.toFixed(2)}`,
+      value: `${formatCurrency(totalPaid)}`,
       icon: "💰",
       gradient: "from-green-500 to-emerald-500"
     },
     {
       title: "Unpaid Balance",
-      value: `$${unpaidBalance.toFixed(2)}`,
+      value: `${formatCurrency(unpaidBalance)}`,
       icon: "⚠️",
       gradient: "from-orange-500 to-red-500"
     },

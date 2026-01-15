@@ -21,6 +21,8 @@ import {
   getPaymentStatusBadge,
 } from "@/components/shared/statuses";
 import { useReconcileOfflineBooking } from "@/hooks/useOfflineBooking";
+import CurrencyWrapper from "@/components/shared/currency";
+import { formatCurrency } from "@/lib/utils";
 
 const FCACheckout = () => {
   const navigate = useNavigate();
@@ -142,9 +144,7 @@ const FCACheckout = () => {
 
       toast({
         title: "Payment Confirmed",
-        description: `POS payment of $${bookingData.stallSelection.totalCost.toFixed(
-          2
-        )} processed successfully`,
+        description: `POS payment of ${formatCurrency(bookingData.stallSelection.totalCost)} processed successfully`,
       });
 
       navigate(`/admin/fca/invoices/${bookingId}`);
@@ -270,13 +270,13 @@ const FCACheckout = () => {
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Price per Day:</span>
-              <span className="font-medium">
-                $
-                {(
+              <span className="font-medium"> 
+                <CurrencyWrapper amount={(
                   stallSelection.stall.price_override ||
                   stallSelection.stall.stall_templates?.price ||
                   0
-                ).toFixed(2)}
+                )} />
+               
               </span>
             </div>
           </div>
@@ -300,17 +300,21 @@ const FCACheckout = () => {
             <div className="flex justify-between">
               <span className="text-sm text-muted-foreground">Subtotal:</span>
               <span className="font-medium">
-                ${stallSelection.totalCost.toFixed(2)}
+                <CurrencyWrapper amount={stallSelection.totalCost} />
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-sm text-muted-foreground">Tax (0%):</span>
-              <span className="font-medium">$0.00</span>
+              <span className="font-medium">
+              <CurrencyWrapper amount={0} />
+              </span>
             </div>
             <Separator />
             <div className="flex justify-between text-lg font-bold">
               <span>Total Amount:</span>
-              <span>${stallSelection.totalCost.toFixed(2)}</span>
+              <span>
+                <CurrencyWrapper amount={stallSelection.totalCost} />
+              </span>
             </div>
           </div>
           <div>

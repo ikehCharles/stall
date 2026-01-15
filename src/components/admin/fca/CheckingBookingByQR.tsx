@@ -54,6 +54,7 @@ import { useConfirm } from "@/components/ui/confirmDialog";
 import { toast } from "@/components/ui/sonner";
 import { PermissionGate } from "@/components/PermissionGate";
 import { PERMISSIONS } from "@/lib/permissions";
+import CurrencyWrapper from "@/components/shared/currency";
 
 interface CheckingBookingByQRProps {
   open;
@@ -478,7 +479,7 @@ const CheckingBookingByQR: React.FC<CheckingBookingByQRProps> = (props) => {
                         Total Amount:
                       </span>
                       <span className="font-semibold">
-                        ${booking.total_amount.toFixed(2)}
+                        <CurrencyWrapper amount={booking.total_amount} />
                       </span>
                     </div>
                     <div className="flex justify-between">
@@ -486,10 +487,9 @@ const CheckingBookingByQR: React.FC<CheckingBookingByQRProps> = (props) => {
                         Outstanding:
                       </span>
                       <span className="font-semibold text-orange-700 dark:text-orange-400">
-                        $
-                        {(booking.total_amount - booking.paid_amount).toFixed(
-                          2
-                        )}
+                        
+                        <CurrencyWrapper amount={booking.total_amount - booking.paid_amount} />
+                       
                       </span>
                     </div>
                   </div>
@@ -683,7 +683,9 @@ const CheckingBookingByQR: React.FC<CheckingBookingByQRProps> = (props) => {
                                   "MMM d, yyyy"
                                 )}
                               </span>
-                              <span>${booking.price_per_day}</span>
+                              <span>
+                                <CurrencyWrapper amount={booking.price_per_day} />
+                                </span>
                             </li>
                           ))}
                         </ul>
@@ -695,7 +697,9 @@ const CheckingBookingByQR: React.FC<CheckingBookingByQRProps> = (props) => {
 
                   <div className="flex justify-between text-sm font-semibold">
                     <span>Total:</span>
-                    <span>${booking.total_amount.toFixed(2)}</span>
+                    <span>
+                      <CurrencyWrapper amount={booking.total_amount} />
+                      </span>
                   </div>
                 </CardContent>
               </Card>
@@ -778,7 +782,9 @@ const CheckingBookingByQR: React.FC<CheckingBookingByQRProps> = (props) => {
                                   "MMM d, yyyy"
                                 )}
                               </span>
-                              <span>${booking.price_per_day}</span>
+                              <span>
+                                <CurrencyWrapper amount={booking.price_per_day} />
+                                </span>
                             </li>
                           ))}
                         </ul>
@@ -790,7 +796,9 @@ const CheckingBookingByQR: React.FC<CheckingBookingByQRProps> = (props) => {
 
                   <div className="flex justify-between text-sm font-semibold">
                     <span>Total:</span>
-                    <span>${booking.total_amount.toFixed(2)}</span>
+                    <span>
+                    <CurrencyWrapper amount={booking.total_amount} />
+                      </span>
                   </div>
                 </CardContent>
               </Card>
