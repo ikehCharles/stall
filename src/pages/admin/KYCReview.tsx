@@ -48,6 +48,8 @@ import { format } from "date-fns";
 import { PermissionGate } from "@/components/PermissionGate";
 import { PERMISSIONS } from "@/lib/permissions";
 import { useConfirm } from "@/components/ui/confirmDialog";
+import { useKYCAuditHistory } from "@/hooks/useKYCAuditHistory";
+import { MAXKYCREVIEWCOUNT } from "@/lib/utils";
 
 interface KYCApplication {
   id: string;
@@ -82,6 +84,7 @@ export const KYCReview = () => {
   const confirm = useConfirm();
   const [applications, setApplications] = useState<KYCApplication[]>([]);
   const [selectedKYC, setSelectedKYC] = useState<KYCApplication | null>(null);
+  const {data: auditHistory, isLoading:isKYCLoading} = useKYCAuditHistory(selectedKYC?.id);
   const [reviewNotes, setReviewNotes] = useState("");
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -238,6 +241,7 @@ export const KYCReview = () => {
 
   // Create audit log entry
   const createAuditEntry = async (
+    user_id: string,
     kycId: string,
     fromStatus: string | null,
     toStatus: "PENDING" | "APPROVED" | "REJECTED",
@@ -246,6 +250,7 @@ export const KYCReview = () => {
     try {
       const { error } = await supabase.from("kyc_audit_log").insert([
         {
+          user_id,
           kyc_id: kycId,
           from_status: fromStatus as "PENDING" | "APPROVED" | "REJECTED" | null,
           to_status: toStatus,
@@ -281,6 +286,7 @@ export const KYCReview = () => {
 
       // Create audit entry
       await createAuditEntry(
+        selectedKYC.user_id,
         selectedKYC.id,
         selectedKYC.status,
         "APPROVED",
@@ -354,6 +360,7 @@ export const KYCReview = () => {
 
       // Create audit entry
       await createAuditEntry(
+        selectedKYC.user_id,
         selectedKYC.id,
         selectedKYC.status,
         "REJECTED",
@@ -402,6 +409,8 @@ export const KYCReview = () => {
         return <Badge variant="outline">Unknown</Badge>;
     }
   };
+
+  const maxKYCReviewReached = isKYCLoading || auditHistory.length >= MAXKYCREVIEWCOUNT;
 
   if (error) {
     return (
@@ -678,7 +687,7 @@ export const KYCReview = () => {
                 <div>
                   <Label htmlFor="reviewNotes">Review Notes</Label>
                   <Textarea
-                  disabled={selectedKYC?.status !== "PENDING"}
+                  disabled={selectedKYC?.status !== "PENDING" || maxKYCReviewReached}
                     id="reviewNotes"
                     value={reviewNotes}
                     onChange={(e) => setReviewNotes(e.target.value)}
@@ -707,7 +716,7 @@ export const KYCReview = () => {
             >
               Cancel
             </Button>
-            {selectedKYC?.status === "PENDING" && (
+            {selectedKYC?.status === "PENDING" && !maxKYCReviewReached && (
               <>
                 <Button
                   variant="destructive"

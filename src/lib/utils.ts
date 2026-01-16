@@ -40,3 +40,5 @@ export const ENV = {
   PAYMENT_SWITCH: import.meta.env.VITE_PAYMENT_SWITCH,
   PAYMENT_INTENT: Number(import.meta.env.VITE_PAYMENT_INTENT || INTENT.CAPTURE),
 };
+
+export const MAXKYCREVIEWCOUNT = 3;

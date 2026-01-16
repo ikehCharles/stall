@@ -5,6 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Clock, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import { useKYCAuditHistory } from '@/hooks/useKYCAuditHistory';
 
 interface AuditEntry {
   id: string;
@@ -21,43 +22,8 @@ interface KYCAuditHistoryProps {
 }
 
 export function KYCAuditHistory({ kycId }: KYCAuditHistoryProps) {
-  const [auditHistory, setAuditHistory] = useState<AuditEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {data: auditHistory, isLoading:loading} = useKYCAuditHistory(kycId);
 
-  useEffect(() => {
-    loadAuditHistory();
-  }, [kycId]);
-
-  const loadAuditHistory = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('kyc_audit_log')
-        .select(`
-          *,
-          profiles (
-            full_name
-          )
-        `)
-        .eq('kyc_id', kycId)
-        .order('created_at', { ascending: false })
-
-      if (error) throw error;
-
-      const auditData = data?.map((entry: any) => ({
-        ...entry,
-        reviewer_name: entry.profiles?.full_name || 'Unknown Admin'
-      })) || [];
-      
-
-
-      setAuditHistory(auditData);
-    } catch (error) {
-      console.error('Error loading audit history:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
@@ -102,7 +68,7 @@ export function KYCAuditHistory({ kycId }: KYCAuditHistoryProps) {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {auditHistory.length === 0 ? (
+        {!auditHistory?.length ? (
           <p className="text-sm text-muted-foreground">No review history available</p>
         ) : (
           <div className="space-y-4">

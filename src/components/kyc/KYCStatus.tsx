@@ -3,6 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, Clock, XCircle, AlertTriangle } from "lucide-react";
+import { useKYCAuditHistory } from "@/hooks/useKYCAuditHistory";
+import { MAXKYCREVIEWCOUNT } from "@/lib/utils";
 
 interface KYCApplication {
   id: string;
@@ -23,6 +25,9 @@ interface KYCStatusProps {
 }
 
 export const KYCStatus = ({ kycData, onStartKYC }: KYCStatusProps) => {
+  const {data: auditHistory, isLoading:isKYCLoading} = useKYCAuditHistory(kycData?.id);
+  const maxKYCReviewReached = isKYCLoading || auditHistory.length >= MAXKYCREVIEWCOUNT;
+
   if (!kycData) {
     return (
       <Alert>
@@ -78,7 +83,7 @@ export const KYCStatus = ({ kycData, onStartKYC }: KYCStatusProps) => {
             Business Verification Status
           </CardTitle>
           <Badge variant={config.badgeVariant}>
-            {kycData.status}
+            {kycData.status}  {kycData.status ==='APPROVED' ? '': '(' + maxKYCReviewReached + ')' ? 'FINAL' : '(' + auditHistory.length + `/${MAXKYCREVIEWCOUNT}` + ')' }
           </Badge>
         </div>
       </CardHeader>
@@ -119,7 +124,7 @@ export const KYCStatus = ({ kycData, onStartKYC }: KYCStatusProps) => {
           </Alert>
         )}
 
-        {kycData.status === 'REJECTED' && (
+        {kycData.status === 'REJECTED' && !maxKYCReviewReached && (
           <Button onClick={onStartKYC} className="w-full">
             Update Information
           </Button>
