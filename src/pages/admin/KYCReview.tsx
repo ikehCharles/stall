@@ -1,23 +1,53 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Eye, CheckCircle, XCircle, AlertCircle, RefreshCw } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { KYCSearchFilter, type KYCFilters } from '@/components/admin/KYCSearchFilter';
-import { KYCPagination } from '@/components/admin/KYCPagination';
-import { KYCAuditHistory } from '@/components/admin/KYCAuditHistory';
-import { useAuth } from '@/contexts/AuthContext';
-import { format } from 'date-fns';
-import { PermissionGate } from '@/components/PermissionGate';
-import { PERMISSIONS } from '@/lib/permissions';
+import { useState, useEffect, useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Eye,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  RefreshCw,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  KYCSearchFilter,
+  type KYCFilters,
+} from "@/components/admin/KYCSearchFilter";
+import { KYCPagination } from "@/components/admin/KYCPagination";
+import { KYCAuditHistory } from "@/components/admin/KYCAuditHistory";
+import { useAuth } from "@/contexts/AuthContext";
+import { format } from "date-fns";
+import { PermissionGate } from "@/components/PermissionGate";
+import { PERMISSIONS } from "@/lib/permissions";
+import { useConfirm } from "@/components/ui/confirmDialog";
 
 interface KYCApplication {
   id: string;
@@ -28,7 +58,7 @@ interface KYCApplication {
   business_type: string | null;
   business_address: string | null;
   tax_id: string | null;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  status: "PENDING" | "APPROVED" | "REJECTED";
   submitted_at: string;
   reviewed_at: string | null;
   reviewed_by: string | null;
@@ -49,23 +79,29 @@ interface KYCStats {
 }
 
 export const KYCReview = () => {
+  const confirm = useConfirm();
   const [applications, setApplications] = useState<KYCApplication[]>([]);
   const [selectedKYC, setSelectedKYC] = useState<KYCApplication | null>(null);
-  const [reviewNotes, setReviewNotes] = useState('');
+  const [reviewNotes, setReviewNotes] = useState("");
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
-  const [stats, setStats] = useState<KYCStats>({ pending: 0, approved: 0, rejected: 0, total: 0 });
+  const [stats, setStats] = useState<KYCStats>({
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+    total: 0,
+  });
   const [error, setError] = useState<string | null>(null);
   const [auditHistoryKey, setAuditHistoryKey] = useState(0);
-  
+
   // Pagination and filtering
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [totalCount, setTotalCount] = useState(0);
   const [filters, setFilters] = useState<KYCFilters>({
-    search: '',
-    status: 'all',
+    search: "",
+    status: "all",
     dateFrom: null,
     dateTo: null,
   });
@@ -80,9 +116,7 @@ export const KYCReview = () => {
       setError(null);
 
       // Build query
-      let query = supabase
-        .from('kyc_applications')
-        .select(`
+      let query = supabase.from("kyc_applications").select(`
           *,
           profiles!user_id (
             full_name,
@@ -91,28 +125,33 @@ export const KYCReview = () => {
         `);
 
       // Apply filters
-      if (filters.status !== 'all') {
-        query = query.eq('status', filters.status as 'PENDING' | 'APPROVED' | 'REJECTED');
+      if (filters.status !== "all") {
+        query = query.eq(
+          "status",
+          filters.status as "PENDING" | "APPROVED" | "REJECTED"
+        );
       }
 
       if (filters.search) {
-        query = query.or(`business_name.ilike.%${filters.search}%,contact_email.ilike.%${filters.search}%`);
+        query = query.or(
+          `business_name.ilike.%${filters.search}%,contact_email.ilike.%${filters.search}%`
+        );
       }
 
       if (filters.dateFrom) {
-        query = query.gte('submitted_at', filters.dateFrom.toISOString());
+        query = query.gte("submitted_at", filters.dateFrom.toISOString());
       }
 
       if (filters.dateTo) {
         const toDate = new Date(filters.dateTo);
         toDate.setHours(23, 59, 59, 999);
-        query = query.lte('submitted_at', toDate.toISOString());
+        query = query.lte("submitted_at", toDate.toISOString());
       }
 
       // Get total count
       const { count } = await supabase
-        .from('kyc_applications')
-        .select('id', { count: 'exact', head: true });
+        .from("kyc_applications")
+        .select("id", { count: "exact", head: true });
       setTotalCount(count || 0);
 
       // Get paginated data
@@ -120,7 +159,7 @@ export const KYCReview = () => {
       const to = from + pageSize - 1;
 
       const { data, error } = await query
-        .order('submitted_at', { ascending: false })
+        .order("submitted_at", { ascending: false })
         .range(from, to);
 
       if (error) throw error;
@@ -128,18 +167,21 @@ export const KYCReview = () => {
       // Handle the data with proper type conversion
       const processedData = (data || []).map((item) => ({
         ...item,
-        profiles: item.profiles && typeof item.profiles === 'object' && !('error' in item.profiles) 
-          ? item.profiles 
-          : null
+        profiles:
+          item.profiles &&
+          typeof item.profiles === "object" &&
+          !("error" in item.profiles)
+            ? item.profiles
+            : null,
       }));
 
       setApplications(processedData);
-      
+
       // Calculate stats
       await loadStats();
     } catch (err) {
-      console.error('Error loading KYC applications:', err);
-      setError('Failed to load KYC applications. Please try again.');
+      console.error("Error loading KYC applications:", err);
+      setError("Failed to load KYC applications. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -149,21 +191,21 @@ export const KYCReview = () => {
   const loadStats = async () => {
     try {
       const { data, error } = await supabase
-        .from('kyc_applications')
-        .select('status');
+        .from("kyc_applications")
+        .select("status");
 
       if (error) throw error;
 
       const stats = {
         total: data.length,
-        pending: data.filter(item => item.status === 'PENDING').length,
-        approved: data.filter(item => item.status === 'APPROVED').length,
-        rejected: data.filter(item => item.status === 'REJECTED').length,
+        pending: data.filter((item) => item.status === "PENDING").length,
+        approved: data.filter((item) => item.status === "APPROVED").length,
+        rejected: data.filter((item) => item.status === "REJECTED").length,
       };
 
       setStats(stats);
     } catch (err) {
-      console.error('Error loading stats:', err);
+      console.error("Error loading stats:", err);
     }
   };
 
@@ -179,8 +221,8 @@ export const KYCReview = () => {
 
   const handleResetFilters = () => {
     setFilters({
-      search: '',
-      status: 'all',
+      search: "",
+      status: "all",
       dateFrom: null,
       dateTo: null,
     });
@@ -190,26 +232,31 @@ export const KYCReview = () => {
   // Open review dialog
   const handleViewKYC = (kyc: KYCApplication) => {
     setSelectedKYC(kyc);
-    setReviewNotes(kyc.review_notes || '');
+    setReviewNotes(kyc.review_notes || "");
     setIsReviewDialogOpen(true);
   };
 
   // Create audit log entry
-  const createAuditEntry = async (kycId: string, fromStatus: string | null, toStatus: 'PENDING' | 'APPROVED' | 'REJECTED', reason?: string) => {
+  const createAuditEntry = async (
+    kycId: string,
+    fromStatus: string | null,
+    toStatus: "PENDING" | "APPROVED" | "REJECTED",
+    reason?: string
+  ) => {
     try {
-      const { error } = await supabase
-        .from('kyc_audit_log')
-        .insert([{
+      const { error } = await supabase.from("kyc_audit_log").insert([
+        {
           kyc_id: kycId,
-          from_status: fromStatus as 'PENDING' | 'APPROVED' | 'REJECTED' | null,
+          from_status: fromStatus as "PENDING" | "APPROVED" | "REJECTED" | null,
           to_status: toStatus,
           reviewed_by: user?.id,
           reason: reason || null,
-        }]);
+        },
+      ]);
 
       if (error) throw error;
     } catch (err) {
-      console.error('Error creating audit entry:', err);
+      console.error("Error creating audit entry:", err);
     }
   };
 
@@ -219,21 +266,26 @@ export const KYCReview = () => {
 
     try {
       setActionLoading(true);
-      
+
       const { error } = await supabase
-        .from('kyc_applications')
+        .from("kyc_applications")
         .update({
-          status: 'APPROVED',
+          status: "APPROVED",
           reviewed_at: new Date().toISOString(),
           reviewed_by: user.id,
           review_notes: reviewNotes.trim() || null,
         })
-        .eq('id', selectedKYC.id);
+        .eq("id", selectedKYC.id);
 
       if (error) throw error;
 
       // Create audit entry
-      await createAuditEntry(selectedKYC.id, selectedKYC.status, 'APPROVED', reviewNotes.trim() || undefined);
+      await createAuditEntry(
+        selectedKYC.id,
+        selectedKYC.status,
+        "APPROVED",
+        reviewNotes.trim() || undefined
+      );
 
       toast({
         title: "KYC Approved",
@@ -244,12 +296,12 @@ export const KYCReview = () => {
       await loadApplications();
       setIsReviewDialogOpen(false);
       setSelectedKYC(null);
-      setReviewNotes('');
-      
+      setReviewNotes("");
+
       // Refresh audit history
-      setAuditHistoryKey(prev => prev + 1);
+      setAuditHistoryKey((prev) => prev + 1);
     } catch (err) {
-      console.error('Error approving KYC:', err);
+      console.error("Error approving KYC:", err);
       toast({
         title: "Error",
         description: "Failed to approve KYC application. Please try again.",
@@ -264,32 +316,49 @@ export const KYCReview = () => {
   const handleReject = async () => {
     if (!selectedKYC || !user) return;
 
+   
+
     if (!reviewNotes.trim() || reviewNotes.trim().length < 10) {
       toast({
         title: "Review Notes Required",
-        description: "Please provide a detailed reason for rejection (minimum 10 characters)",
+        description:
+          "Please provide a detailed reason for rejection (minimum 10 characters)",
         variant: "destructive",
       });
       return;
     }
 
+    const val = await confirm({
+      title: "Reject KYC Application",
+      description: "Are you sure you want to proceed?",
+      confirmText: "Yes, Reject",
+      cancelText: "Cancel",
+      confirmClassName: "bg-red-600 hover:bg-red-700 text-white",
+    });
+    if (!val) return;
+
     try {
       setActionLoading(true);
-      
+
       const { error } = await supabase
-        .from('kyc_applications')
+        .from("kyc_applications")
         .update({
-          status: 'REJECTED',
+          status: "REJECTED",
           reviewed_at: new Date().toISOString(),
           reviewed_by: user.id,
           review_notes: reviewNotes.trim(),
         })
-        .eq('id', selectedKYC.id);
+        .eq("id", selectedKYC.id);
 
       if (error) throw error;
 
       // Create audit entry
-      await createAuditEntry(selectedKYC.id, selectedKYC.status, 'REJECTED', reviewNotes.trim());
+      await createAuditEntry(
+        selectedKYC.id,
+        selectedKYC.status,
+        "REJECTED",
+        reviewNotes.trim()
+      );
 
       toast({
         title: "KYC Rejected",
@@ -300,12 +369,12 @@ export const KYCReview = () => {
       await loadApplications();
       setIsReviewDialogOpen(false);
       setSelectedKYC(null);
-      setReviewNotes('');
-      
+      setReviewNotes("");
+
       // Refresh audit history
-      setAuditHistoryKey(prev => prev + 1);
+      setAuditHistoryKey((prev) => prev + 1);
     } catch (err) {
-      console.error('Error rejecting KYC:', err);
+      console.error("Error rejecting KYC:", err);
       toast({
         title: "Error",
         description: "Failed to reject KYC application. Please try again.",
@@ -317,13 +386,17 @@ export const KYCReview = () => {
   };
 
   // Get status badge
-  const getStatusBadge = (status: KYCApplication['status']) => {
+  const getStatusBadge = (status: KYCApplication["status"]) => {
     switch (status) {
-      case 'APPROVED':
-        return <Badge className="bg-green-100 text-green-800 border-green-200">Approved</Badge>;
-      case 'PENDING':
+      case "APPROVED":
+        return (
+          <Badge className="bg-green-100 text-green-800 border-green-200">
+            Approved
+          </Badge>
+        );
+      case "PENDING":
         return <Badge variant="secondary">Pending</Badge>;
-      case 'REJECTED':
+      case "REJECTED":
         return <Badge variant="destructive">Rejected</Badge>;
       default:
         return <Badge variant="outline">Unknown</Badge>;
@@ -337,10 +410,10 @@ export const KYCReview = () => {
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             {error}
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="ml-4" 
+            <Button
+              variant="outline"
+              size="sm"
+              className="ml-4"
               onClick={() => loadApplications()}
             >
               <RefreshCw className="h-4 w-4 mr-2" />
@@ -365,7 +438,9 @@ export const KYCReview = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Applications</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total Applications
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-primary">{stats.total}</div>
@@ -373,10 +448,14 @@ export const KYCReview = () => {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Pending Review</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Pending Review
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
+            <div className="text-2xl font-bold text-yellow-600">
+              {stats.pending}
+            </div>
           </CardContent>
         </Card>
         <Card>
@@ -384,7 +463,9 @@ export const KYCReview = () => {
             <CardTitle className="text-sm font-medium">Approved</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.approved}</div>
+            <div className="text-2xl font-bold text-green-600">
+              {stats.approved}
+            </div>
           </CardContent>
         </Card>
         <Card>
@@ -392,7 +473,9 @@ export const KYCReview = () => {
             <CardTitle className="text-sm font-medium">Rejected</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{stats.rejected}</div>
+            <div className="text-2xl font-bold text-red-600">
+              {stats.rejected}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -414,8 +497,14 @@ export const KYCReview = () => {
                 Manage vendor business verification applications
               </CardDescription>
             </div>
-            <Button variant="outline" onClick={loadApplications} disabled={loading}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            <Button
+              variant="outline"
+              onClick={loadApplications}
+              disabled={loading}
+            >
+              <RefreshCw
+                className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`}
+              />
               Refresh
             </Button>
           </div>
@@ -446,7 +535,7 @@ export const KYCReview = () => {
                     <TableHead>Submitted</TableHead>
                     <TableHead>Status</TableHead>
                     <PermissionGate permissions={[PERMISSIONS.KYC.REVIEW]}>
-                    <TableHead>Actions</TableHead>
+                      <TableHead>Actions</TableHead>
                     </PermissionGate>
                   </TableRow>
                 </TableHeader>
@@ -454,25 +543,26 @@ export const KYCReview = () => {
                   {applications.map((kyc) => (
                     <TableRow key={kyc.id}>
                       <TableCell className="font-medium">
-                        {kyc.profiles?.full_name || 'Unknown Vendor'}
+                        {kyc.profiles?.full_name || "Unknown Vendor"}
                       </TableCell>
                       <TableCell>{kyc.business_name}</TableCell>
                       <TableCell>{kyc.contact_email}</TableCell>
                       <TableCell>{kyc.contact_phone}</TableCell>
-                      <TableCell>{format(new Date(kyc.submitted_at), 'MMM d, y')}</TableCell>
+                      <TableCell>
+                        {format(new Date(kyc.submitted_at), "MMM d, y")}
+                      </TableCell>
                       <TableCell>{getStatusBadge(kyc.status)}</TableCell>
                       <PermissionGate permissions={[PERMISSIONS.KYC.REVIEW]}>
-
-                      <TableCell>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleViewKYC(kyc)}
-                        >
-                          <Eye className="h-4 w-4 mr-1" />
-                          Review
-                        </Button>
-                      </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewKYC(kyc)}
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            Review
+                          </Button>
+                        </TableCell>
                       </PermissionGate>
                     </TableRow>
                   ))}
@@ -512,7 +602,8 @@ export const KYCReview = () => {
           <DialogHeader>
             <DialogTitle>Review KYC Application</DialogTitle>
             <DialogDescription>
-              Review the business information and approve or reject the application
+              Review the business information and approve or reject the
+              application
             </DialogDescription>
           </DialogHeader>
 
@@ -523,61 +614,78 @@ export const KYCReview = () => {
                   <div>
                     <Label className="font-medium">Vendor Name</Label>
                     <p className="text-sm text-muted-foreground">
-                      {selectedKYC.profiles?.full_name || 'Unknown Vendor'}
+                      {selectedKYC.profiles?.full_name || "Unknown Vendor"}
                     </p>
                   </div>
                   <div>
                     <Label className="font-medium">Status</Label>
-                    <div className="mt-1">{getStatusBadge(selectedKYC.status)}</div>
+                    <div className="mt-1">
+                      {getStatusBadge(selectedKYC.status)}
+                    </div>
                   </div>
                   <div>
                     <Label className="font-medium">Business Name</Label>
-                    <p className="text-sm text-muted-foreground">{selectedKYC.business_name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedKYC.business_name}
+                    </p>
                   </div>
                   <div>
                     <Label className="font-medium">Business Type</Label>
-                    <p className="text-sm text-muted-foreground">{selectedKYC.business_type || 'Not specified'}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedKYC.business_type || "Not specified"}
+                    </p>
                   </div>
                   <div>
                     <Label className="font-medium">Contact Email</Label>
-                    <p className="text-sm text-muted-foreground">{selectedKYC.contact_email}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedKYC.contact_email}
+                    </p>
                   </div>
                   <div>
                     <Label className="font-medium">Phone</Label>
-                    <p className="text-sm text-muted-foreground">{selectedKYC.contact_phone}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedKYC.contact_phone}
+                    </p>
                   </div>
                 </div>
 
                 <div>
                   <Label className="font-medium">Business Address</Label>
                   <p className="text-sm text-muted-foreground mt-1">
-                    {selectedKYC.business_address || 'Not provided'}
+                    {selectedKYC.business_address || "Not provided"}
                   </p>
                 </div>
 
                 {selectedKYC.tax_id && (
                   <div>
                     <Label className="font-medium">Tax ID</Label>
-                    <p className="text-sm text-muted-foreground mt-1">{selectedKYC.tax_id}</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {selectedKYC.tax_id}
+                    </p>
                   </div>
                 )}
 
                 <div>
                   <Label className="font-medium">Submitted</Label>
                   <p className="text-sm text-muted-foreground mt-1">
-                    {format(new Date(selectedKYC.submitted_at), 'MMMM d, y at h:mm a')}
+                    {format(
+                      new Date(selectedKYC.submitted_at),
+                      "MMMM d, y at h:mm a"
+                    )}
                   </p>
                 </div>
 
                 <div>
                   <Label htmlFor="reviewNotes">Review Notes</Label>
                   <Textarea
+                  disabled={selectedKYC?.status !== "PENDING"}
                     id="reviewNotes"
                     value={reviewNotes}
                     onChange={(e) => setReviewNotes(e.target.value)}
                     placeholder="Add notes about your review decision (required for rejection, minimum 10 characters)..."
                     className="mt-1"
                     rows={4}
+                    minLength={10}
                   />
                   <p className="text-xs text-muted-foreground mt-1">
                     {reviewNotes.length} characters
@@ -592,17 +700,17 @@ export const KYCReview = () => {
           )}
 
           <DialogFooter className="gap-2">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setIsReviewDialogOpen(false)}
               disabled={actionLoading}
             >
               Cancel
             </Button>
-            {selectedKYC?.status === 'PENDING' && (
+            {selectedKYC?.status === "PENDING" && (
               <>
-                <Button 
-                  variant="destructive" 
+                <Button
+                  variant="destructive"
                   onClick={handleReject}
                   disabled={actionLoading}
                 >
@@ -613,10 +721,7 @@ export const KYCReview = () => {
                   )}
                   Reject
                 </Button>
-                <Button 
-                  onClick={handleApprove}
-                  disabled={actionLoading}
-                >
+                <Button onClick={handleApprove} disabled={actionLoading}>
                   {actionLoading ? (
                     <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
                   ) : (

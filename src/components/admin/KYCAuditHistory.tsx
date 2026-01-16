@@ -35,12 +35,12 @@ export function KYCAuditHistory({ kycId }: KYCAuditHistoryProps) {
         .from('kyc_audit_log')
         .select(`
           *,
-          profiles!reviewed_by (
+          profiles (
             full_name
           )
         `)
         .eq('kyc_id', kycId)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
 
       if (error) throw error;
 
@@ -48,6 +48,8 @@ export function KYCAuditHistory({ kycId }: KYCAuditHistoryProps) {
         ...entry,
         reviewer_name: entry.profiles?.full_name || 'Unknown Admin'
       })) || [];
+      
+
 
       setAuditHistory(auditData);
     } catch (error) {
@@ -124,7 +126,7 @@ export function KYCAuditHistory({ kycId }: KYCAuditHistoryProps) {
                     </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    by {entry.reviewer_name} • {format(new Date(entry.created_at), 'MMM d, y at h:mm a')}
+                    by {entry.reviewer_name} • {format(new Date(entry.created_at), 'MMM d, y h:mm a')}
                   </p>
                   {entry.reason && (
                     <p className="text-sm mt-1 p-2 bg-muted rounded text-muted-foreground">
