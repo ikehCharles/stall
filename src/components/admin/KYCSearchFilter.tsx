@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { CalendarIcon, Search, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { useSearchParams } from 'react-router-dom';
 
 export interface KYCFilters {
   search: string;
@@ -22,21 +21,71 @@ interface KYCSearchFilterProps {
   onReset: () => void;
 }
 
+const DEBOUNCE_DELAY = 300; // milliseconds
+
 export function KYCSearchFilter({ filters, onFiltersChange, onReset }: KYCSearchFilterProps) {
   const [dateFromOpen, setDateFromOpen] = useState(false);
   const [dateToOpen, setDateToOpen] = useState(false);
-  const [searchParams] = useSearchParams();
-  const updateFilter = (key: keyof KYCFilters, value: any) => {
-    onFiltersChange({ ...filters, [key]: value });
+  const [searchInput, setSearchInput] = useState(filters.search);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const filtersRef = useRef(filters);
+
+  // Keep filtersRef in sync
+  useEffect(() => {
+    filtersRef.current = filters;
+  }, [filters]);
+
+  // Sync local search input with filters when filters change externally (e.g., from URL, reset)
+  useEffect(() => {
+    setSearchInput(filters.search);
+  }, [filters.search]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
+
+  // Debounced search handler - only updates filters after user stops typing
+  const handleSearchChange = useCallback((value: string) => {
+    // Update local state immediately for responsive UI (no API call)
+    setSearchInput(value);
+    
+    // Clear existing timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    
+    // Set new timer to update filters after debounce delay
+    debounceTimerRef.current = setTimeout(() => {
+      const trimmedValue = value.trim();
+      // Only update if value changed to avoid unnecessary API calls
+      if (trimmedValue !== filtersRef.current.search) {
+        onFiltersChange({ ...filtersRef.current, search: trimmedValue });
+      }
+    }, DEBOUNCE_DELAY);
+  }, [onFiltersChange]);
+
+  const updateFilter = (key: keyof KYCFilters, value: string | Date | null) => {
+    // For search, use debounced handler; for others, update immediately
+    if (key === 'search') {
+      handleSearchChange(value as string);
+    } else {
+      onFiltersChange({ ...filters, [key]: value });
+    }
   };
 
-
-  useEffect(() => {
-    const contactEmail = searchParams.get("contactEmail") || "";
-    if (contactEmail && contactEmail !== filters.search) {
-      onFiltersChange({ ...filters, search: contactEmail });
+  const handleReset = () => {
+    // Clear debounce timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
     }
-  }, [filters, onFiltersChange, searchParams]);
+    setSearchInput("");
+    onReset();
+  };
 
   const hasActiveFilters = Boolean(
     filters.search || 
@@ -53,8 +102,8 @@ export function KYCSearchFilter({ filters, onFiltersChange, onReset }: KYCSearch
           <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search by business name or email..."
-            value={filters.search}
-            onChange={(e) => updateFilter('search', e.target.value)}
+            value={searchInput}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="pl-9"
           />
         </div>
@@ -129,7 +178,7 @@ export function KYCSearchFilter({ filters, onFiltersChange, onReset }: KYCSearch
 
         {/* Reset Button */}
         {hasActiveFilters && (
-          <Button variant="outline" onClick={onReset}>
+          <Button variant="outline" onClick={handleReset}>
             <X className="mr-2 h-4 w-4" />
             Reset
           </Button>

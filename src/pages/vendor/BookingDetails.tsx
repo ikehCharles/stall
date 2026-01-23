@@ -81,12 +81,12 @@ const BookingDetails = () => {
   useEffect(() => {
     if (searchParams.get("status") === "processing") {
       setIsProcessingPayment(true);
-      if (booking?.payment_status === "success") {
+      if (booking.payment_status === "success") {
         navigate(`/vendor/bookings/${id}`);
         setIsProcessingPayment(false);
       }
     }
-  }, [booking?.payment_status, id, navigate, searchParams]);
+  }, [booking.payment_status, id, navigate, searchParams]);
 
   const canShowActions = useCallback((booking: BookingWithStalls) => {
     const { status, payment_status } = booking;
@@ -546,7 +546,7 @@ const BookingDetails = () => {
                   </div>
                   <div className="flex justify-between">
                     <span>Payment Status:</span>
-                    <Badge className={getStatusBadge(booking?.payment_status)}>
+                    <Badge className={getStatusBadge(booking.payment_status)}>
                       {!booking.payment_status
                         ? "Pending"
                         : booking.payment_status.charAt(0).toUpperCase() +

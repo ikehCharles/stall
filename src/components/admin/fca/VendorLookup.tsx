@@ -10,11 +10,12 @@ import {
 import { Loader2 } from "lucide-react";
 import { useFetchBookingDetails } from "@/hooks/useBookings";
 import VendorCheckinBooking from "./VendorProfileCheckinBooking";
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Market } from "@/hooks/useMarkets";
 import { isValidEmail } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { PostgrestError } from "@supabase/supabase-js";
+import { useSearchParams } from "react-router-dom";
 
 interface VendorLookupProps {
   onVendorFound: (bookingsWithProfile: UserBookingsResponse) => void;
@@ -29,14 +30,16 @@ export const VendorLookup = ({
   market,
   onViewBookings,
 }: VendorLookupProps) => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [email, setEmail] = useState("");
   const vendorLookup = useVendorLookupInMarket();
   const bookingRes = useFetchBookingDetails();
 
-  const handleSearch = () => {
+  // Perform the actual search
+  const performSearch = useCallback((emailToSearch: string) => {
     bookingRes.reset();
-    if (!email.trim()) return;
-    if (!isValidEmail(email)) {
+    if (!emailToSearch.trim()) return;
+    if (!isValidEmail(emailToSearch)) {
       toast({
         title: "Invalid Email",
         variant: "destructive",
@@ -45,7 +48,7 @@ export const VendorLookup = ({
     }
 
     vendorLookup.mutate(
-      { email, marketId: market.id },
+      { email: emailToSearch, marketId: market.id },
       {
         onSuccess: (vendor) => {
           onVendorFound(vendor);
@@ -55,6 +58,36 @@ export const VendorLookup = ({
         },
       }
     );
+  }, [bookingRes, vendorLookup, market.id, onVendorFound, onVendorLookupError]);
+
+  // Initialize email from URL params on mount and auto-search if email exists
+  useEffect(() => {
+
+    const emailParam = searchParams.get("vendorEmail");
+    if (emailParam) {
+      setEmail(emailParam);
+      // Auto-trigger search if email is valid
+      if (isValidEmail(emailParam)) {
+        performSearch(emailParam);
+      }
+    }
+  }, []); // Only run on mount
+
+  const handleSearch = () => {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) return;
+
+    // Update URL search params with email
+    const newSearchParams = new URLSearchParams(searchParams);
+    if (trimmedEmail) {
+      newSearchParams.set('vendorEmail', trimmedEmail);
+    } else {
+      newSearchParams.delete('vendorEmail');
+    }
+    setSearchParams(newSearchParams, { replace: true });
+
+    // Perform search
+    performSearch(trimmedEmail);
   };
 
   return (
@@ -62,19 +95,19 @@ export const VendorLookup = ({
       <div className="space-y-4">
         <div className="flex">
           {/* <div className="flex-1"> */}
-            <Input
-              type="email"
-              placeholder="Find by vendor email..."
-              value={email}
-              className="lg:w-[300px] rounded-r-none"
-              onChange={(e) => {
-                // bookingRes.reset();
-                // vendorLookup.reset();
-                setEmail(e.target.value);
-              }}
-              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-              disabled={vendorLookup.isPending}
-            />
+          <Input
+            type="email"
+            placeholder="Find by vendor email..."
+            value={email}
+            className="lg:w-[300px] rounded-r-none"
+            onChange={(e) => {
+              // bookingRes.reset();
+              // vendorLookup.reset();
+              setEmail(e.target.value);
+            }}
+            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+            disabled={vendorLookup.isPending}
+          />
           {/* </div> */}
           <Button
             onClick={handleSearch}

@@ -22,6 +22,7 @@ export interface Profile {
   kyc_status: Database['public']['Tables']['kyc_applications']['Row']['status']
   company_name: string | null;
   phone_number: string;
+  kyc_contact_email: string;
 }
 
 interface Booking {

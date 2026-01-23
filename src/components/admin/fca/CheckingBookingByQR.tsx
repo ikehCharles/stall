@@ -239,25 +239,25 @@ const CheckingBookingByQR: React.FC<CheckingBookingByQRProps> = (props) => {
   const isCompletedPaid =
     booking?.isCurrentMarket &&
     booking?.status === "completed" &&
-    booking?.payment_status === "success";
+    booking.payment_status === "success";
   const isPendingPayment =
     booking?.isCurrentMarket &&
     booking?.status === "approved" &&
-    booking?.payment_status !== "success";
+    booking.payment_status !== "success";
   const isPendingNoPaymentApproval =
     booking?.isCurrentMarket &&
     booking?.status === "reserved" &&
-    booking?.payment_status !== "success";
+    booking.payment_status !== "success";
 
   const isPendingCaptureApproval =
     booking?.isCurrentMarket &&
     booking?.status === "pending" &&
-    booking?.payment_status === "success";
+    booking.payment_status === "success";
 
   const isPendingAuthorizedApproval =
     booking?.isCurrentMarket &&
     booking?.status === "reserved" &&
-    booking?.payment_status === "authorized";
+    booking.payment_status === "authorized";
 
   const isPendingApproval =
     isPendingCaptureApproval ||

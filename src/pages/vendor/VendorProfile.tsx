@@ -322,6 +322,8 @@ const VendorProfile = () => {
                     <Label htmlFor="address">Address</Label>
                     <Textarea
                       id="address"
+                      autoComplete="off"
+                      autoCorrect="off"
                       value={profile.address}
                       onChange={(e) => handleChange('address', e.target.value)}
                       disabled={!isEditing}
@@ -345,7 +347,7 @@ const VendorProfile = () => {
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : showKYCForm ? (
-            <KYCForm onSubmit={handleKYCSubmit} />
+            <KYCForm onSubmit={handleKYCSubmit} existingKYC={kycData} />
           ) : kycData ? (
             <div className="space-y-4">
               <KYCStatus onStartKYC={handleStartKYC} kycData={kycData} />

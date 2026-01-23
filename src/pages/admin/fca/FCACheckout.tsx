@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +26,7 @@ import { formatCurrency } from "@/lib/utils";
 
 const FCACheckout = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams()
   const { user } = useAuth();
   const bookingRes = useFetchBookingDetails();
   const [showCollectSheet, setShowCollectSheet] = useState(false);
@@ -36,6 +37,28 @@ const FCACheckout = () => {
   const reconcileOffline = useReconcileOfflineBooking();
 
   useEffect(() => {
+    const bookingIdFromUrl = searchParams.get("bookingId");
+    if (bookingIdFromUrl) {
+      // Only fetch if this is a different bookingId than what we've already set
+      if (bookingId !== bookingIdFromUrl) {
+        setBookingId(bookingIdFromUrl);
+        bookingRes.mutateAsync(bookingIdFromUrl).then((val) => {
+          const bookingData: SessionVendorStorage = {
+            marketId: val.market_id,
+            vendorId: val.user_id,
+            vendorDetails: {...val.profile, kyc_status: val.profile.kyc_application?.status},
+            stallSelection: {
+              stall: val.booking_stalls[0].stall_instances,
+              selectedDates: val.booking_dates.map((date) => new Date(date.booking_date)),
+              totalCost: val.total_amount,
+            },
+          }
+          setBookingData(bookingData);
+        });
+      }
+      return;
+    }
+
     const stored = sessionStorage.getItem("fcaBooking");
     if (!stored) {
       toast({
@@ -61,7 +84,8 @@ const FCACheckout = () => {
       });
       navigate("/admin/fca/markets");
     }
-  }, [navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigate, searchParams, bookingId]); // bookingRes intentionally excluded to prevent infinite loop
 
   // Create booking when data is loaded
   useEffect(() => {
@@ -92,6 +116,12 @@ const FCACheckout = () => {
       try {
         const result = await createBooking.mutateAsync(bookingPayload);
         setBookingId(result.id);
+
+        // Add bookingId to URL search params
+        const newSearchParams = new URLSearchParams(searchParams);
+        newSearchParams.set('bookingId', result.id);
+        setSearchParams(newSearchParams, { replace: true });
+
         toast({
           title: "Booking Created",
           description: "Ready to collect payment",
@@ -118,6 +148,8 @@ const FCACheckout = () => {
     createBooking,
     navigate,
     bookingRes,
+    searchParams,
+    setSearchParams,
   ]);
 
   const handleRefresh = async () => {
@@ -270,13 +302,13 @@ const FCACheckout = () => {
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Price per Day:</span>
-              <span className="font-medium"> 
+              <span className="font-medium">
                 <CurrencyWrapper amount={(
                   stallSelection.stall.price_override ||
                   stallSelection.stall.stall_templates?.price ||
                   0
                 )} />
-               
+
               </span>
             </div>
           </div>
@@ -306,7 +338,7 @@ const FCACheckout = () => {
             <div className="flex justify-between">
               <span className="text-sm text-muted-foreground">Tax (0%):</span>
               <span className="font-medium">
-              <CurrencyWrapper amount={0} />
+                <CurrencyWrapper amount={0} />
               </span>
             </div>
             <Separator />
@@ -318,7 +350,7 @@ const FCACheckout = () => {
             </div>
           </div>
           <div>
-            {!bookingRes.data?.offline_invoice_id && bookingRes.data.payment_status !== 'success' && (
+            {!bookingRes.data?.offline_invoice_id && bookingRes.data?.payment_status !== 'success' && (
               <Button
                 className="w-full mt-4"
                 size="lg"

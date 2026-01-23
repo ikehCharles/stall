@@ -155,13 +155,25 @@ const VendorCheckinBooking: React.FC<VendorCheckinBookingProps> = ({
                       </p>
                     </div>
                   )}
-                  {profile.kyc_status && (
+                  {profile.kyc_status === "REJECTED" && (
+                    <div className="flex-1">
+                      <p className="font-medium text-foreground text-sm sm:text-base">
+                        KYC application has been rejected
+                      </p>
+                      <p className="text-xs sm:text-sm text-red-700 mt-1">
+                        Booking is not allowed • KYC must be approved
+                      </p>
+                    </div>
+                  )}
+                  {(profile.kyc_status === "PENDING" || profile.kyc_status === "APPROVED") && (
                     <div className="flex-1">
                       <p className="font-medium text-foreground text-sm sm:text-base">
                         Select any available stall below to book
                       </p>
                       <p className="text-xs sm:text-sm text-orange-700 mt-1">
-                        Booking is allowed • KYC speeds up final approval
+                        {profile.kyc_status === "APPROVED" 
+                          ? "Booking is allowed • KYC approved"
+                          : "Booking is allowed • KYC under review"}
                       </p>
                     </div>
                   )}
@@ -181,13 +193,26 @@ const VendorCheckinBooking: React.FC<VendorCheckinBookingProps> = ({
                 {/* KYC Pending – Full width on mobile */}
                 {profile.kyc_status === "PENDING" && (
                   <a
-                    href={`/admin/kyc?contactEmail=${profile.email}`}
+                    href={`/admin/kyc?contactEmail=${profile.kyc_contact_email}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2"
+                    className="flex items-center justify-center gap-2 px-4 py-2 bg-yellow-100 hover:bg-yellow-200 text-yellow-900 rounded-md font-medium transition-colors"
                   >
                     <IdCard className="h-4 w-4" />
                     Review KYC
+                    <ArrowUpRight className="h-3.5 w-3.5 opacity-70" />
+                  </a>
+                )}
+                {/* KYC Rejected – Full width on mobile */}
+                {profile.kyc_status === "REJECTED" && (
+                  <a
+                    href={`/admin/kyc?contactEmail=${profile.email}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 px-4 py-2 bg-red-100 hover:bg-red-200 text-red-900 rounded-md font-medium transition-colors"
+                  >
+                    <IdCard className="h-4 w-4" />
+                    Review Rejected KYC
                     <ArrowUpRight className="h-3.5 w-3.5 opacity-70" />
                   </a>
                 )}
@@ -279,6 +304,13 @@ const VendorCheckinBooking: React.FC<VendorCheckinBookingProps> = ({
                 <div className="mt-4 p-3 bg-orange-100 border border-orange-300 rounded-lg">
                   <p className="text-xs font-medium text-orange-900">
                     KYC pending – consider following up with vendor
+                  </p>
+                </div>
+              )}
+              {profile.kyc_status === "REJECTED" && (
+                <div className="mt-4 p-3 bg-red-100 border border-red-300 rounded-lg">
+                  <p className="text-xs font-medium text-red-900">
+                    ⚠️ KYC rejected – New bookings are not allowed until KYC is approved
                   </p>
                 </div>
               )}

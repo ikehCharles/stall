@@ -26,7 +26,7 @@ interface KYCStatusProps {
 
 export const KYCStatus = ({ kycData, onStartKYC }: KYCStatusProps) => {
   const {data: auditHistory, isLoading:isKYCLoading} = useKYCAuditHistory(kycData?.id);
-  const maxKYCReviewReached = isKYCLoading || auditHistory.length >= MAXKYCREVIEWCOUNT;
+  const maxKYCReviewReached = isKYCLoading || auditHistory?.length >= MAXKYCREVIEWCOUNT;
 
   if (!kycData) {
     return (
@@ -83,7 +83,7 @@ export const KYCStatus = ({ kycData, onStartKYC }: KYCStatusProps) => {
             Business Verification Status
           </CardTitle>
           <Badge variant={config.badgeVariant}>
-            {kycData.status}  {kycData.status ==='APPROVED' ? '': '(' + maxKYCReviewReached + ')' ? 'FINAL' : '(' + auditHistory.length + `/${MAXKYCREVIEWCOUNT}` + ')' }
+            {kycData.status}  {kycData.status ==='APPROVED' ? '': '(' + maxKYCReviewReached + ')' ? maxKYCReviewReached ? '(FINAL)': '' : '(' + auditHistory?.length + `/${MAXKYCREVIEWCOUNT}` + ')' }
           </Badge>
         </div>
       </CardHeader>

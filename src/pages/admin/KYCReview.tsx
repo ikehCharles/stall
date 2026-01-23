@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -102,12 +103,36 @@ export const KYCReview = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [totalCount, setTotalCount] = useState(0);
-  const [filters, setFilters] = useState<KYCFilters>({
+  const [searchParams, setSearchParams] = useSearchParams();
+  const isUpdatingFromUrl = useRef(false);
+  const filtersRef = useRef<KYCFilters>({
     search: "",
     status: "all",
     dateFrom: null,
     dateTo: null,
   });
+
+  // Initialize filters from URL params on mount
+  const getInitialFilters = (): KYCFilters => {
+    const contactEmail = searchParams.get("contactEmail") || "";
+    const status = searchParams.get("status") || "all";
+    const dateFromParam = searchParams.get("dateFrom");
+    const dateToParam = searchParams.get("dateTo");
+    
+    return {
+      search: contactEmail.trim(),
+      status: status,
+      dateFrom: dateFromParam ? new Date(dateFromParam) : null,
+      dateTo: dateToParam ? new Date(dateToParam) : null,
+    };
+  };
+
+  const [filters, setFilters] = useState<KYCFilters>(getInitialFilters());
+
+  // Keep filtersRef in sync
+  useEffect(() => {
+    filtersRef.current = filters;
+  }, [filters]);
 
   const { toast } = useToast();
   const { user } = useAuth();
@@ -216,20 +241,107 @@ export const KYCReview = () => {
     loadApplications();
   }, [loadApplications]);
 
-  // Handle filters change
+  // Sync filters from URL params when URL changes (URL is source of truth)
+  // This handles browser back/forward and initial page load
+  useEffect(() => {
+    // Skip if we're updating URL from filter changes to prevent loops
+    if (isUpdatingFromUrl.current) {
+      return;
+    }
+
+    const contactEmail = searchParams.get("contactEmail") || "";
+    const status = searchParams.get("status") || "all";
+    const dateFromParam = searchParams.get("dateFrom");
+    const dateToParam = searchParams.get("dateTo");
+
+    const urlFilters: KYCFilters = {
+      search: contactEmail.trim(),
+      status: status,
+      dateFrom: dateFromParam ? new Date(dateFromParam) : null,
+      dateTo: dateToParam ? new Date(dateToParam) : null,
+    };
+
+    // Compare current filters with URL filters
+    const currentFilters = filtersRef.current;
+    const filtersChanged = 
+      urlFilters.search !== currentFilters.search ||
+      urlFilters.status !== currentFilters.status ||
+      (urlFilters.dateFrom?.getTime() !== currentFilters.dateFrom?.getTime()) ||
+      (urlFilters.dateTo?.getTime() !== currentFilters.dateTo?.getTime());
+
+    // Only update filters if they're different (prevents unnecessary API calls)
+    if (filtersChanged) {
+      setFilters(urlFilters);
+      setCurrentPage(1); // Reset to first page when filters change
+    }
+  }, [searchParams]);
+
+  // Handle filters change - update filters immediately and sync URL params
   const handleFiltersChange = (newFilters: KYCFilters) => {
+    // Update filters state immediately so UI reflects changes
     setFilters(newFilters);
     setCurrentPage(1); // Reset to first page when filters change
+
+    // Set flag to prevent the URL sync effect from running
+    isUpdatingFromUrl.current = true;
+
+    // Update URL search params - this is the source of truth
+    const newSearchParams = new URLSearchParams(searchParams);
+    
+    if (newFilters.search) {
+      newSearchParams.set('contactEmail', newFilters.search.trim());
+    } else {
+      newSearchParams.delete('contactEmail');
+    }
+
+    if (newFilters.status && newFilters.status !== "all") {
+      newSearchParams.set('status', newFilters.status);
+    } else {
+      newSearchParams.delete('status');
+    }
+
+    if (newFilters.dateFrom) {
+      newSearchParams.set('dateFrom', newFilters.dateFrom.toISOString().split('T')[0]);
+    } else {
+      newSearchParams.delete('dateFrom');
+    }
+
+    if (newFilters.dateTo) {
+      newSearchParams.set('dateTo', newFilters.dateTo.toISOString().split('T')[0]);
+    } else {
+      newSearchParams.delete('dateTo');
+    }
+
+    setSearchParams(newSearchParams, { replace: true });
+
+    // Reset flag after a brief delay
+    setTimeout(() => {
+      isUpdatingFromUrl.current = false;
+    }, 0);
   };
 
   const handleResetFilters = () => {
-    setFilters({
+    // Reset filters state immediately so UI reflects changes
+    const resetFilters: KYCFilters = {
       search: "",
       status: "all",
       dateFrom: null,
       dateTo: null,
-    });
+    };
+    setFilters(resetFilters);
     setCurrentPage(1);
+
+    // Set flag to prevent the URL sync effect from running
+    isUpdatingFromUrl.current = true;
+
+    // Clear all URL params
+    const newSearchParams = new URLSearchParams();
+    setSearchParams(newSearchParams, { replace: true });
+
+    // Reset flag after a brief delay
+    setTimeout(() => {
+      isUpdatingFromUrl.current = false;
+    }, 0);
   };
 
   // Open review dialog
@@ -410,7 +522,7 @@ export const KYCReview = () => {
     }
   };
 
-  const maxKYCReviewReached = isKYCLoading || auditHistory.length >= MAXKYCREVIEWCOUNT;
+  const maxKYCReviewReached = isKYCLoading || auditHistory?.length >= MAXKYCREVIEWCOUNT;
 
   if (error) {
     return (

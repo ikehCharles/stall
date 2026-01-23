@@ -71,7 +71,7 @@ export const getStatusBadge = (status: string) => {
 
   export const getKycBadge = (status:Database['public']['Tables']['kyc_applications']['Row']['status']) => {
     if (status === 'REJECTED')
-      return <Badge variant="destructive">Pending</Badge>;
+      return <Badge variant="destructive">Rejected</Badge>;
     if (status === "APPROVED")
       return (
         <Badge className="bg-green-100 text-green-800">Approved</Badge>

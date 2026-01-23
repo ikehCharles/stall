@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import { StallInstance } from "./useStallInstances";
 
 type Booking = Database["public"]["Tables"]["bookings"]["Row"];
 type BookingInsert = Database["public"]["Tables"]["bookings"]["Insert"];
@@ -8,17 +9,7 @@ type BookingStall = Database["public"]["Tables"]["booking_stalls"]["Row"];
 
 export interface BookingWithStalls extends Booking {
   booking_stalls: (BookingStall & {
-    stall_instances: {
-      id: string;
-      label: string;
-      x: number;
-      y: number;
-      width: number;
-      height: number;
-      stall_templates: {
-        name: string;
-      };
-    };
+    stall_instances: StallInstance
   })[];
   markets: {
     name: string;
@@ -26,14 +17,14 @@ export interface BookingWithStalls extends Booking {
     end_at: string;
     theme: string;
   };
-  profiles?: {
+  profile?: {
     full_name: string | null;
     email: string;
     phone_number: string | null;
     company_name: string | null;
     address: string | null;
-    kyc_applications?: {
-      status: string;
+    kyc_application?: {
+      status: Database['public']['Enums']['kyc_status'];
     };
   };
   booking_dates?: {
@@ -58,13 +49,7 @@ export const useVendorBookings = () => {
           markets(name, start_at, end_at, theme),
           booking_stalls(
             *,
-            stall_instances(
-              id,
-              label,
-              x,
-              y,
-              width,
-              height,
+            stall_instances(*,
               stall_templates(name)
             )
           )
@@ -118,7 +103,7 @@ export const useBookingDetails = (bookingId: string) => {
         .from("profiles")
         .select(
           `full_name, email, phone_number, company_name, address,
-        kyc_applications(
+        kyc_application:kyc_applications!fk_kyc_applications_user_id(
           status
         )
         `
@@ -128,7 +113,7 @@ export const useBookingDetails = (bookingId: string) => {
 
       return {
         ...data,
-        profiles: profile || undefined,
+        profile: profile || undefined,
       } as BookingWithStalls;
     },
     enabled: !!bookingId,
@@ -173,11 +158,11 @@ export const useFetchBookingDetails = () => {
       if (error) throw error;
 
       // Fetch profile separately using user_id
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select(
           `full_name, email, phone_number, company_name, address,
-        kyc_applications(
+        kyc_application:kyc_applications!fk_kyc_applications_user_id(
           status
         )
         `
@@ -185,9 +170,10 @@ export const useFetchBookingDetails = () => {
         .eq("id", data.user_id)
         .single();
 
+
       return {
         ...data,
-        profiles: profile || undefined,
+        profile: profile || undefined,
       } as BookingWithStalls;
     },
   });

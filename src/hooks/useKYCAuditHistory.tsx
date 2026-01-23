@@ -30,6 +30,7 @@ export const useKYCAuditHistory = (kycId: string) => {
           })) || [];
         return auditData;
       },
+      enabled: !!kycId,
     });
   };
 

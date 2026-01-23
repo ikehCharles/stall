@@ -25,11 +25,19 @@ import { Market } from "@/hooks/useMarkets";
 import { StallInstance } from "@/hooks/useStallInstances";
 import { getKycBadge } from "@/components/shared/statuses";
 import CurrencyWrapper from "@/components/shared/currency";
+import { Database } from "@/integrations/supabase/types";
 
 export interface SessionVendorStorage {
   marketId: string;
   vendorId: string;
-  vendorDetails: Profile;
+  vendorDetails: {
+    full_name: string;
+    email: string;
+    phone_number: string;
+    company_name: string;
+    address: string;
+    kyc_status: Database['public']['Enums']['kyc_status'];
+  };
   stallSelection: {
     stall: StallInstance;
     selectedDates: Date[];
