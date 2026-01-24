@@ -13,6 +13,38 @@ interface StallHoldResponse {
   total?: number;
 }
 
+/** Current user's active hold for a specific stall (for restoring modal state after refresh). */
+export const useMyStallHold = (
+  stallId: string,
+  marketId: string,
+  options?: { enabled?: boolean }
+) => {
+  return useQuery({
+    queryKey: ['my-stall-hold', stallId, marketId],
+    queryFn: async (): Promise<{ expiresAt: string; dates: string[] } | null> => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return null;
+      const { data, error } = await supabase
+        .from('stall_holds')
+        .select('expires_at, selected_dates')
+        .eq('stall_instance_id', stallId)
+        .eq('market_id', marketId)
+        .eq('user_id', user.id)
+        .gt('expires_at', new Date().toISOString())
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data?.selected_dates?.length) return null;
+      const dates = Array.isArray(data.selected_dates) ? data.selected_dates : [];
+      return { expiresAt: data.expires_at, dates };
+    },
+    enabled: !!(stallId && marketId && (options?.enabled !== false)),
+    refetchInterval: 5000,
+  });
+};
+
 export const useStallHolds = (marketId: string) => {
   return useQuery({
     queryKey: ['stall-holds', marketId],
@@ -78,6 +110,9 @@ export const useCreateStallHold = () => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['stall-holds', variables.marketId] });
+      queryClient.invalidateQueries({
+        queryKey: ['my-stall-hold', variables.stallId, variables.marketId],
+      });
     },
   });
 };

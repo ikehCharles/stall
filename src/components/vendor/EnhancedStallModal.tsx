@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import type { Database } from "@/integrations/supabase/types";
 import { BookingCalendar } from "./BookingCalendar";
 import { StallHoldTimer } from "./StallHoldTimer";
-import { useCreateStallHold } from "@/hooks/useStallHolds";
+import { useCreateStallHold, useMyStallHold } from "@/hooks/useStallHolds";
 import { format } from "date-fns";
 import { formatCurrency } from "@/lib/utils";
 import CurrencyWrapper from "../shared/currency";
@@ -58,6 +59,10 @@ export function EnhancedStallModal({
   } | null>(null);
   
   const createHold = useCreateStallHold();
+  const queryClient = useQueryClient();
+  const { data: myHold } = useMyStallHold(stall?.id ?? "", market?.id ?? "", {
+    enabled: isOpen && !!stall && !!market,
+  });
 
   useEffect(() => {
     if (!isOpen) {
@@ -67,6 +72,19 @@ export function EnhancedStallModal({
       setHoldResponse(null);
     }
   }, [isOpen]);
+
+  // Restore hold from DB when opening modal after refresh (hold remains until countdown expires)
+  useEffect(() => {
+    if (!isOpen || !stall || !market || !myHold || selectedDates.length > 0) return;
+    const pricePerDay = stall.price_override || stall.stall_templates?.price || 0;
+    setSelectedDates(myHold.dates.map((d) => new Date(d + "T12:00:00")));
+    setHoldExpiry(myHold.expiresAt);
+    setHoldResponse({
+      days: myHold.dates.length,
+      price_per_day: pricePerDay,
+      total: pricePerDay * myHold.dates.length,
+    });
+  }, [isOpen, stall, market, myHold]);
 
   const handleDateSelect = async (dates: Date[]) => {
     setSelectedDates(dates);
@@ -150,6 +168,10 @@ export function EnhancedStallModal({
     setHoldExpiry(null);
     setSelectedDates([]);
     setHoldResponse(null);
+    if (stall && market) {
+      queryClient.invalidateQueries({ queryKey: ["my-stall-hold", stall.id, market.id] });
+      queryClient.invalidateQueries({ queryKey: ["stall-holds", market.id] });
+    }
     toast({
       title: "Hold Expired",
       description: "Your stall reservation has expired. Please select dates again.",
@@ -227,7 +249,7 @@ export function EnhancedStallModal({
                       </span>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {daysCount} day{daysCount > 1 ? 's' : ''} × ${formatCurrency(pricePerDay)}/day
+                      {daysCount} day{daysCount > 1 ? 's' : ''} × {formatCurrency(pricePerDay)}/day
                     </p>
                     {holdResponse && (
                       <p className="text-xs text-green-600 mt-1">
