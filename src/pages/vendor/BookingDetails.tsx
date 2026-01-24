@@ -86,7 +86,7 @@ const BookingDetails = () => {
         setIsProcessingPayment(false);
       }
     }
-  }, [booking.payment_status, id, navigate, searchParams]);
+  }, [booking?.payment_status, id, navigate, searchParams]);
 
   const canShowActions = useCallback((booking: BookingWithStalls) => {
     const { status, payment_status } = booking;

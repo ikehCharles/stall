@@ -63,6 +63,27 @@ export const useVendorBookings = () => {
   });
 };
 
+export const useVendorSuccessBookingCount = () => {
+  return useQuery({
+    queryKey: ["vendor-success-booking-count"],
+    queryFn: async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return 0;
+
+      const { count, error } = await supabase
+        .from("bookings")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("payment_status", "success");
+
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+};
+
 export const useBookingDetails = (bookingId: string) => {
   return useQuery({
     queryKey: ["booking-details", bookingId],

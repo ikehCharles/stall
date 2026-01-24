@@ -1,39 +1,223 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
-import { useCreateCred } from "@/hooks/useSettings";
+import { useCreateCred, usePlatformSettings, useSaveSingleSetting, PlatformSettings } from "@/hooks/useSettings";
+import { useConfirm } from "@/components/ui/confirmDialog";
 
 const Settings = () => {
-  const [settings, setSettings] = useState({
+  const { data: settingsData, isLoading, error } = usePlatformSettings();
+  const saveSingleSetting = useSaveSingleSetting();
+  const createCredentials = useCreateCred();
+  const confirm = useConfirm();
+  const [zettleWebhookUrl, setZettleWebhookUrl] = useState("");
+
+  // Local state for form fields (initialized from fetched data)
+  const [settings, setSettings] = useState<PlatformSettings>({
     depositPercentage: 50,
     platformFee: 5,
     autoConfirmBookings: true,
     emailNotifications: true,
     smsNotifications: false,
     maxStallsPerVendor: 10,
+    minBookings: 1,
+    minBookingsActive: true,
     cancellationWindow: 48,
     refundPolicy:
       "Cancellations made 48 hours before the event are eligible for full refund minus processing fees.",
     termsAndConditions:
       "By booking a stall, vendors agree to follow all marketplace guidelines and policies.",
   });
-  const createCredentials = useCreateCred();
-  const [zettleWebhookUrl, setZettleWebhookUrl] = useState("");
 
-  const handleSave = () => {
-    toast({
-      title: "Settings Updated",
-      description: "Your platform settings have been successfully saved.",
-    });
+  // Track original settings to detect changes
+  const originalSettingsRef = useRef<PlatformSettings>({ ...settings });
+
+  // Update local state when data is fetched
+  useEffect(() => {
+    if (settingsData) {
+      setSettings(settingsData);
+      originalSettingsRef.current = { ...settingsData };
+    }
+  }, [settingsData]);
+
+  const handleChange = (field: keyof PlatformSettings, value: string | number | boolean | "") => {
+    // Allow empty strings for number fields (will be validated on blur)
+    // Convert empty string to 0 for number fields to maintain type safety
+    const finalValue = value === "" && typeof settings[field] === "number" ? 0 : value;
+    setSettings((prev) => ({ ...prev, [field]: finalValue as PlatformSettings[keyof PlatformSettings] }));
   };
 
-  const handleChange = (field: string, value: any) => {
-    setSettings((prev) => ({ ...prev, [field]: value }));
+  const handleBlur = async (field: keyof PlatformSettings) => {
+    const currentValue = settings[field];
+    const originalValue = originalSettingsRef.current[field];
+
+    // Check if value is empty/invalid and revert immediately
+    const isStringField = typeof originalValue === "string";
+    const isNumberField = typeof originalValue === "number";
+    
+    // Check for empty string fields
+    if (isStringField && (currentValue === "" || currentValue === null || currentValue === undefined)) {
+      // Revert empty string fields to original value
+      setSettings((prev) => ({ ...prev, [field]: originalValue }));
+      return;
+    }
+    
+    // Check for empty/invalid number fields
+    // For number fields, check if value is 0 (which represents empty) AND original is not 0
+    // Also check for null, undefined, or NaN
+    if (isNumberField) {
+      const isCurrentValueEmpty = currentValue === 0 && originalValue !== 0;
+      const isInvalid = currentValue === null || currentValue === undefined || isNaN(currentValue as number);
+      if (isCurrentValueEmpty || isInvalid) {
+        // Revert empty/invalid number fields to original value
+        setSettings((prev) => ({ ...prev, [field]: originalValue }));
+        return;
+      }
+    }
+
+    // Check if value has changed
+    if (currentValue === originalValue) {
+      return; // No changes, skip saving
+    }
+
+    // Get field label for confirmation message
+    const fieldLabels: Record<keyof PlatformSettings, string> = {
+      depositPercentage: "Required Deposit",
+      platformFee: "Platform Fee",
+      autoConfirmBookings: "Auto-confirm Bookings",
+      emailNotifications: "Email Notifications",
+      smsNotifications: "SMS Notifications",
+      maxStallsPerVendor: "Max Stalls per Vendor",
+      minBookings: "Minimum Bookings for Pay Later",
+      minBookingsActive: "Minimum Bookings (Active)",
+      cancellationWindow: "Cancellation Window",
+      refundPolicy: "Refund Policy",
+      termsAndConditions: "Terms and Conditions",
+    };
+
+    const fieldLabel = fieldLabels[field] || field;
+
+    // Show confirmation dialog
+    const confirmed = await confirm({
+      title: "Confirm Setting Change",
+      description: `Are you sure you want to change "${fieldLabel}" from "${originalValue}" to "${currentValue}"?`,
+      confirmText: "Save",
+      cancelText: "Cancel",
+    });
+
+    if (!confirmed) {
+      // Revert to original value
+      setSettings((prev) => ({ ...prev, [field]: originalValue }));
+      return;
+    }
+
+    // Save the setting
+    try {
+      const payload: { key: keyof PlatformSettings; value: string | number | boolean; isActive?: boolean } = {
+        key: field,
+        value: currentValue,
+      };
+      if (field === "minBookings") payload.isActive = settings.minBookingsActive;
+      await saveSingleSetting.mutateAsync(payload);
+
+      // Update original settings ref
+      originalSettingsRef.current = { ...originalSettingsRef.current, [field]: currentValue };
+
+      toast({
+        title: "Setting Updated",
+        description: `${fieldLabel} has been successfully updated.`,
+      });
+    } catch (error) {
+      // Revert on error
+      setSettings((prev) => ({ ...prev, [field]: originalValue }));
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to save setting.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSwitchChange = async (field: keyof PlatformSettings, checked: boolean) => {
+    const originalValue = originalSettingsRef.current[field];
+
+    // Update state immediately for UI responsiveness
+    handleChange(field, checked);
+
+    // Check if value has changed
+    if (checked === originalValue) {
+      return; // No changes, skip saving
+    }
+
+    // Get field label for confirmation message
+    const fieldLabels: Record<keyof PlatformSettings, string> = {
+      depositPercentage: "Required Deposit",
+      platformFee: "Platform Fee",
+      autoConfirmBookings: "Auto-confirm Bookings",
+      emailNotifications: "Email Notifications",
+      smsNotifications: "SMS Notifications",
+      maxStallsPerVendor: "Max Stalls per Vendor",
+      minBookings: "Minimum Bookings for Pay Later",
+      minBookingsActive: "Minimum Bookings (Active)",
+      cancellationWindow: "Cancellation Window",
+      refundPolicy: "Refund Policy",
+      termsAndConditions: "Terms and Conditions",
+    };
+
+    const fieldLabel = fieldLabels[field] || field;
+
+    // minBookingsActive toggles is_active on the min_bookings row; use different save payload
+    const isMinBookingsActive = field === "minBookingsActive";
+
+    // Show confirmation dialog
+    const confirmed = await confirm({
+      title: "Confirm Setting Change",
+      description: `Are you sure you want to ${checked ? "enable" : "disable"} "${fieldLabel}"?`,
+      confirmText: "Save",
+      cancelText: "Cancel",
+    });
+
+    if (!confirmed) {
+      // Revert to original value
+      setSettings((prev) => ({ ...prev, [field]: originalValue }));
+      return;
+    }
+
+    // Save the setting
+    try {
+      if (isMinBookingsActive) {
+        await saveSingleSetting.mutateAsync({
+          key: "minBookings",
+          value: settings.minBookings,
+          isActive: checked,
+        });
+      } else {
+        await saveSingleSetting.mutateAsync({
+          key: field,
+          value: checked,
+        });
+      }
+
+      // Update original settings ref
+      originalSettingsRef.current = { ...originalSettingsRef.current, [field]: checked };
+
+      toast({
+        title: "Setting Updated",
+        description: `${fieldLabel} has been ${checked ? "enabled" : "disabled"}.`,
+      });
+    } catch (error) {
+      // Revert on error
+      setSettings((prev) => ({ ...prev, [field]: originalValue }));
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to save setting.",
+        variant: "destructive",
+      });
+    }
   };
 
   const saveZettleWebhook = async () => {
@@ -49,14 +233,60 @@ const Settings = () => {
       return;
     }
 
-    const res = await createCredentials.mutateAsync({
-      source: "zettle",
-      key: "webhook_signing_key",
-      meta: {
-        url: zettleWebhookUrl,
-      },
-    });
+    try {
+      await createCredentials.mutateAsync({
+        source: "zettle",
+        key: "webhook_signing_key",
+        meta: {
+          url: zettleWebhookUrl,
+        },
+      });
+      toast({
+        title: "Webhook URL Saved",
+        description: "Zettle webhook URL has been successfully saved.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to save webhook URL.",
+        variant: "destructive",
+      });
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
+          <p className="text-gray-600 mt-1">
+            Configure platform settings and policies
+          </p>
+        </div>
+        <div className="flex items-center justify-center py-12">
+          <p className="text-gray-500">Loading settings...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
+          <p className="text-gray-600 mt-1">
+            Configure platform settings and policies
+          </p>
+        </div>
+        <div className="flex items-center justify-center py-12">
+          <p className="text-red-500">
+            Error loading settings: {error instanceof Error ? error.message : "Unknown error"}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -82,10 +312,11 @@ const Settings = () => {
               <Input
                 id="deposit"
                 type="number"
-                value={settings.depositPercentage}
+                value={settings.depositPercentage === 0 ? "" : settings.depositPercentage}
                 onChange={(e) =>
-                  handleChange("depositPercentage", Number(e.target.value))
+                  handleChange("depositPercentage", e.target.value === "" ? "" : Number(e.target.value))
                 }
+                onBlur={() => handleBlur("depositPercentage")}
                 min="0"
                 max="100"
               />
@@ -99,10 +330,11 @@ const Settings = () => {
               <Input
                 id="platformFee"
                 type="number"
-                value={settings.platformFee}
+                value={settings.platformFee === 0 ? "" : settings.platformFee}
                 onChange={(e) =>
-                  handleChange("platformFee", Number(e.target.value))
+                  handleChange("platformFee", e.target.value === "" ? "" : Number(e.target.value))
                 }
+                onBlur={() => handleBlur("platformFee")}
                 min="0"
                 max="50"
               />
@@ -118,10 +350,11 @@ const Settings = () => {
               <Input
                 id="cancellationWindow"
                 type="number"
-                value={settings.cancellationWindow}
+                value={settings.cancellationWindow === 0 ? "" : settings.cancellationWindow}
                 onChange={(e) =>
-                  handleChange("cancellationWindow", Number(e.target.value))
+                  handleChange("cancellationWindow", e.target.value === "" ? "" : Number(e.target.value))
                 }
+                onBlur={() => handleBlur("cancellationWindow")}
                 min="1"
               />
               <p className="text-sm text-gray-600">
@@ -145,14 +378,42 @@ const Settings = () => {
               <Input
                 id="maxStalls"
                 type="number"
-                value={settings.maxStallsPerVendor}
+                value={settings.maxStallsPerVendor === 0 ? "" : settings.maxStallsPerVendor}
                 onChange={(e) =>
-                  handleChange("maxStallsPerVendor", Number(e.target.value))
+                  handleChange("maxStallsPerVendor", e.target.value === "" ? "" : Number(e.target.value))
                 }
+                onBlur={() => handleBlur("maxStallsPerVendor")}
                 min="1"
               />
               <p className="text-sm text-gray-600">
                 Maximum number of stalls one vendor can book
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="minBookings">Minimum Bookings for Pay Later</Label>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="minBookingsActive"
+                  checked={settings.minBookingsActive}
+                  onCheckedChange={(c) =>
+                    handleSwitchChange("minBookingsActive", c === true)
+                  }
+                />
+               
+                <Input
+                  id="minBookings"
+                  type="number"
+                  value={settings.minBookings === 0 ? "" : settings.minBookings}
+                  onChange={(e) =>
+                    handleChange("minBookings", e.target.value === "" ? "" : Number(e.target.value))
+                  }
+                  onBlur={() => handleBlur("minBookings")}
+                  min="1"
+                />
+              </div>
+              <p className="text-sm text-gray-600">
+                Minimum number of bookings before pay later is available for all vendors
               </p>
             </div>
 
@@ -167,7 +428,7 @@ const Settings = () => {
                 id="autoConfirm"
                 checked={settings.autoConfirmBookings}
                 onCheckedChange={(checked) =>
-                  handleChange("autoConfirmBookings", checked)
+                  handleSwitchChange("autoConfirmBookings", checked)
                 }
               />
             </div>
@@ -194,7 +455,7 @@ const Settings = () => {
                 id="emailNotifications"
                 checked={settings.emailNotifications}
                 onCheckedChange={(checked) =>
-                  handleChange("emailNotifications", checked)
+                  handleSwitchChange("emailNotifications", checked)
                 }
               />
             </div>
@@ -210,7 +471,7 @@ const Settings = () => {
                 id="smsNotifications"
                 checked={settings.smsNotifications}
                 onCheckedChange={(checked) =>
-                  handleChange("smsNotifications", checked)
+                  handleSwitchChange("smsNotifications", checked)
                 }
               />
             </div>
@@ -232,6 +493,7 @@ const Settings = () => {
                 id="refundPolicy"
                 value={settings.refundPolicy}
                 onChange={(e) => handleChange("refundPolicy", e.target.value)}
+                onBlur={() => handleBlur("refundPolicy")}
                 rows={4}
               />
             </div>
@@ -244,6 +506,7 @@ const Settings = () => {
                 onChange={(e) =>
                   handleChange("termsAndConditions", e.target.value)
                 }
+                onBlur={() => handleBlur("termsAndConditions")}
                 rows={4}
               />
             </div>
@@ -277,16 +540,6 @@ const Settings = () => {
             
           </CardContent>
         </Card>
-      </div>
-
-      {/* Save Button */}
-      <div className="flex justify-end">
-        <Button
-          onClick={handleSave}
-          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-        >
-          Save Settings
-        </Button>
       </div>
     </div>
   );

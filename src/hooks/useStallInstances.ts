@@ -2,17 +2,19 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
-export type StallInstance =
-  Database["public"]["Tables"]["stall_instances"]["Row"] & {
-    stall_templates: {
-      name: string;
-      shape: string;
-      fill_color: string;
-      stroke_color: string;
-      price: number;
-      capacity: number;
-    };
+export type StallInstance = Database["public"]["Tables"]["stall_instances"]["Row"] & {
+  stall_templates?: {
+    name: string;
+    shape: Database["public"]["Enums"]["stall_shape"];
+    fill_color: string;
+    stroke_color: string;
+    price: number;
+    capacity: number;
   };
+  isSelected?: boolean;
+  isHeld?: boolean;
+  selectedDates?: Date[];
+};
 type StallInstanceInsert =
   Database["public"]["Tables"]["stall_instances"]["Insert"];
 type StallInstanceUpdate =

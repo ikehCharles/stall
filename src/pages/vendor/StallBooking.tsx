@@ -12,13 +12,15 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { useMarkets } from "@/hooks/useMarkets";
-import { useStallInstances } from "@/hooks/useStallInstances";
+import { StallInstance, useStallInstances } from "@/hooks/useStallInstances";
 import {
   useCreateBooking,
   CreateBookingData,
   useReserveBooking,
+  useVendorSuccessBookingCount,
 } from "@/hooks/useBookings";
 import { useStallHolds, useCleanupExpiredHolds } from "@/hooks/useStallHolds";
+import { usePlatformSettings } from "@/hooks/useSettings";
 import { useBookingDates } from "@/hooks/useBookingDates";
 import { EnhancedStallModal } from "@/components/vendor/EnhancedStallModal";
 import { StallHoldTimer } from "@/components/vendor/StallHoldTimer";
@@ -30,19 +32,6 @@ import { format } from "date-fns";
 import CurrencyWrapper from "@/components/shared/currency";
 import { formatCurrency } from "@/lib/utils";
 
-type StallInstance = Database["public"]["Tables"]["stall_instances"]["Row"] & {
-  stall_templates?: {
-    name: string;
-    shape: Database["public"]["Enums"]["stall_shape"];
-    fill_color: string;
-    stroke_color: string;
-    price: number;
-    capacity: number;
-  };
-  isSelected?: boolean;
-  isHeld?: boolean;
-  selectedDates?: Date[];
-};
 
 interface StallSelection {
   stall: StallInstance;
@@ -69,8 +58,22 @@ const EnhancedStallBooking = () => {
   const { data: bookedDates = [] } = useBookingDates(marketId || "");
   const createBooking = useCreateBooking();
   const cleanupHolds = useCleanupExpiredHolds();
+  const { data: platformSettings, error: settingsError } = usePlatformSettings();
+  const { data: completedBookingCount = 0 } = useVendorSuccessBookingCount();
 
   const currentMarket = markets?.find((m) => m.id === marketId);
+
+  // Minimum completed (paid) bookings required before Pay Later is available
+  const minBookings =
+    settingsError || !platformSettings || !platformSettings.minBookings
+      ? Infinity
+      : platformSettings.minBookings;
+  // When the minimum-bookings rule is not active, everyone gets Pay Later
+  const hasPayLaterEligibility =
+    platformSettings?.minBookingsActive === false
+      ? true
+      : completedBookingCount >= minBookings;
+
 
   // Create enhanced stall instances with booking and hold status
   const stalls: StallInstance[] =
@@ -399,7 +402,11 @@ const EnhancedStallBooking = () => {
 
                   <Button
                     className="w-full"
-                    onClick={() => setIsCheckoutOpen(true)}
+                    onClick={() =>
+                      hasPayLaterEligibility
+                        ? setIsCheckoutOpen(true)
+                        : handleCheckout()
+                    }
                     disabled={createBooking.isPending}
                   >
                     {createBooking.isPending
@@ -476,14 +483,16 @@ const EnhancedStallBooking = () => {
               </div>
             </div>
             <div className="flex space-x-2">
-              <Button
-                onClick={() => handleCheckout(true)}
-                variant="outline"
-                className="flex-1"
-                disabled={createBooking.isPending || reserveBooking.isPending}
-              >
-                {reserveBooking.isPending ? "Processing..." : "Pay Later"}
-              </Button>
+              {hasPayLaterEligibility && (
+                <Button
+                  onClick={() => handleCheckout(true)}
+                  variant="outline"
+                  className="flex-1"
+                  disabled={createBooking.isPending || reserveBooking.isPending}
+                >
+                  {reserveBooking.isPending ? "Processing..." : "Pay Later"}
+                </Button>
+              )}
               <Button
                 onClick={() => handleCheckout()}
                 className="flex-1"
@@ -491,12 +500,8 @@ const EnhancedStallBooking = () => {
               >
                 {createBooking.isPending
                   ? "Processing..."
-                  : "Procced To Payment"}
+                  : "Proceed To Payment"}
               </Button>
-
-              {/* <Button variant="outline" onClick={() => setIsCheckoutOpen(false)}>
-                Cancel
-              </Button> */}
             </div>
           </div>
         </DialogContent>
