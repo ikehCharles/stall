@@ -6,12 +6,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 interface BookingHoldTimerProps {
+  hideBadge?: boolean;
   bookingId: string;
   expiresAt: string | null;
   onExpired?: () => void;
 }
 
-export function BookingHoldTimer({ bookingId, expiresAt, onExpired }: BookingHoldTimerProps) {
+export function BookingHoldTimer({ bookingId, expiresAt, onExpired, hideBadge }: BookingHoldTimerProps) {
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [isExpired, setIsExpired] = useState(false);
   const { toast } = useToast();
@@ -28,6 +29,7 @@ export function BookingHoldTimer({ bookingId, expiresAt, onExpired }: BookingHol
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['booking-details'] });
       queryClient.invalidateQueries({ queryKey: ['vendor-bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-bookings'] });
       onExpired?.();
       toast({
         title: 'Booking Expired',
@@ -53,7 +55,7 @@ export function BookingHoldTimer({ bookingId, expiresAt, onExpired }: BookingHol
       
       if (remaining <= 0 && !isExpired) {
         setIsExpired(true);
-        // expireBookingMutation.mutate();
+        expireBookingMutation.mutate();
       }
     };
 
@@ -93,12 +95,15 @@ export function BookingHoldTimer({ bookingId, expiresAt, onExpired }: BookingHol
   const isUrgent = timeLeft < 5 * 60 * 1000; // Less than 5 minutes
 
   return (
-    <Badge 
+    <>
+{!hideBadge &&
+    (<Badge 
       variant={isUrgent ? "destructive" : "secondary"} 
       className={isUrgent ? "animate-pulse bg-orange-100 text-orange-800 border-orange-200" : "bg-blue-100 text-blue-800 border-blue-200"}
     >
       <Clock className="w-3 h-3 mr-1" />
       Hold expires in {formatTime(timeLeft)}
-    </Badge>
-  );
+    </Badge>)}
+    </>)
+  
 }

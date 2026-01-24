@@ -392,7 +392,7 @@ const CheckingBookingByQR: React.FC<CheckingBookingByQRProps> = (props) => {
                       <User className="h-5 w-5 text-muted-foreground" />
                       <div>
                         <p className="font-medium text-foreground">Name</p>
-                        <p>{booking.profiles?.full_name || "N/A"}</p>
+                        <p>{booking.profile?.full_name || "N/A"}</p>
                       </div>
                     </div>
 
@@ -401,7 +401,7 @@ const CheckingBookingByQR: React.FC<CheckingBookingByQRProps> = (props) => {
                       <Mail className="h-5 w-5 text-muted-foreground" />
                       <div>
                         <p className="font-medium text-foreground">Email</p>
-                        <p>{booking.profiles?.email || "N/A"}</p>
+                        <p>{booking.profile?.email || "N/A"}</p>
                       </div>
                     </div>
 
@@ -410,17 +410,17 @@ const CheckingBookingByQR: React.FC<CheckingBookingByQRProps> = (props) => {
                       <Phone className="h-5 w-5 text-muted-foreground" />
                       <div>
                         <p className="font-medium text-foreground">Phone</p>
-                        <p>{booking.profiles?.phone_number || "N/A"}</p>
+                        <p>{booking.profile?.phone_number || "N/A"}</p>
                       </div>
                     </div>
 
                     {/* Company */}
-                    {booking.profiles?.company_name && (
+                    {booking.profile?.company_name && (
                       <div className="w-full sm:w-1/2 px-2 mb-4 flex items-center gap-3">
                         <Building className="h-5 w-5 text-muted-foreground" />
                         <div>
                           <p className="font-medium text-foreground">Company</p>
-                          <p>{booking.profiles?.company_name}</p>
+                          <p>{booking.profile?.company_name}</p>
                         </div>
                       </div>
                     )}
@@ -434,16 +434,16 @@ const CheckingBookingByQR: React.FC<CheckingBookingByQRProps> = (props) => {
                         </p>
                         <span
                           className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
-                            booking.profiles?.kyc_applications?.status ===
+                            booking.profile?.kyc_application?.status ===
                             "APPROVED"
                               ? "bg-green-100 text-green-800"
-                              : booking.profiles?.kyc_applications?.status ===
+                              : booking.profile?.kyc_application?.status ===
                                 "PENDING"
                               ? "bg-yellow-100 text-yellow-800"
                               : "bg-red-100 text-red-800"
                           }`}
                         >
-                          {booking.profiles?.kyc_applications?.status || "N/A"}
+                          {booking.profile?.kyc_application?.status || "N/A"}
                         </span>
                       </div>
                     </div>

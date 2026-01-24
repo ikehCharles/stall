@@ -75,6 +75,8 @@ export type PlatformSettings = {
   maxStallsPerVendor: number;
   minBookings: number;
   minBookingsActive: boolean;
+  bookingExpiration: number;
+  bookingExpirationActive: boolean;
   cancellationWindow: number;
   refundPolicy: string;
   termsAndConditions: string;
@@ -90,6 +92,8 @@ const defaultSettings: PlatformSettings = {
   maxStallsPerVendor: 10,
   minBookings: 1,
   minBookingsActive: true,
+  bookingExpiration: 5,
+  bookingExpirationActive: true,
   cancellationWindow: 48,
   refundPolicy:
     "Cancellations made 48 hours before the event are eligible for full refund minus processing fees.",
@@ -97,8 +101,8 @@ const defaultSettings: PlatformSettings = {
     "By booking a stall, vendors agree to follow all marketplace guidelines and policies.",
 };
 
-// Map UI keys to database keys (minBookingsActive uses is_active of min_bookings row; no separate key)
-const SETTING_KEYS: Record<Exclude<keyof PlatformSettings, "minBookingsActive">, string> = {
+// Map UI keys to database keys (*Active flags use is_active of their linked row; no separate key)
+const SETTING_KEYS: Record<Exclude<keyof PlatformSettings, "minBookingsActive" | "bookingExpirationActive">, string> = {
   depositPercentage: "deposit_percentage",
   platformFee: "platform_fee",
   autoConfirmBookings: "auto_confirm_bookings",
@@ -106,6 +110,7 @@ const SETTING_KEYS: Record<Exclude<keyof PlatformSettings, "minBookingsActive">,
   smsNotifications: "sms_notifications",
   maxStallsPerVendor: "max_stalls_per_vendor",
   minBookings: "min_bookings",
+  bookingExpiration: "booking_expiration",
   cancellationWindow: "cancellation_window",
   refundPolicy: "refund_policy",
   termsAndConditions: "terms_and_conditions",
@@ -164,6 +169,10 @@ export const usePlatformSettings = () => {
           // min_bookings row also carries is_active for the "Minimum Bookings" rule
           if (dbKey === "min_bookings") {
             result.minBookingsActive = entry.is_active;
+          }
+          // booking_expiration row also carries is_active for the "Booking Expiration" rule
+          if (dbKey === "booking_expiration") {
+            result.bookingExpirationActive = entry.is_active;
           }
         }
       });

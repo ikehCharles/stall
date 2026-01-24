@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import type { PlatformSettings } from "@/hooks/useSettings";
 import { StallInstance } from "./useStallInstances";
 
 type Booking = Database["public"]["Tables"]["bookings"]["Row"];
@@ -247,6 +248,17 @@ export const useCreateBooking = () => {
       // Determine status based on FCA context (auto-approve FCA bookings)
       const bookingStatus = bookingData.createdByFcaId ? "approved" : "pending";
 
+      // Booking expiration from platform settings: when active, use configured minutes; else never expire (null)
+      const settings = queryClient.getQueryData<PlatformSettings>(["platform-settings"]);
+      const useExpiration =
+        !!settings?.bookingExpirationActive &&
+        typeof settings?.bookingExpiration === "number" &&
+        settings.bookingExpiration >= 1;
+      const holdExpiresAt =
+        useExpiration && settings
+          ? new Date(Date.now() + settings.bookingExpiration * 60 * 1000).toISOString()
+          : null;
+
       // Create the booking with hold expiry and new status
       const { data: booking, error: bookingError } = await supabase
         .from("bookings")
@@ -260,7 +272,7 @@ export const useCreateBooking = () => {
           selected_dates: bookingData.selectedDates,
           days_count: daysCount,
           price_per_day: pricePerDay,
-          hold_expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(), // 15-minute hold
+          hold_expires_at: holdExpiresAt,
           created_by_fca_id: bookingData.createdByFcaId, // Track FCA user
           fca_notes: bookingData.fcaNotes, // Optional notes
         })
@@ -381,6 +393,26 @@ export const useReserveBooking = () => {
       queryClient.invalidateQueries({ queryKey: ["stall-holds"] });
       queryClient.invalidateQueries({ queryKey: ["stall-instances"] });
       queryClient.invalidateQueries({ queryKey: ["booking-dates"] });
+    },
+  });
+};
+
+// Expire an unpaid booking whose hold has passed (sets status to 'expired')
+export const useExpireBooking = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (bookingId: string) => {
+      const { data, error } = await supabase.rpc("expire_booking", {
+        p_booking_id: bookingId,
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, bookingId) => {
+      queryClient.invalidateQueries({ queryKey: ["booking-details", bookingId] });
+      queryClient.invalidateQueries({ queryKey: ["vendor-bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-bookings"] });
     },
   });
 };

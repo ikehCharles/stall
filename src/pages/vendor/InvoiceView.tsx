@@ -1,8 +1,10 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation } from "react-router-dom";
+import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { useBookingDetails } from "@/hooks/useBookings";
+import { useBookingDetails, useExpireBooking } from "@/hooks/useBookings";
+import { BookingHoldTimer } from "@/components/vendor/BookingHoldTimer";
 import { Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { getPaymentStatusBadge } from "@/components/shared/statuses";
@@ -10,8 +12,28 @@ import CurrencyWrapper from "@/components/shared/currency";
 
 const InvoiceView = () => {
   const { id } = useParams();
+  const location = useLocation();
   const { data: booking, isLoading, error } = useBookingDetails(id || "");
+  const expireBooking = useExpireBooking();
+  const hasAttemptedExpireFor = useRef<string | null>(null);
   const isAdminView = location.pathname.includes("/admin/");
+
+  // On load (and refresh): if hold has passed and booking is unpaid and not already expired, call expire_booking once to set status to 'expired'
+  useEffect(() => {
+    if (
+      !booking?.id ||
+      booking.status === "expired" ||
+      booking.payment_status === "success" ||
+      booking.payment_status === "authorized" ||
+      !booking.hold_expires_at
+    )
+      return;
+    if (new Date(booking.hold_expires_at) > new Date()) return;
+    if (hasAttemptedExpireFor.current === booking.id) return;
+    hasAttemptedExpireFor.current = booking.id;
+    expireBooking.mutate(booking.id);
+  }, [booking?.id, booking?.status, booking?.payment_status, booking?.hold_expires_at]); // eslint-disable-line react-hooks/exhaustive-deps -- expireBooking omitted to avoid loop when mutation state updates
+
   const handlePrint = () => {
     window.print();
   };
@@ -78,6 +100,17 @@ const InvoiceView = () => {
                 <p className="text-muted-foreground">
                   Date: {format(new Date(booking.created_at), "PPP")}
                 </p>
+                {booking.hold_expires_at &&
+                  booking.status !== "expired" &&
+                  booking.payment_status !== "success" && (
+                    <div className="mt-2 print:hidden">
+                      <BookingHoldTimer
+                        hideBadge={true}
+                        bookingId={booking.id}
+                        expiresAt={booking.hold_expires_at}
+                      />
+                    </div>
+                  )}
               </div>
             </div>
 
@@ -89,24 +122,24 @@ const InvoiceView = () => {
                 <h3 className="text-lg font-semibold mb-3">Bill To:</h3>
                 <div className="space-y-1">
                   <p className="font-medium">
-                    {booking.profiles?.full_name || "Vendor"}
+                    {booking.profile?.full_name || "Vendor"}
                   </p>
                   <p className="text-muted-foreground">
-                    {booking.profiles?.email}
+                    {booking.profile?.email}
                   </p>
-                  {booking.profiles?.phone_number && (
+                  {booking.profile?.phone_number && (
                     <p className="text-muted-foreground">
-                      {booking.profiles.phone_number}
+                      {booking.profile.phone_number}
                     </p>
                   )}
-                  {booking.profiles?.company_name && (
+                  {booking.profile?.company_name && (
                     <p className="text-muted-foreground">
-                      {booking.profiles.company_name}
+                      {booking.profile.company_name}
                     </p>
                   )}
-                  {booking.profiles?.address && (
+                  {booking.profile?.address && (
                     <p className="text-muted-foreground">
-                      {booking.profiles.address}
+                      {booking.profile.address}
                     </p>
                   )}
                 </div>

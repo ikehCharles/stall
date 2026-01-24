@@ -162,7 +162,6 @@ const EnhancedStallBooking = () => {
           )
         )
       );
-
       const bookingData: CreateBookingData = {
         marketId,
         stallIds: selectedStalls.map((selection) => selection.stall.id),

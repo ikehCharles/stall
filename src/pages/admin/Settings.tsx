@@ -26,6 +26,8 @@ const Settings = () => {
     maxStallsPerVendor: 10,
     minBookings: 1,
     minBookingsActive: true,
+    bookingExpiration: 5,
+    bookingExpirationActive: true,
     cancellationWindow: 48,
     refundPolicy:
       "Cancellations made 48 hours before the event are eligible for full refund minus processing fees.",
@@ -94,6 +96,8 @@ const Settings = () => {
       maxStallsPerVendor: "Max Stalls per Vendor",
       minBookings: "Minimum Bookings for Pay Later",
       minBookingsActive: "Minimum Bookings (Active)",
+      bookingExpiration: "Booking Expiration",
+      bookingExpirationActive: "Booking Expiration (Active)",
       cancellationWindow: "Cancellation Window",
       refundPolicy: "Refund Policy",
       termsAndConditions: "Terms and Conditions",
@@ -122,6 +126,7 @@ const Settings = () => {
         value: currentValue,
       };
       if (field === "minBookings") payload.isActive = settings.minBookingsActive;
+      if (field === "bookingExpiration") payload.isActive = settings.bookingExpirationActive;
       await saveSingleSetting.mutateAsync(payload);
 
       // Update original settings ref
@@ -163,15 +168,14 @@ const Settings = () => {
       maxStallsPerVendor: "Max Stalls per Vendor",
       minBookings: "Minimum Bookings for Pay Later",
       minBookingsActive: "Minimum Bookings (Active)",
+      bookingExpiration: "Booking Expiration",
+      bookingExpirationActive: "Booking Expiration (Active)",
       cancellationWindow: "Cancellation Window",
       refundPolicy: "Refund Policy",
       termsAndConditions: "Terms and Conditions",
     };
 
     const fieldLabel = fieldLabels[field] || field;
-
-    // minBookingsActive toggles is_active on the min_bookings row; use different save payload
-    const isMinBookingsActive = field === "minBookingsActive";
 
     // Show confirmation dialog
     const confirmed = await confirm({
@@ -189,10 +193,16 @@ const Settings = () => {
 
     // Save the setting
     try {
-      if (isMinBookingsActive) {
+      if (field === "minBookingsActive") {
         await saveSingleSetting.mutateAsync({
           key: "minBookings",
           value: settings.minBookings,
+          isActive: checked,
+        });
+      } else if (field === "bookingExpirationActive") {
+        await saveSingleSetting.mutateAsync({
+          key: "bookingExpiration",
+          value: settings.bookingExpiration,
           isActive: checked,
         });
       } else {
@@ -414,6 +424,32 @@ const Settings = () => {
               </div>
               <p className="text-sm text-gray-600">
                 Minimum number of bookings before pay later is available for all vendors
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="bookingExpiration">Booking Expiration (minutes)</Label>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="bookingExpirationActive"
+                  checked={settings.bookingExpirationActive}
+                  onCheckedChange={(c) =>
+                    handleSwitchChange("bookingExpirationActive", c === true)
+                  }
+                />
+                <Input
+                  id="bookingExpiration"
+                  type="number"
+                  value={settings.bookingExpiration === 0 ? "" : settings.bookingExpiration}
+                  onChange={(e) =>
+                    handleChange("bookingExpiration", e.target.value === "" ? "" : Number(e.target.value))
+                  }
+                  onBlur={() => handleBlur("bookingExpiration")}
+                  min="1"
+                />
+              </div>
+              <p className="text-sm text-gray-600">
+                Minutes an unpaid booking is reserved before expiring
               </p>
             </div>
 
