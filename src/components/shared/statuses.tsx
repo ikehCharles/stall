@@ -41,7 +41,7 @@ export const getStatusBadge = (status: string) => {
         return <Badge variant="destructive">Cancelled</Badge>;
       case "expired":
         return (
-          <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200">
+          <Badge variant="destructive">
             Expired
           </Badge>
         );

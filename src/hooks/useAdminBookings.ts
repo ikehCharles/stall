@@ -16,19 +16,17 @@ export const useAdminBookings = () => {
           booking_stalls (
             *,
             stall_instances (
-              id,
-              label,
-              x,
-              y,
-              width,
-              height,
+              *,
               stall_templates (
                 id,
                 name,
                 price,
                 shape,
                 width,
-                height
+                height,
+                fill_color,
+                stroke_color,
+                capacity
               )
             )
           ),

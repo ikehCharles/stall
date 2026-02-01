@@ -163,6 +163,9 @@ const AdminBookings = () => {
 
   const canShowActions = useCallback((booking: BookingWithStalls) => {
     const { status, payment_status } = booking;
+    if(payment_status !== "success") {
+      return false;
+    }
     // reserved & authorized, INTENT = AUTHORIZED (on authorized charge account) OR INTENT = PAY LATER - (Approve and sync with POS)
     if (status === "reserved") {
       return true;

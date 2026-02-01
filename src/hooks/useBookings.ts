@@ -211,6 +211,7 @@ export interface CreateBookingData {
   vendorId?: string; // For FCA creating booking for vendor
   createdByFcaId?: string; // Track FCA user
   fcaNotes?: string; // Optional notes
+  payLater?: boolean;
 }
 
 export const useCreateBooking = () => {
@@ -255,7 +256,7 @@ export const useCreateBooking = () => {
         typeof settings?.bookingExpiration === "number" &&
         settings.bookingExpiration >= 1;
       const holdExpiresAt =
-        useExpiration && settings
+        useExpiration && settings && !bookingData.payLater
           ? new Date(Date.now() + settings.bookingExpiration * 60 * 1000).toISOString()
           : null;
 

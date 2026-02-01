@@ -63,13 +63,17 @@ Deno.serve(async (req) => {
       .select("permissions:permission_id(key)")
       .eq("role_id", userRole.role_id);
 
-    const hasPermission = permissions?.some(
-      (p) => p.permissions.key === "users.invite"
+    const hasUsersInvitePermission = permissions?.some(
+      (p) => p?.permissions?.key === "users.invite"
+    );
+    const hasVendorsInvitePermission = permissions?.some(
+      (p) => p?.permissions?.key === "vendors.invite"
     );
 
-    if (!hasPermission) {
+    // if user does not have users.invite permission or vendors.invite permission, return forbidden
+    if (!hasUsersInvitePermission && !hasVendorsInvitePermission) {
       return responseJSON(403, {
-        error: "Forbidden: Missing permission invite_users",
+        error: "Forbidden: Missing necessary permissions",
       });
     }
 
@@ -78,6 +82,17 @@ Deno.serve(async (req) => {
     if (!fullName || !email || !phoneNumber) {
       return responseJSON(400, { message: "Missing fields" });
     }
+
+    // if user does not have users.invite permission and a role is assigned to them, return forbidden
+    if (!hasUsersInvitePermission && roleId) {
+      return responseJSON(403, {
+        error: "Forbidden: Missing permission invite_users",
+      });
+    }
+
+    
+
+    
 
     const supabaseAdmin = createClient(
       SUPABASEURL ?? "",

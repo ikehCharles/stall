@@ -1,6 +1,12 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { ZoomIn, ZoomOut } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { useCreateStallInstance, useUpdateStallInstance, useDeleteStallInstance } from '@/hooks/useStallInstances';
 import { toast } from '@/hooks/use-toast';
+
+const MIN_ZOOM = 0.25;
+const MAX_ZOOM = 2;
+const ZOOM_STEP = 0.25;
 
 interface StallInstance {
   id: string;
@@ -44,8 +50,10 @@ export const CanvasEditor = ({
   const [draggedStall, setDraggedStall] = useState<StallInstance | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [stallCounter, setStallCounter] = useState(1);
+  const [zoom, setZoom] = useState(1);
   
   const svgRef = useRef<SVGSVGElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const createStall = useCreateStallInstance();
   const updateStall = useUpdateStallInstance();
   const deleteStall = useDeleteStallInstance();
@@ -60,6 +68,9 @@ export const CanvasEditor = ({
     return Math.round(value / gridSize) * gridSize;
   }, [gridSize]);
 
+  const zoomIn = useCallback(() => setZoom((z) => Math.min(MAX_ZOOM, z + ZOOM_STEP)), []);
+  const zoomOut = useCallback(() => setZoom((z) => Math.max(MIN_ZOOM, z - ZOOM_STEP)), []);
+
   // Handle stall drag start
   const handleStallMouseDown = useCallback((e: React.MouseEvent, stall: StallInstance) => {
     e.preventDefault();
@@ -68,8 +79,8 @@ export const CanvasEditor = ({
     const rect = svgRef.current?.getBoundingClientRect();
     if (!rect) return;
 
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
+    const mouseX = (e.clientX - rect.left) / zoom;
+    const mouseY = (e.clientY - rect.top) / zoom;
     
     setDraggedStall(stall);
     setDragOffset({
@@ -77,15 +88,15 @@ export const CanvasEditor = ({
       y: mouseY - stall.y,
     });
     onStallSelect(stall.id);
-  }, [onStallSelect]);
+  }, [onStallSelect, zoom]);
 
   // Handle mouse move during drag
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!draggedStall || !svgRef.current) return;
 
     const rect = svgRef.current.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
+    const mouseX = (e.clientX - rect.left) / zoom;
+    const mouseY = (e.clientY - rect.top) / zoom;
 
     const newX = snapToGrid(mouseX - dragOffset.x);
     const newY = snapToGrid(mouseY - dragOffset.y);
@@ -97,7 +108,25 @@ export const CanvasEditor = ({
       x: newX,
       y: newY,
     });
-  }, [draggedStall, dragOffset, snapToGrid, updateStall]);
+
+    // Auto-scroll when dragging near container edges
+    const scrollEl = scrollContainerRef.current;
+    if (scrollEl) {
+      const scrollRect = scrollEl.getBoundingClientRect();
+      const edgeThreshold = 40;
+      const scrollSpeed = 12;
+      let scrollX = 0;
+      let scrollY = 0;
+      if (e.clientX < scrollRect.left + edgeThreshold) scrollX = -scrollSpeed;
+      else if (e.clientX > scrollRect.right - edgeThreshold) scrollX = scrollSpeed;
+      if (e.clientY < scrollRect.top + edgeThreshold) scrollY = -scrollSpeed;
+      else if (e.clientY > scrollRect.bottom - edgeThreshold) scrollY = scrollSpeed;
+      if (scrollX !== 0 || scrollY !== 0) {
+        scrollEl.scrollLeft += scrollX;
+        scrollEl.scrollTop += scrollY;
+      }
+    }
+  }, [draggedStall, dragOffset, snapToGrid, updateStall, zoom]);
 
   // Handle mouse up to end drag
   const handleMouseUp = useCallback(() => {
@@ -113,8 +142,8 @@ export const CanvasEditor = ({
     const rect = svgRef.current?.getBoundingClientRect();
     if (!rect) return;
 
-    const dropX = snapToGrid(e.clientX - rect.left);
-    const dropY = snapToGrid(e.clientY - rect.top);
+    const dropX = snapToGrid((e.clientX - rect.left) / zoom);
+    const dropY = snapToGrid((e.clientY - rect.top) / zoom);
 
     // Auto-generate label
     const label = `ST-${stallCounter.toString().padStart(3, '0')}`;
@@ -134,7 +163,7 @@ export const CanvasEditor = ({
       price_override: null,
       status: 'AVAILABLE',
     });
-  }, [layout?.market_id, snapToGrid, stallCounter, createStall]);
+  }, [layout?.market_id, snapToGrid, stallCounter, createStall, zoom]);
 
   // Handle key events for stall manipulation
   useEffect(() => {
@@ -330,31 +359,87 @@ export const CanvasEditor = ({
     );
   };
 
+  // Ctrl/Cmd + wheel for zoom
+  useEffect(() => {
+    const handleWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        setZoom((z) => {
+          const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
+          return Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, z + delta));
+        });
+      }
+    };
+    const scrollEl = scrollContainerRef.current;
+    if (scrollEl) {
+      scrollEl.addEventListener('wheel', handleWheel, { passive: false });
+      return () => scrollEl.removeEventListener('wheel', handleWheel);
+    }
+  }, []);
+
   return (
     <div 
-      className="w-full h-full flex items-center justify-center p-4"
+      className="flex-1 h-full flex flex-col items-center justify-center p-4 min-w-0"
       onDragOver={(e) => e.preventDefault()}
       onDrop={handleCanvasDrop}
     >
-      <div className="bg-background border border-border rounded-lg shadow-lg overflow-hidden">
-        <svg
-          ref={svgRef}
-          width={canvasWidth}
-          height={canvasHeight}
-          className="bg-background cursor-crosshair"
-          onClick={(e) => {
-            // Click on empty canvas deselects stalls
-            if (e.target === e.currentTarget) {
-              onStallSelect(null);
-            }
-          }}
+      <div className="relative w-full h-full flex items-center justify-center">
+        <div
+          ref={scrollContainerRef}
+          className=" w-[50vw] h-[70vh] bg-background border border-border rounded-lg shadow-lg overflow-auto"
         >
-          {/* Grid */}
-          {renderGrid()}
-          
-          {/* Stalls */}
-          {stalls.map(renderStall)}
-        </svg>
+          <div
+            style={{
+              width: canvasWidth * zoom,
+              height: canvasHeight * zoom,
+              minWidth: canvasWidth * zoom,
+              minHeight: canvasHeight * zoom,
+            }}
+          >
+            <svg
+              ref={svgRef}
+              width={canvasWidth}
+              height={canvasHeight}
+              style={{
+                transform: `scale(${zoom})`,
+                transformOrigin: '0 0',
+              }}
+              className="bg-background cursor-crosshair"
+              onClick={(e) => {
+                if (e.target === e.currentTarget) {
+                  onStallSelect(null);
+                }
+              }}
+            >
+              {renderGrid()}
+              {stalls.map(renderStall)}
+            </svg>
+          </div>
+        </div>
+        {/* Zoom controls */}
+        <div className="absolute bottom-3 right-3 flex items-center gap-1 bg-background/95 border border-border rounded-md shadow-sm p-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={zoomOut}
+            disabled={zoom <= MIN_ZOOM}
+          >
+            <ZoomOut className="h-4 w-4" />
+          </Button>
+          <span className="text-xs font-medium min-w-[3rem] text-center">
+            {Math.round(zoom * 100)}%
+          </span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={zoomIn}
+            disabled={zoom >= MAX_ZOOM}
+          >
+            <ZoomIn className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
     </div>
   );

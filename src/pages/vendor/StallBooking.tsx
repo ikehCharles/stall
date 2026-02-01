@@ -171,6 +171,7 @@ const EnhancedStallBooking = () => {
           selectedStalls[0]?.stall.price_override ||
           selectedStalls[0]?.stall.stall_templates?.price ||
           0,
+          payLater
       };
 
       const booking = await createBooking.mutateAsync(bookingData);

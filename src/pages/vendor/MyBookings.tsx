@@ -12,19 +12,12 @@ import {
 } from "@/components/ui/table";
 import { useVendorBookings } from "@/hooks/useBookings";
 import { format } from "date-fns";
+import CurrencyWrapper from "@/components/shared/currency";
+import { getStatusBadge } from "@/components/shared/statuses";
 
 const MyBookings = () => {
   const { data: bookings, isLoading, error } = useVendorBookings();
 
-  const getStatusBadge = (status: string) => {
-    const variants = {
-      paid: "bg-green-100 text-green-800",
-      partial: "bg-yellow-100 text-yellow-800",
-      pending: "bg-blue-100 text-blue-800",
-      cancelled: "bg-red-100 text-red-800",
-    };
-    return variants[status as keyof typeof variants] || variants.pending;
-  };
 
   if (isLoading) {
     return (
@@ -150,13 +143,10 @@ const MyBookings = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge className={getStatusBadge(booking.status)}>
-                        {booking.status.charAt(0).toUpperCase() +
-                          booking.status.slice(1)}
-                      </Badge>
+                    {getStatusBadge(booking.status)}
                     </TableCell>
                     <TableCell className="font-medium">
-                      ${booking.total_amount}
+                      <CurrencyWrapper amount={booking.total_amount || 0} />
                     </TableCell>
                     <TableCell>
                       <div className="flex space-x-2">

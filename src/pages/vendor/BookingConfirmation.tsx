@@ -327,9 +327,8 @@ const BookingConfirmation = () => {
               <div className="space-y-3">
                 <div className="flex justify-between">
                   <span>Booking Status:</span>
-                  <Badge className={getStatusBadge(booking.status)}>
-                    {booking.status.charAt(0).toUpperCase() +
-                      booking.status.slice(1).replace("_", " ")}
+                  <Badge>
+                  {getStatusBadge(booking.status)}
                   </Badge>
                 </div>
                 <div className="flex justify-between">

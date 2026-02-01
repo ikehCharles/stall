@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Settings, Save, Grid, Move, Square, Circle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,7 +15,7 @@ import { toast } from '@/hooks/use-toast';
 
 const MarketCanvas = () => {
 
-
+const navigate = useNavigate();
   
   const { marketId } = useParams<{ marketId: string }>();
   const [selectedStallId, setSelectedStallId] = useState<string | null>(null);
@@ -25,7 +25,7 @@ const MarketCanvas = () => {
   const { data: markets } = useMarkets();
   const { data: layout, isLoading:layoutLoading } = useMarketLayout(marketId!);
   const { data: templates } = useStallTemplates();
-  const { data: stalls } = useStallInstances(marketId!);
+  const { data: stalls, refetch: refetchStalls } = useStallInstances(marketId!);
   const upsertLayout = useUpsertMarketLayout();
 
 
@@ -38,7 +38,7 @@ const MarketCanvas = () => {
       setShowSettings(true);
     }
   }, [layout, layoutLoading]);
-  const handleSaveLayout = async (layoutData: any) => {
+  const handleSaveLayout = async (layoutData: any, navigateToMarket: boolean = false) => {
     try {
       await upsertLayout.mutateAsync({
         market_id: marketId!,
@@ -48,6 +48,9 @@ const MarketCanvas = () => {
         title: 'Layout Saved',
         description: 'Canvas layout has been saved successfully',
       });
+      // navigate to market details
+      if(!navigateToMarket) return;
+      navigate(`/admin/markets`);
     } catch (error) {
       toast({
         title: 'Error',
@@ -91,7 +94,7 @@ const MarketCanvas = () => {
             </Button>
             <Button 
               size="sm"
-              onClick={() => handleSaveLayout(layout || {})}
+              onClick={() => handleSaveLayout(layout || {}, true)}
               disabled={upsertLayout.isPending}
             >
               <Save className="h-4 w-4 mr-2" />
@@ -103,13 +106,21 @@ const MarketCanvas = () => {
 
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Panel - Templates Palette */}
-        <div className="w-80 border-r border-border bg-card overflow-y-auto">
-          <StallTemplatesPalette templates={templates || []} />
+        {/* Single Side Panel - Templates or Properties (switches on stall selection) */}
+        <div className="w-80 shrink-0 border-r border-border bg-card overflow-y-auto">
+          {selectedStallId ? (
+            <StallPropertiesPanel
+              stallId={selectedStallId}
+              stalls={stalls || []}
+              onStallUpdate={refetchStalls}
+            />
+          ) : (
+            <StallTemplatesPalette templates={templates || []} />
+          )}
         </div>
 
-        {/* Center - Canvas */}
-        <div className="flex-1 bg-muted/20 overflow-hidden relative">
+        {/* Canvas */}
+        <div className="flex-1 min-w-0 bg-muted/20 overflow-hidden relative">
           <CanvasEditor
             layout={layout}
             stalls={stalls || []}
@@ -117,17 +128,6 @@ const MarketCanvas = () => {
             selectedStallId={selectedStallId}
             onStallSelect={setSelectedStallId}
             onSaveLayout={handleSaveLayout}
-          />
-        </div>
-
-        {/* Right Panel - Properties */}
-        <div className="w-80 border-l border-border bg-card overflow-y-auto">
-          <StallPropertiesPanel
-            stallId={selectedStallId}
-            stalls={stalls || []}
-            onStallUpdate={() => {
-              // Refresh stalls data
-            }}
           />
         </div>
       </div>

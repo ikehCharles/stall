@@ -85,10 +85,10 @@ const FCAStallBooking = () => {
     
     if (!bookingsWithProfile && !vendorLookupError) {
       toast({
-        title: "Kindly enter email",
+        title: "Kindly enter an email",
         description:
           "Provide email and click search to get vendors record before checking out stalls",
-        variant: "destructive",
+        variant: 'warning',
       });
       return;
     }

@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useVendorBookings } from "@/hooks/useBookings";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/utils";
+import CurrencyWrapper from "@/components/shared/currency";
 
 const VendorDashboard = () => {
   const { userProfile } = useAuth();
@@ -131,7 +132,7 @@ const VendorDashboard = () => {
                       </p>
                     </div>
                     <div className="text-right">
-                      <div className="font-medium text-gray-900">${Number(booking.total_amount || 0).toFixed(2)}</div>
+                      <div className="font-medium text-gray-900"><CurrencyWrapper amount={booking.total_amount || 0} /> </div>
                       <div className={`text-sm px-2 py-1 rounded-full ${statusColor}`}>
                         {statusDisplay}
                       </div>

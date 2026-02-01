@@ -129,7 +129,7 @@ export const StallPropertiesPanel = ({ stallId, stalls, onStallUpdate }: StallPr
   const effectivePrice = selectedStall.price_override ?? template?.price ?? 0;
 
   return (
-    <Card className="h-full">
+    <Card className="h-full border-none shadow-none">
       <CardHeader>
         <CardTitle className="flex items-center justify-between text-lg">
           <div className="flex items-center">
@@ -284,7 +284,7 @@ export const StallPropertiesPanel = ({ stallId, stalls, onStallUpdate }: StallPr
         {template && (
           <div className="space-y-2">
             <Label className="text-sm font-medium">Template</Label>
-            <div className="p-3 border border-border rounded-lg space-y-2">
+            <div className="p-3 rounded-lg space-y-2">
               <div className="text-sm font-medium">{template.name}</div>
               <div className="flex items-center space-x-2">
                 <div 

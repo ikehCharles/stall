@@ -58,6 +58,7 @@ import {
 } from "@/components/ui/dialog";
 import React from "react";
 import CurrencyWrapper from "@/components/shared/currency";
+import { useQueryClient } from "@tanstack/react-query";
 
 const BookingDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -79,7 +80,7 @@ const BookingDetails = () => {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [invoiceQR, setInvoiceQR] = useState<string | null>(null);
   const hasAttemptedExpireFor = useRef<string | null>(null);
-
+  const queryClient = useQueryClient();
   // look for search params status=processing and set dependency on payment_status, if it changes to success, remove search param
   useEffect(() => {
     if (searchParams.get("status") === "processing") {
@@ -232,8 +233,8 @@ const BookingDetails = () => {
 
   const isPaymentAvailable =
     booking &&
-    booking.status === "pending" && // Admin approves later
-    (!booking.payment_status || ["failed"].includes(booking.payment_status)) &&
+    ["pending", "approved"].includes(booking.status) && // Admin approves later
+    (!booking.payment_status || ["failed", "pending"].includes(booking.payment_status)) &&
     booking.paid_amount < booking.total_amount &&
     (!booking.hold_expires_at ||
       new Date(booking.hold_expires_at) > new Date());
@@ -252,6 +253,10 @@ const BookingDetails = () => {
       await cancelBooking.mutateAsync(id);
       toast.success("Booking cancelled successfully");
       setCancelDialogOpen(false);
+      if(isAdminView){
+        await queryClient.invalidateQueries({ queryKey: ["booking-details", id] });
+        return;
+      }
       navigate("/vendor/bookings");
     } catch (error) {
       toast.error(error.message || "Failed to cancel booking");
@@ -286,13 +291,15 @@ const BookingDetails = () => {
     });
   };
 
-  const handleApprove = (bookingId: string) => {
+  const handleApprove = async (bookingId: string) => {
     if (ENV.PAYMENT_INTENT == INTENT.AUTHORIZE) {
-      toggleAuthorizedBooking.mutate({ bookingId, intent: INTENT.CAPTURE });
+      await toggleAuthorizedBooking.mutateAsync({ bookingId, intent: INTENT.CAPTURE });
+      await queryClient.invalidateQueries({ queryKey: ["booking-details", bookingId] });
       return;
     }
     if (ENV.PAYMENT_INTENT == INTENT.CAPTURE) {
-      toggleBooking.mutate({ bookingId, intent: INTENT.CAPTURE });
+      await toggleBooking.mutateAsync({ bookingId, intent: INTENT.CAPTURE });
+      await queryClient.invalidateQueries({ queryKey: ["booking-details", bookingId] });
       return;
     }
 
@@ -300,13 +307,15 @@ const BookingDetails = () => {
     toast.error("Unsupported payment intent configured.");
   };
 
-  const handleDecline = (bookingId: string) => {
+  const handleDecline = async (bookingId: string) => {
     if (ENV.PAYMENT_INTENT == INTENT.AUTHORIZE) {
-      toggleAuthorizedBooking.mutate({ bookingId, intent: INTENT.VOID });
+      await toggleAuthorizedBooking.mutateAsync({ bookingId, intent: INTENT.VOID });
+      await queryClient.invalidateQueries({ queryKey: ["booking-details", bookingId] });
       return;
     }
     if (ENV.PAYMENT_INTENT == INTENT.CAPTURE) {
-      toggleBooking.mutate({ bookingId, intent: INTENT.VOID });
+      await toggleBooking.mutateAsync({ bookingId, intent: INTENT.VOID });
+      await queryClient.invalidateQueries({ queryKey: ["booking-details", bookingId] });
       return;
     }
 
@@ -371,7 +380,7 @@ const BookingDetails = () => {
                 </Button>
               </div>
             )}
-            {!isAdminView && isCancellable && !isProcessingPayment && (
+            {isCancellable && !isProcessingPayment && (
               <Button
                 onClick={() => setCancelDialogOpen(true)}
                 variant="destructive"
@@ -466,7 +475,7 @@ const BookingDetails = () => {
                 </div>
 
                 {booking.hold_expires_at &&
-                  booking.status !== "expired" &&
+                  ['pending', 'approved'].includes(booking.status) &&
                   booking.payment_status !== "success" && (
                     <div className="pt-2">
                       <BookingHoldTimer

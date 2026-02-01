@@ -244,7 +244,7 @@ export function EnhancedStallModal({
                   <div className="col-span-2 pt-2 border-t">
                     <div className="flex justify-between items-center">
                       <span className="font-medium">Total Cost:</span>
-                      <span className="text-xl font-bold text-primary">$
+                      <span className="text-xl font-bold text-primary">
                       <CurrencyWrapper amount={totalPrice} />
                       </span>
                     </div>

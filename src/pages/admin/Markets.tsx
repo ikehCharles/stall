@@ -12,6 +12,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useMarkets, useUpdateMarket } from "@/hooks/useMarkets";
 import { MarketDialog } from "@/components/admin/MarketDialog";
 import { toast } from "@/hooks/use-toast";
@@ -130,67 +136,95 @@ const Markets = () => {
                     <PermissionGate permissions={[PERMISSIONS.MARKETS.MANAGE]}>
 
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setEditingMarket(market)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link to={`/admin/markets/${market.id}/canvas`}>
-                            <Eye className="h-4 w-4" />
-                          </Link>
-                        </Button>
-                        {market.status === "DRAFT" && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              handleStatusChange(market.id, MarketStatusEnum.PUBLISHED)
-                            }
-                            title="Publish market"
-                          >
-                            <Play className="h-4 w-4" />
-                          </Button>
-                        )}
-                        {market.status === "PUBLISHED" && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              handleStatusChange(market.id, MarketStatusEnum.DRAFT)
-                            }
-                            title="Unpublish market"
-                          >
-                            <Pause className="h-4 w-4" />
-                          </Button>
-                        )}
-                        {market.status !== "ARCHIVED" ? (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              handleStatusChange(market.id, MarketStatusEnum.ARCHIVED)
-                            }
-                            title="Archive market"
-                          >
-                            <Archive className="h-4 w-4" />
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              handleStatusChange(market.id, MarketStatusEnum.DRAFT)
-                            }
-                            title="Unarchive market"
-                          >
-                            <Archive className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
+                      <TooltipProvider>
+                        <div className="flex items-center gap-2">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setEditingMarket(market)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Edit market</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="sm" asChild>
+                                <Link to={`/admin/markets/${market.id}/canvas`}>
+                                  <Eye className="h-4 w-4" />
+                                </Link>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Open canvas</TooltipContent>
+                          </Tooltip>
+                          {market.status === "DRAFT" && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    handleStatusChange(market.id, MarketStatusEnum.PUBLISHED)
+                                  }
+                                >
+                                  <Play className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Publish market</TooltipContent>
+                            </Tooltip>
+                          )}
+                          {market.status === "PUBLISHED" && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    handleStatusChange(market.id, MarketStatusEnum.DRAFT)
+                                  }
+                                >
+                                  <Pause className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Unpublish market</TooltipContent>
+                            </Tooltip>
+                          )}
+                          {market.status !== "ARCHIVED" ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    handleStatusChange(market.id, MarketStatusEnum.ARCHIVED)
+                                  }
+                                >
+                                  <Archive className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Archive market</TooltipContent>
+                            </Tooltip>
+                          ) : (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    handleStatusChange(market.id, MarketStatusEnum.DRAFT)
+                                  }
+                                >
+                                  <Archive className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Unarchive market</TooltipContent>
+                            </Tooltip>
+                          )}
+                        </div>
+                      </TooltipProvider>
                     </TableCell>
                     </PermissionGate>
                   </TableRow>
