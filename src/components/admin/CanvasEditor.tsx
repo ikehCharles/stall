@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { ZoomIn, ZoomOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCreateStallInstance, useUpdateStallInstance, useDeleteStallInstance } from '@/hooks/useStallInstances';
@@ -49,11 +50,13 @@ export const CanvasEditor = ({
 }: CanvasEditorProps) => {
   const [draggedStall, setDraggedStall] = useState<StallInstance | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
   const [stallCounter, setStallCounter] = useState(1);
   const [zoom, setZoom] = useState(1);
   
   const svgRef = useRef<SVGSVGElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
   const createStall = useCreateStallInstance();
   const updateStall = useUpdateStallInstance();
   const deleteStall = useDeleteStallInstance();
@@ -83,6 +86,7 @@ export const CanvasEditor = ({
     const mouseY = (e.clientY - rect.top) / zoom;
     
     setDraggedStall(stall);
+    setDragPosition({ x: stall.x, y: stall.y });
     setDragOffset({
       x: mouseX - stall.x,
       y: mouseY - stall.y,
@@ -90,7 +94,7 @@ export const CanvasEditor = ({
     onStallSelect(stall.id);
   }, [onStallSelect, zoom]);
 
-  // Handle mouse move during drag
+  // Handle mouse move during drag (update local position only; persist on mouse up)
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!draggedStall || !svgRef.current) return;
 
@@ -98,16 +102,12 @@ export const CanvasEditor = ({
     const mouseX = (e.clientX - rect.left) / zoom;
     const mouseY = (e.clientY - rect.top) / zoom;
 
-    const newX = snapToGrid(mouseX - dragOffset.x);
-    const newY = snapToGrid(mouseY - dragOffset.y);
+    let newX = snapToGrid(mouseX - dragOffset.x);
+    let newY = snapToGrid(mouseY - dragOffset.y);
+    newX = Math.max(0, Math.min(canvasWidth - draggedStall.width, newX));
+    newY = Math.max(0, Math.min(canvasHeight - draggedStall.height, newY));
 
-    // Update stall position
-    updateStall.mutate({
-      id: draggedStall.id,
-      market_id: draggedStall.market_id,
-      x: newX,
-      y: newY,
-    });
+    setDragPosition({ x: newX, y: newY });
 
     // Auto-scroll when dragging near container edges
     const scrollEl = scrollContainerRef.current;
@@ -126,13 +126,40 @@ export const CanvasEditor = ({
         scrollEl.scrollTop += scrollY;
       }
     }
-  }, [draggedStall, dragOffset, snapToGrid, updateStall, zoom]);
+  }, [draggedStall, dragOffset, snapToGrid, zoom, canvasWidth, canvasHeight]);
 
-  // Handle mouse up to end drag
+  // Handle mouse up to end drag: persist position, optimistically update cache, then clear so no flicker
   const handleMouseUp = useCallback(() => {
-    setDraggedStall(null);
-    setDragOffset({ x: 0, y: 0 });
-  }, []);
+    if (draggedStall && dragPosition) {
+      const payload = {
+        id: draggedStall.id,
+        market_id: draggedStall.market_id,
+        x: dragPosition.x,
+        y: dragPosition.y,
+      };
+      updateStall.mutate(payload, {
+        onSuccess: (updatedStall) => {
+          queryClient.setQueryData(
+            ['stall-instances', draggedStall.market_id],
+            (old: StallInstance[] | undefined) =>
+              old?.map((s) => (s.id === draggedStall.id ? { ...s, ...updatedStall } : s)) ?? old
+          );
+          setDraggedStall(null);
+          setDragOffset({ x: 0, y: 0 });
+          setDragPosition(null);
+        },
+        onError: () => {
+          setDraggedStall(null);
+          setDragOffset({ x: 0, y: 0 });
+          setDragPosition(null);
+        },
+      });
+    } else {
+      setDraggedStall(null);
+      setDragOffset({ x: 0, y: 0 });
+      setDragPosition(null);
+    }
+  }, [draggedStall, dragPosition, updateStall, queryClient]);
 
   // Handle canvas drop from template
   const handleCanvasDrop = useCallback((e: React.DragEvent) => {
@@ -142,8 +169,10 @@ export const CanvasEditor = ({
     const rect = svgRef.current?.getBoundingClientRect();
     if (!rect) return;
 
-    const dropX = snapToGrid((e.clientX - rect.left) / zoom);
-    const dropY = snapToGrid((e.clientY - rect.top) / zoom);
+    let dropX = snapToGrid((e.clientX - rect.left) / zoom);
+    let dropY = snapToGrid((e.clientY - rect.top) / zoom);
+    dropX = Math.max(0, Math.min(canvasWidth - templateData.width, dropX));
+    dropY = Math.max(0, Math.min(canvasHeight - templateData.height, dropY));
 
     // Auto-generate label
     const label = `ST-${stallCounter.toString().padStart(3, '0')}`;
@@ -163,7 +192,7 @@ export const CanvasEditor = ({
       price_override: null,
       status: 'AVAILABLE',
     });
-  }, [layout?.market_id, snapToGrid, stallCounter, createStall, zoom]);
+  }, [layout?.market_id, snapToGrid, stallCounter, createStall, zoom, canvasWidth, canvasHeight]);
 
   // Handle key events for stall manipulation
   useEffect(() => {
@@ -272,19 +301,22 @@ export const CanvasEditor = ({
     return lines;
   };
 
-  // Render stall instance
+  // Render stall instance (use local drag position while dragging)
   const renderStall = (stall: StallInstance) => {
     const template = stall.stall_templates;
     const isSelected = stall.id === selectedStallId;
     const price = stall.price_override ?? template?.price ?? 0;
-    
+    const isDragging = draggedStall?.id === stall.id && dragPosition !== null;
+    const x = isDragging ? dragPosition!.x : stall.x;
+    const y = isDragging ? dragPosition!.y : stall.y;
+
     return (
       <g key={stall.id} className="stall-instance cursor-move">
         {/* Stall shape */}
         {template?.shape === 'CIRCLE' ? (
           <circle
-            cx={stall.x + stall.width / 2}
-            cy={stall.y + stall.height / 2}
+            cx={x + stall.width / 2}
+            cy={y + stall.height / 2}
             r={stall.width / 2}
             fill={template.fill_color}
             stroke={isSelected ? 'hsl(var(--ring))' : template.stroke_color}
@@ -294,8 +326,8 @@ export const CanvasEditor = ({
           />
         ) : (
           <rect
-            x={stall.x}
-            y={stall.y}
+            x={x}
+            y={y}
             width={stall.width}
             height={stall.height}
             fill={template?.fill_color || '#3b82f6'}
@@ -309,8 +341,8 @@ export const CanvasEditor = ({
         
         {/* Stall label */}
         <text
-          x={stall.x + stall.width / 2}
-          y={stall.y + stall.height / 2 - 6}
+          x={x + stall.width / 2}
+          y={y + stall.height / 2 - 6}
           textAnchor="middle"
           dominantBaseline="middle"
           fill="white"
@@ -323,8 +355,8 @@ export const CanvasEditor = ({
         
         {/* Price display */}
         <text
-          x={stall.x + stall.width / 2}
-          y={stall.y + stall.height / 2 + 8}
+          x={x + stall.width / 2}
+          y={y + stall.height / 2 + 8}
           textAnchor="middle"
           dominantBaseline="middle"
           fill="white"
@@ -338,16 +370,16 @@ export const CanvasEditor = ({
         {isSelected && (
           <>
             <rect
-              x={stall.x - 4}
-              y={stall.y - 4}
+              x={x - 4}
+              y={y - 4}
               width={8}
               height={8}
               fill="hsl(var(--ring))"
               className="cursor-nw-resize"
             />
             <rect
-              x={stall.x + stall.width - 4}
-              y={stall.y + stall.height - 4}
+              x={x + stall.width - 4}
+              y={y + stall.height - 4}
               width={8}
               height={8}
               fill="hsl(var(--ring))"
