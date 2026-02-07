@@ -2,8 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRevenueData } from "@/hooks/useRevenueData";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
-import CurrencyWrapper from "../shared/currency";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
 import { formatCurrency } from "@/lib/utils";
 
 export const RevenueChart = () => {
@@ -38,32 +37,32 @@ export const RevenueChart = () => {
               color: "hsl(var(--primary))" 
             } 
           }}
-          className="h-80"
+          className="aspect-auto h-48 sm:h-64 md:h-80 w-full"
         >
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis 
-                dataKey="date" 
-                stroke="hsl(var(--muted-foreground))"
-                fontSize={12}
-              />
-              <YAxis 
-                stroke="hsl(var(--muted-foreground))"
-                fontSize={12}
-                tickFormatter={(value) => formatCurrency(value)}
-              />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Line 
-                type="monotone" 
-                dataKey="revenue" 
-                stroke="hsl(var(--primary))" 
-                strokeWidth={2}
-                dot={{ fill: "hsl(var(--primary))", r: 4 }}
-                activeDot={{ r: 6 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+          <LineChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+            <XAxis 
+              dataKey="date" 
+              stroke="hsl(var(--muted-foreground))"
+              tick={{ fontSize: 10 }}
+              interval="preserveStartEnd"
+            />
+            <YAxis 
+              stroke="hsl(var(--muted-foreground))"
+              tick={{ fontSize: 10 }}
+              tickFormatter={(value) => formatCurrency(value)}
+              width={60}
+            />
+            <ChartTooltip content={<ChartTooltipContent />} />
+            <Line 
+              type="monotone" 
+              dataKey="revenue" 
+              stroke="hsl(var(--primary))" 
+              strokeWidth={2}
+              dot={{ fill: "hsl(var(--primary))", r: 3 }}
+              activeDot={{ r: 5 }}
+            />
+          </LineChart>
         </ChartContainer>
       </CardContent>
     </Card>
