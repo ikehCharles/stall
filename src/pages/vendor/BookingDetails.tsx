@@ -58,6 +58,7 @@ import {
 } from "@/components/ui/dialog";
 import React from "react";
 import CurrencyWrapper from "@/components/shared/currency";
+import VatBreakdown from "@/components/shared/VatBreakdown";
 import { useQueryClient } from "@tanstack/react-query";
 
 const BookingDetails = () => {
@@ -253,7 +254,7 @@ const BookingDetails = () => {
       await cancelBooking.mutateAsync(id);
       toast.success("Booking cancelled successfully");
       setCancelDialogOpen(false);
-      if(isAdminView){
+      if (isAdminView) {
         await queryClient.invalidateQueries({ queryKey: ["booking-details", id] });
         return;
       }
@@ -283,7 +284,7 @@ const BookingDetails = () => {
     }
     createPayment.mutate({
       bookingId: booking.id,
-      amount: booking.total_amount,
+      amount: booking.gross_amount || booking.total_amount,
       intent:
         ENV.PAYMENT_INTENT === INTENT.AUTHORIZE
           ? INTENT.AUTHORIZE
@@ -579,7 +580,7 @@ const BookingDetails = () => {
                       {!booking.payment_status
                         ? "Pending"
                         : booking.payment_status.charAt(0).toUpperCase() +
-                          booking.payment_status.slice(1)}
+                        booking.payment_status.slice(1)}
                     </Badge>
                   </div>
                   <Separator />
@@ -599,24 +600,18 @@ const BookingDetails = () => {
                   <Separator />
 
                   <div className="space-y-2">
-                    <div className="flex justify-between font-medium">
-                      <span>Total Amount:</span>
-                      <span>
-                        <CurrencyWrapper amount={booking.total_amount} />
-                      </span>
-                    </div>
+                    <VatBreakdown booking={booking} />
                     <div className="flex justify-between text-green-600">
                       <span>Paid:</span>
                       <span>
-                      <CurrencyWrapper amount={booking.paid_amount} />
+                        <CurrencyWrapper amount={booking.paid_amount} />
                       </span>
                     </div>
-                    {booking.paid_amount < booking.total_amount && (
+                    {booking.paid_amount < (booking.gross_amount ?? booking.total_amount) && (
                       <div className="flex justify-between text-red-600 font-medium">
                         <span>Outstanding:</span>
                         <span>
-                          <CurrencyWrapper amount={booking.total_amount - booking.paid_amount} />
-                      
+                          <CurrencyWrapper amount={(booking.gross_amount ?? booking.total_amount) - booking.paid_amount} />
                         </span>
                       </div>
                     )}

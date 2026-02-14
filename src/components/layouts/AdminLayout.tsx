@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
-import { Menu, X, BarChart3, Map, FileText, Settings, ShieldCheck, Square, Briefcase, Users, Shield } from "lucide-react";
+import { Menu, X, BarChart3, Map, FileText, Settings, ShieldCheck, Square, Briefcase, Users, Shield, ClipboardList } from "lucide-react";
 import { PermissionGate } from "@/components/PermissionGate";
 import { PERMISSIONS } from "@/lib/permissions";
 
@@ -59,6 +59,12 @@ const AdminLayout = () => {
       permissions: [PERMISSIONS.ROLES.VIEW, PERMISSIONS.ROLES.CREATE, PERMISSIONS.ROLES.MANAGE]
     },
     { 
+      name: 'Reporting', 
+      href: '/admin/reports', 
+      icon: ClipboardList,
+      permissions: [PERMISSIONS.VAT.VIEW, PERMISSIONS.VAT.MANAGE]
+    },
+    { 
       name: 'FCA Mode', 
       href: '/admin/fca/markets', 
       icon: Briefcase,
@@ -111,7 +117,9 @@ const AdminLayout = () => {
               <nav className="flex-1 space-y-1 px-2 py-4">
                 {navigation.map((item) => {
                   const Icon = item.icon;
-                  const isActive = location.pathname === item.href;
+                  const isActive = item.href === '/admin'
+                    ? location.pathname === '/admin'
+                    : location.pathname === item.href || location.pathname.startsWith(item.href + "/");
                   
                   return (
                     <PermissionGate key={item.name} permissions={item.permissions}>

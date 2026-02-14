@@ -10,7 +10,7 @@ export const useRevenueData = (days: number = 30) => {
 
       const { data: bookings, error } = await supabase
         .from('bookings')
-        .select('created_at, paid_amount, payment_status')
+        .select('created_at, paid_amount, payment_status, vat_amount, net_amount')
         .gte('created_at', startDate.toISOString())
         .eq('payment_status', 'success')
         .order('created_at', { ascending: true });
@@ -26,15 +26,19 @@ export const useRevenueData = (days: number = 30) => {
           month: 'short', 
           day: 'numeric' 
         });
-        if (!acc[date]) acc[date] = 0;
-        acc[date] += booking.paid_amount || 0;
+        if (!acc[date]) acc[date] = { revenue: 0, vat: 0, net: 0 };
+        acc[date].revenue += booking.paid_amount || 0;
+        acc[date].vat += booking.vat_amount || 0;
+        acc[date].net += booking.net_amount || (booking.paid_amount || 0);
         return acc;
-      }, {} as Record<string, number>);
+      }, {} as Record<string, { revenue: number; vat: number; net: number }>);
 
       // Convert to array for charting
-      const chartData = Object.entries(revenueByDate || {}).map(([date, revenue]) => ({
+      const chartData = Object.entries(revenueByDate || {}).map(([date, data]) => ({
         date,
-        revenue
+        revenue: data.revenue,
+        vat: data.vat,
+        net: data.net,
       }));
 
       return chartData;

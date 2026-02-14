@@ -148,6 +148,11 @@ export type Database = {
           total_amount: number
           updated_at: string
           user_id: string
+          vat_rate_at_booking: number | null
+          vat_mode_at_booking: string | null
+          vat_amount: number | null
+          net_amount: number | null
+          gross_amount: number | null
         }
         Insert: {
           created_at?: string
@@ -168,6 +173,11 @@ export type Database = {
           total_amount?: number
           updated_at?: string
           user_id: string
+          vat_rate_at_booking?: number | null
+          vat_mode_at_booking?: string | null
+          vat_amount?: number | null
+          net_amount?: number | null
+          gross_amount?: number | null
         }
         Update: {
           created_at?: string
@@ -188,6 +198,11 @@ export type Database = {
           total_amount?: number
           updated_at?: string
           user_id?: string
+          vat_rate_at_booking?: number | null
+          vat_mode_at_booking?: string | null
+          vat_amount?: number | null
+          net_amount?: number | null
+          gross_amount?: number | null
         }
         Relationships: [
           {
@@ -837,6 +852,142 @@ export type Database = {
         }
         Relationships: []
       }
+      vat_ledger: {
+        Row: {
+          id: string
+          booking_id: string
+          vendor_id: string
+          invoice_number: string
+          vat_amount: number
+          net_amount: number
+          gross_amount: number
+          vat_rate: number
+          vat_mode: string
+          period_id: string | null
+          status: string
+          refund_of: string | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          booking_id: string
+          vendor_id: string
+          invoice_number: string
+          vat_amount: number
+          net_amount: number
+          gross_amount: number
+          vat_rate: number
+          vat_mode: string
+          period_id?: string | null
+          status?: string
+          refund_of?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          booking_id?: string
+          vendor_id?: string
+          invoice_number?: string
+          vat_amount?: number
+          net_amount?: number
+          gross_amount?: number
+          vat_rate?: number
+          vat_mode?: string
+          period_id?: string | null
+          status?: string
+          refund_of?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vat_ledger_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vat_ledger_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vat_ledger_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "vat_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vat_ledger_refund_of_fkey"
+            columns: ["refund_of"]
+            isOneToOne: false
+            referencedRelation: "vat_ledger"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vat_periods: {
+        Row: {
+          id: string
+          name: string
+          start_date: string
+          end_date: string | null
+          status: string
+          closed_at: string | null
+          closed_by: string | null
+          total_vat_collected: number
+          total_vat_outstanding: number
+          total_vat_due: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          start_date: string
+          end_date?: string | null
+          status?: string
+          closed_at?: string | null
+          closed_by?: string | null
+          total_vat_collected?: number
+          total_vat_outstanding?: number
+          total_vat_due?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          start_date?: string
+          end_date?: string | null
+          status?: string
+          closed_at?: string | null
+          closed_by?: string | null
+          total_vat_collected?: number
+          total_vat_outstanding?: number
+          total_vat_due?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vat_periods_closed_by_fkey"
+            columns: ["closed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           assigned_at: string
@@ -876,6 +1027,10 @@ export type Database = {
     Functions: {
       admin_approve_booking: { Args: { p_booking_id: string }; Returns: Json }
       admin_decline_booking: { Args: { p_booking_id: string }; Returns: Json }
+      calculate_vat: {
+        Args: { p_base_price: number; p_vat_rate: number; p_vat_mode: string }
+        Returns: Json
+      }
       cancel_booking: { Args: { p_booking_id: string }; Returns: Json }
       check_stall_date_availability: {
         Args: { dates: string[]; market_id: string; stall_id: string }
@@ -886,6 +1041,21 @@ export type Database = {
         Returns: Json
       }
       cleanup_expired_holds: { Args: never; Returns: number }
+      create_vat_ledger_entry: {
+        Args: {
+          p_booking_id: string
+          p_vendor_id: string
+          p_invoice_number: string
+          p_total_amount: number
+          p_vat_rate: number
+          p_vat_mode: string
+        }
+        Returns: Json
+      }
+      create_vat_period: {
+        Args: { p_name: string; p_start_date: string; p_end_date?: string }
+        Returns: Json
+      }
       create_credentials: {
         Args: { p_key: string; p_meta: Json; p_source: string; p_value: string }
         Returns: undefined
@@ -895,6 +1065,15 @@ export type Database = {
         Returns: Json
       }
       expire_booking: { Args: { p_booking_id: string }; Returns: Json }
+      get_or_create_open_vat_period: { Args: Record<string, never>; Returns: Json }
+      mark_vat_collected: { Args: { p_booking_id: string }; Returns: Json }
+      create_vat_refund_entry: { Args: { p_booking_id: string }; Returns: Json }
+      reconcile_vat_period: { Args: { p_period_id: string }; Returns: Json }
+      update_vat_period: {
+        Args: { p_period_id: string; p_name: string; p_end_date?: string }
+        Returns: Json
+      }
+      delete_vat_period: { Args: { p_period_id: string }; Returns: Json }
       generate_invoice_number: { Args: never; Returns: string }
       generate_stall_label: { Args: { p_market_id: string }; Returns: string }
       get_unpaid_invoice_for_stall: {

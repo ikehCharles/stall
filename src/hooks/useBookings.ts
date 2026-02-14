@@ -260,6 +260,10 @@ export const useCreateBooking = () => {
           ? new Date(Date.now() + settings.bookingExpiration * 60 * 1000).toISOString()
           : null;
 
+      // Get VAT settings
+      const vatRate = settings?.vatRate ?? 20;
+      const vatMode = settings?.vatMode ?? "exclusive";
+
       // Create the booking with hold expiry and new status
       const { data: booking, error: bookingError } = await supabase
         .from("bookings")
@@ -281,6 +285,21 @@ export const useCreateBooking = () => {
         .single();
 
       if (bookingError) throw bookingError;
+
+      // Create VAT ledger entry (also updates booking with VAT fields)
+      try {
+        await supabase.rpc("create_vat_ledger_entry", {
+          p_booking_id: booking.id,
+          p_vendor_id: bookingUserId,
+          p_invoice_number: invoiceNumber,
+          p_total_amount: bookingData.totalAmount,
+          p_vat_rate: vatRate,
+          p_vat_mode: vatMode,
+        });
+      } catch (vatError) {
+        console.error("Failed to create VAT ledger entry:", vatError);
+        // Non-blocking: booking proceeds even if VAT ledger fails
+      }
 
       // Create booking_stalls entries
       const bookingStalls = bookingData.stallIds.map((stallId) => ({

@@ -114,7 +114,7 @@ const MyBookings = () => {
                   <TableHead>Date</TableHead>
                   <TableHead>Stalls</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Total</TableHead>
+                  <TableHead>Total(Incl. VAT)</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -146,7 +146,7 @@ const MyBookings = () => {
                     {getStatusBadge(booking.status)}
                     </TableCell>
                     <TableCell className="font-medium">
-                      <CurrencyWrapper amount={booking.total_amount || 0} />
+                      <CurrencyWrapper amount={booking.gross_amount || booking.total_amount || 0} />
                     </TableCell>
                     <TableCell>
                       <div className="flex space-x-2">

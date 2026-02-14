@@ -281,6 +281,7 @@ const AdminBookings = () => {
                   <TableHead>Date</TableHead>
                   <TableHead>Stalls</TableHead>
                   <TableHead>Amount</TableHead>
+                  <TableHead>VAT</TableHead>
                   <TableHead>Booking Status</TableHead>
                   <TableHead>Payment Status</TableHead>
                   <PermissionGate permissions={[PERMISSIONS.BOOKINGS.MANAGE]}>
@@ -292,7 +293,7 @@ const AdminBookings = () => {
                 {filteredBookings.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={8}
+                      colSpan={9}
                       className="text-center py-8 text-gray-500"
                     >
                       No bookings found matching your filters
@@ -313,6 +314,13 @@ const AdminBookings = () => {
                       </TableCell>
                       <TableCell>
                         <CurrencyWrapper amount={booking.total_amount} />
+                      </TableCell>
+                      <TableCell>
+                        {booking.vat_amount != null ? (
+                          <CurrencyWrapper amount={booking.vat_amount} />
+                        ) : (
+                          <span className="text-xs text-muted-foreground italic">N/A</span>
+                        )}
                       </TableCell>
                       <TableCell>{getStatusBadge(booking.status)}</TableCell>
                       <TableCell>

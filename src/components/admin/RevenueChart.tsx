@@ -33,9 +33,17 @@ export const RevenueChart = () => {
         <ChartContainer 
           config={{ 
             revenue: { 
-              label: "Revenue", 
+              label: "Gross Revenue", 
               color: "hsl(var(--primary))" 
-            } 
+            },
+            vat: {
+              label: "VAT",
+              color: "#f97316"
+            },
+            net: {
+              label: "Net Revenue",
+              color: "#22c55e"
+            }
           }}
           className="aspect-auto h-48 sm:h-64 md:h-80 w-full"
         >
@@ -61,6 +69,21 @@ export const RevenueChart = () => {
               strokeWidth={2}
               dot={{ fill: "hsl(var(--primary))", r: 3 }}
               activeDot={{ r: 5 }}
+            />
+            <Line 
+              type="monotone" 
+              dataKey="vat" 
+              stroke="#f97316" 
+              strokeWidth={1.5}
+              strokeDasharray="4 4"
+              dot={{ fill: "#f97316", r: 2 }}
+            />
+            <Line 
+              type="monotone" 
+              dataKey="net" 
+              stroke="#22c55e" 
+              strokeWidth={1.5}
+              dot={{ fill: "#22c55e", r: 2 }}
             />
           </LineChart>
         </ChartContainer>

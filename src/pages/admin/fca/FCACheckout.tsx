@@ -22,7 +22,9 @@ import {
 } from "@/components/shared/statuses";
 import { useReconcileOfflineBooking } from "@/hooks/useOfflineBooking";
 import CurrencyWrapper from "@/components/shared/currency";
+import VatBreakdown from "@/components/shared/VatBreakdown";
 import { formatCurrency } from "@/lib/utils";
+import { usePlatformSettings } from "@/hooks/useSettings";
 
 const FCACheckout = () => {
   const navigate = useNavigate();
@@ -35,6 +37,7 @@ const FCACheckout = () => {
   const [isCreatingBooking, setIsCreatingBooking] = useState(false);
   const createBooking = useCreateBooking();
   const reconcileOffline = useReconcileOfflineBooking();
+  const { data: platformSettings } = usePlatformSettings();
 
   useEffect(() => {
     const bookingIdFromUrl = searchParams.get("bookingId");
@@ -329,25 +332,13 @@ const FCACheckout = () => {
           <Separator />
 
           <div className="space-y-2 pt-2">
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Subtotal:</span>
-              <span className="font-medium">
-                <CurrencyWrapper amount={stallSelection.totalCost} />
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Tax (0%):</span>
-              <span className="font-medium">
-                <CurrencyWrapper amount={0} />
-              </span>
-            </div>
-            <Separator />
-            <div className="flex justify-between text-lg font-bold">
-              <span>Total Amount:</span>
-              <span>
-                <CurrencyWrapper amount={stallSelection.totalCost} />
-              </span>
-            </div>
+            <VatBreakdown
+              booking={{
+                total_amount: stallSelection.totalCost,
+                ...bookingRes.data,
+              }}
+              settings={platformSettings}
+            />
           </div>
           <div>
             {!bookingRes.data?.offline_invoice_id && bookingRes.data?.payment_status !== 'success' && (

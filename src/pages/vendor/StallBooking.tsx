@@ -30,6 +30,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { format } from "date-fns";
 import CurrencyWrapper from "@/components/shared/currency";
+import VatBreakdown from "@/components/shared/VatBreakdown";
 import { formatCurrency } from "@/lib/utils";
 
 

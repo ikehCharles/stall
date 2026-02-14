@@ -237,6 +237,13 @@ serve(async (req) => {
         throw new Error(
           `RPC 'simulate_payment_success_admin' failed: ${error.message}`
         );
+
+      // Mark VAT as collected
+      try {
+        await supabase.rpc("mark_vat_collected", { p_booking_id: bookingId });
+      } catch (vatErr) {
+        console.error("Failed to mark VAT collected:", vatErr);
+      }
     } else if ([`${PAYPAL_EVENT.authorized}`].includes(incomingStatus)) {
       const { error, data } = await supabase.rpc(
         "simulate_payment_reserved_admin",
@@ -273,6 +280,13 @@ serve(async (req) => {
         throw new Error(
           `RPC simulate_payment_refund_admin failed: ${error.message}`
         );
+
+      // Create automatic VAT refund entry
+      try {
+        await supabase.rpc("create_vat_refund_entry", { p_booking_id: bookingId });
+      } catch (vatErr) {
+        console.error("Failed to create VAT refund entry:", vatErr);
+      }
     } else if ([`${PAYPAL_EVENT.failed}`].includes(incomingStatus)) {
       const { error, data } = await supabase.rpc(
         "simulate_payment_failure_admin",

@@ -56,7 +56,7 @@ Deno.serve(async (req)=>{
     const accessToken = await getAccessToken();
 
     // get actual amount from booking
-    const { data, error } = await supabaseClient.from('bookings').select(`total_amount`).eq('id', bookingId).single();
+    const { data, error } = await supabaseClient.from('bookings').select(`gross_amount`).eq('id', bookingId).single();
 
     if(error){
       return new Response(JSON.stringify({
@@ -86,7 +86,7 @@ Deno.serve(async (req)=>{
             custom_id: bookingId,
             amount: {
               currency_code: "USD",
-              value: data.total_amount
+              value: data.gross_amount
             }
           }
         ],

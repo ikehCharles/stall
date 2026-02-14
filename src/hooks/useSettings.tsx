@@ -80,6 +80,8 @@ export type PlatformSettings = {
   cancellationWindow: number;
   refundPolicy: string;
   termsAndConditions: string;
+  vatRate: number;
+  vatMode: string; // 'inclusive' | 'exclusive'
 };
 
 // Default settings
@@ -99,6 +101,8 @@ const defaultSettings: PlatformSettings = {
     "Cancellations made 48 hours before the event are eligible for full refund minus processing fees.",
   termsAndConditions:
     "By booking a stall, vendors agree to follow all marketplace guidelines and policies.",
+  vatRate: 20,
+  vatMode: "exclusive",
 };
 
 // Map UI keys to database keys (*Active flags use is_active of their linked row; no separate key)
@@ -114,6 +118,8 @@ const SETTING_KEYS: Record<Exclude<keyof PlatformSettings, "minBookingsActive" |
   cancellationWindow: "cancellation_window",
   refundPolicy: "refund_policy",
   termsAndConditions: "terms_and_conditions",
+  vatRate: "vat_rate",
+  vatMode: "vat_mode",
 };
 
 // Helper type for settings table operations (until types are regenerated)

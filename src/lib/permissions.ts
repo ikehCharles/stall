@@ -55,6 +55,10 @@ export const PERMISSIONS = {
     ASSIGN: 'roles.assign',
     MANAGE: 'roles.manage',
   },
+  VAT: {
+    VIEW: 'vat.view',
+    MANAGE: 'vat.manage',
+  },
 } as const;
 
 // Helper type for permission values

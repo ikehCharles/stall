@@ -33,6 +33,8 @@ const Settings = () => {
       "Cancellations made 48 hours before the event are eligible for full refund minus processing fees.",
     termsAndConditions:
       "By booking a stall, vendors agree to follow all marketplace guidelines and policies.",
+    vatRate: 20,
+    vatMode: "exclusive",
   });
 
   // Track original settings to detect changes
@@ -53,8 +55,8 @@ const Settings = () => {
     setSettings((prev) => ({ ...prev, [field]: finalValue as PlatformSettings[keyof PlatformSettings] }));
   };
 
-  const handleBlur = async (field: keyof PlatformSettings) => {
-    const currentValue = settings[field];
+  const handleBlur = async (field: keyof PlatformSettings, overrideValue?: PlatformSettings[keyof PlatformSettings]) => {
+    const currentValue = overrideValue !== undefined ? overrideValue : settings[field];
     const originalValue = originalSettingsRef.current[field];
 
     // Check if value is empty/invalid and revert immediately
@@ -101,6 +103,8 @@ const Settings = () => {
       cancellationWindow: "Cancellation Window",
       refundPolicy: "Refund Policy",
       termsAndConditions: "Terms and Conditions",
+      vatRate: "VAT Rate",
+      vatMode: "VAT Mode",
     };
 
     const fieldLabel = fieldLabels[field] || field;
@@ -173,6 +177,8 @@ const Settings = () => {
       cancellationWindow: "Cancellation Window",
       refundPolicy: "Refund Policy",
       termsAndConditions: "Terms and Conditions",
+      vatRate: "VAT Rate",
+      vatMode: "VAT Mode",
     };
 
     const fieldLabel = fieldLabels[field] || field;
@@ -510,6 +516,93 @@ const Settings = () => {
                   handleSwitchChange("smsNotifications", checked)
                 }
               />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* VAT Configuration */}
+        <Card className="shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <span className="mr-2">🧾</span>
+              VAT Configuration
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="vatRate">VAT Rate (%)</Label>
+              <Input
+                id="vatRate"
+                type="number"
+                value={settings.vatRate === 0 ? "" : settings.vatRate}
+                onChange={(e) =>
+                  handleChange("vatRate", e.target.value === "" ? "" : Number(e.target.value))
+                }
+                onBlur={() => handleBlur("vatRate")}
+                min="0"
+                max="100"
+                step="0.1"
+              />
+              <p className="text-sm text-gray-600">
+                The VAT percentage applied to all stall bookings
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>VAT Mode</Label>
+              <div className="flex gap-4">
+                <label
+                  className={`flex items-center gap-2 p-3 border rounded-lg cursor-pointer transition-all ${
+                    settings.vatMode === "exclusive"
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="vatMode"
+                    value="exclusive"
+                    checked={settings.vatMode === "exclusive"}
+                    onChange={() => {
+                      handleChange("vatMode", "exclusive");
+                      handleBlur("vatMode", "exclusive");
+                    }}
+                    className="text-blue-600"
+                  />
+                  <div>
+                    <p className="font-medium text-sm">Exclusive</p>
+                    <p className="text-xs text-gray-500">VAT added on top of price</p>
+                  </div>
+                </label>
+                <label
+                  className={`flex items-center gap-2 p-3 border rounded-lg cursor-pointer transition-all ${
+                    settings.vatMode === "inclusive"
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="vatMode"
+                    value="inclusive"
+                    checked={settings.vatMode === "inclusive"}
+                    onChange={() => {
+                      handleChange("vatMode", "inclusive");
+                      handleBlur("vatMode", "inclusive");
+                    }}
+                    className="text-blue-600"
+                  />
+                  <div>
+                    <p className="font-medium text-sm">Inclusive</p>
+                    <p className="text-xs text-gray-500">VAT included in displayed price</p>
+                  </div>
+                </label>
+              </div>
+              <p className="text-sm text-gray-600">
+                {settings.vatMode === "exclusive"
+                  ? "Vendors see the base price; VAT is added at checkout (e.g. £100 + £20 VAT = £120)"
+                  : "Vendors see the final price which already includes VAT (e.g. £120 includes £20 VAT)"}
+              </p>
             </div>
           </CardContent>
         </Card>

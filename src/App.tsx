@@ -38,6 +38,8 @@ import { PERMISSIONS } from "./lib/permissions";
 import { AccessDenied } from "./pages/auth/unAuthorized";
 import { PermissionGate } from "./components/PermissionGate";
 import { ConfirmProvider } from "./components/ui/confirmDialog";
+import VATReporting from "./pages/admin/VATReporting";
+import Reporting from "./pages/admin/Reporting";
 
 const queryClient = new QueryClient();
 
@@ -275,6 +277,28 @@ const AppContent = () => {
                 permissions={Object.values(PERMISSIONS.ROLES)}
               >
                 <RoleManagement />
+              </PermissionGate>
+            }
+          />
+          <Route
+            path="reports"
+            element={
+              <PermissionGate
+                fallback={<AccessDenied />}
+                permissions={[PERMISSIONS.VAT.VIEW, PERMISSIONS.VAT.MANAGE]}
+              >
+                <Reporting />
+              </PermissionGate>
+            }
+          />
+          <Route
+            path="reports/vat"
+            element={
+              <PermissionGate
+                fallback={<AccessDenied />}
+                permissions={[PERMISSIONS.VAT.VIEW, PERMISSIONS.VAT.MANAGE]}
+              >
+                <VATReporting />
               </PermissionGate>
             }
           />
