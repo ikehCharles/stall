@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { PermissionGate } from "@/components/PermissionGate";
 import { PERMISSIONS } from "@/lib/permissions";
-import { Receipt } from "lucide-react";
+import { Receipt, Banknote } from "lucide-react";
 
 const reportModules = [
   {
@@ -14,6 +14,16 @@ const reportModules = [
     color: "from-blue-500 to-indigo-500",
     bgColor: "bg-blue-50",
     iconColor: "text-blue-600",
+  },
+  {
+    title: "Cash Reconciliation",
+    description: "Review and reconcile cash payments collected by FCA agents",
+    href: "/admin/reports/cash",
+    icon: Banknote,
+    permissions: [PERMISSIONS.PAYMENTS.MANAGE, PERMISSIONS.PAYMENTS.COLLECT],
+    color: "from-green-500 to-emerald-500",
+    bgColor: "bg-green-50",
+    iconColor: "text-green-600",
   },
 ];
 

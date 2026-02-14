@@ -370,11 +370,17 @@ const FCACheckout = () => {
 
       <FCACollectSheet
         open={showCollectSheet}
-        onOpenChange={() => {
-          setShowCollectSheet(false);
-          bookingRes.mutateAsync(bookingRes?.data?.id);
+        onOpenChange={(open) => {
+          setShowCollectSheet(open);
+          if (!open && bookingRes?.data?.id) {
+            bookingRes.mutateAsync(bookingRes.data.id).then((booking) => {
+              if (booking?.payment_status === "success") {
+                handlePaymentSuccess(booking.id);
+              }
+            });
+          }
         }}
-        amount={stallSelection.totalCost}
+        amount={(bookingRes.data?.gross_amount ?? bookingRes.data?.total_amount ?? stallSelection.totalCost) - (bookingRes.data?.paid_amount ?? 0)}
         bookingRes={bookingRes}
       />
     </div>

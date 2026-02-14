@@ -214,6 +214,47 @@ export type Database = {
           },
         ]
       }
+      cash_payments: {
+        Row: {
+          id: string
+          booking_id: string
+          amount: number
+          denominations: Json | null
+          collected_by: string
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          booking_id: string
+          amount: number
+          denominations?: Json | null
+          collected_by: string
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          booking_id?: string
+          amount?: number
+          denominations?: Json | null
+          collected_by?: string
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_payments_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cred: {
         Row: {
           created_at: string
@@ -1065,6 +1106,16 @@ export type Database = {
         Returns: Json
       }
       expire_booking: { Args: { p_booking_id: string }; Returns: Json }
+      record_cash_payment: {
+        Args: {
+          p_booking_id: string
+          p_amount: number
+          p_collected_by: string
+          p_denominations?: Json
+          p_notes?: string
+        }
+        Returns: string
+      }
       get_or_create_open_vat_period: { Args: Record<string, never>; Returns: Json }
       mark_vat_collected: { Args: { p_booking_id: string }; Returns: Json }
       create_vat_refund_entry: { Args: { p_booking_id: string }; Returns: Json }

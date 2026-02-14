@@ -153,7 +153,7 @@ const FCAInvoiceView = () => {
         <FCACollectSheet
           open={showCollectSheet}
           onOpenChange={setShowCollectSheet}
-          amount={bookingRes.data.total_amount - bookingRes.data?.paid_amount}
+          amount={(bookingRes.data.gross_amount ?? bookingRes.data.total_amount) - (bookingRes.data?.paid_amount ?? 0)}
           bookingRes={bookingRes}
         />
       )}

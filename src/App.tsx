@@ -40,6 +40,7 @@ import { PermissionGate } from "./components/PermissionGate";
 import { ConfirmProvider } from "./components/ui/confirmDialog";
 import VATReporting from "./pages/admin/VATReporting";
 import Reporting from "./pages/admin/Reporting";
+import CashReconciliation from "./pages/admin/CashReconciliation";
 
 const queryClient = new QueryClient();
 
@@ -299,6 +300,17 @@ const AppContent = () => {
                 permissions={[PERMISSIONS.VAT.VIEW, PERMISSIONS.VAT.MANAGE]}
               >
                 <VATReporting />
+              </PermissionGate>
+            }
+          />
+          <Route
+            path="reports/cash"
+            element={
+              <PermissionGate
+                fallback={<AccessDenied />}
+                permissions={[PERMISSIONS.PAYMENTS.MANAGE, PERMISSIONS.PAYMENTS.COLLECT]}
+              >
+                <CashReconciliation />
               </PermissionGate>
             }
           />
