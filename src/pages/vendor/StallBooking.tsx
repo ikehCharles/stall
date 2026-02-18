@@ -183,10 +183,6 @@ const EnhancedStallBooking = () => {
           "Redirecting to booking details to complete payment...Proceed to making payment",
       });
 
-      if (payLater) {
-        await reserveBooking.mutateAsync(booking.id);
-      }
-
       // Navigate to booking details page
       navigate(`/vendor/bookings/${booking.id}`);
     } catch (error) {

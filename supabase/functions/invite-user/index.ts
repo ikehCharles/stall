@@ -135,6 +135,104 @@ Deno.serve(async (req) => {
       });
     }
 
+    // -----------------------------------------------------------------------
+    // FCA vendor onboarding: notifications + welcome email
+    // -----------------------------------------------------------------------
+    if (hasVendorsInvitePermission && !roleId && data?.user) {
+      // Get the FCA's profile for display in notifications
+      const { data: fcaProfile } = await supabaseAdmin
+        .from("profiles")
+        .select("full_name, email")
+        .eq("id", user.id)
+        .single();
+
+      const fcaName = fcaProfile?.full_name || "Field Collections Agent";
+      const fcaEmail = fcaProfile?.email || user.email || "Unknown";
+
+      // --- 1. Send welcome email to the new vendor (from DB template) ---
+      try {
+        const resetUrl = `${Deno.env.get("CLIENT_BASEURL") || SUPABASEURL}/auth/callback?type=recovery`;
+
+        // Load vendor_welcome + wrapper templates from DB
+        const { data: tplRows } = await supabaseAdmin
+          .from("email_templates")
+          .select("key, subject, html_body")
+          .in("key", ["vendor_welcome", "wrapper"]);
+
+        const tplMap = new Map<string, { subject: string; html_body: string }>();
+        for (const row of tplRows ?? []) tplMap.set(row.key, row);
+
+        const vars: Record<string, string> = {
+          vendor_name: fullName,
+          vendor_email: email,
+          fca_name: fcaName,
+          reset_url: resetUrl,
+        };
+
+        const interpolate = (s: string) =>
+          s.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] ?? `{{${k}}}`);
+
+        const welcomeTpl = tplMap.get("vendor_welcome");
+        const wrapperTpl = tplMap.get("wrapper");
+
+        const welcomeSubject = welcomeTpl ? interpolate(welcomeTpl.subject) : "Welcome to StallBook — Set Up Your Password";
+        let welcomeBody = welcomeTpl ? interpolate(welcomeTpl.html_body) : `<h2>Welcome to StallBook!</h2><p>Hi ${fullName}, please set your password.</p>`;
+
+        if (wrapperTpl) {
+          welcomeBody = wrapperTpl.html_body.replace("{{content}}", welcomeBody);
+        }
+
+        await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${Deno.env.get("RESEND_API_KEY")}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            from: "StallBook <contact@contact.geekgrin.com>",
+            to: [email],
+            subject: welcomeSubject,
+            html: welcomeBody,
+          }),
+        });
+      } catch (emailErr) {
+        console.error("Failed to send vendor welcome email:", emailErr);
+      }
+
+      // --- 2. Dispatch vendor_onboarded notification to admins ---
+      try {
+        const { data: recipients } = await supabaseAdmin.rpc(
+          "get_notification_recipients",
+          { p_notification_type: "vendor_onboarded" }
+        );
+
+        if (recipients && recipients.length > 0) {
+          const notifications = recipients.map(
+            (recipient: { user_id: string; email: string }) => ({
+              recipient_id: recipient.user_id,
+              recipient_email: recipient.email,
+              type: "vendor_onboarded",
+              title: "New Vendor Onboarded",
+              body: `A new vendor ${fullName} (${email}) has been onboarded by ${fcaName} (${fcaEmail}).`,
+              metadata: {
+                vendor_name: fullName,
+                vendor_email: email,
+                vendor_phone: phoneNumber,
+                onboarded_by: user.id,
+                fca_name: fcaName,
+                fca_email: fcaEmail,
+              },
+              idempotency_key: `vendor_onboarded:${data.user.id}:${recipient.user_id}`,
+            })
+          );
+
+          await supabaseAdmin.from("notifications").insert(notifications);
+        }
+      } catch (notifyErr) {
+        console.error("Failed to dispatch vendor_onboarded notification:", notifyErr);
+      }
+    }
+
     return responseJSON(200, data);
   } catch (err) {
     console.error("Error creating user:", err);

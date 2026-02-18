@@ -16,6 +16,7 @@ export const PERMISSIONS = {
     VIEW_SELF: 'vendors.view.self',
     VIEW_ALL: 'vendors.view.all',
     LOOKUP: 'vendors.lookup',
+    INVITE: 'vendors.invite',
   },
   KYC: {
     CREATE_SELF: 'kyc.create.self',
@@ -55,9 +56,21 @@ export const PERMISSIONS = {
     ASSIGN: 'roles.assign',
     MANAGE: 'roles.manage',
   },
+  SETTINGS: {
+    VIEW: 'settings.view',
+    MANAGE: 'settings.manage',
+  },
   VAT: {
     VIEW: 'vat.view',
     MANAGE: 'vat.manage',
+  },
+  NOTIFICATIONS: {
+    RECEIVE_BOOKING_SUBMITTED: 'notifications.receive.booking_submitted',
+    RECEIVE_PAYMENT_RECEIVED: 'notifications.receive.payment_received',
+    RECEIVE_OFFLINE_PAYMENT: 'notifications.receive.offline_payment',
+    RECEIVE_VENDOR_ONBOARDED: 'notifications.receive.vendor_onboarded',
+    VIEW_ALL: 'notifications.view.all',
+    MANAGE: 'notifications.manage',
   },
 } as const;
 

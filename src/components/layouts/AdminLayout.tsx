@@ -32,7 +32,7 @@ const AdminLayout = () => {
       name: 'Templates', 
       href: '/admin/templates', 
       icon: Square,
-      permissions: [PERMISSIONS.STALLS.MANAGE]
+      permissions: [PERMISSIONS.STALLS.MANAGE, PERMISSIONS.NOTIFICATIONS.MANAGE]
     },
     { 
       name: 'All Bookings', 

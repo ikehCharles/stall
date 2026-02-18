@@ -60,7 +60,36 @@ serve(async (req) => {
       throw new Error('Failed to store OTP');
     }
 
-    // Send email using Resend with Brevo SMTP
+    // Load OTP + wrapper templates from DB
+    const { data: tplRows } = await supabaseClient
+      .from('email_templates')
+      .select('key, subject, html_body')
+      .in('key', ['otp_verification', 'wrapper']);
+
+    const tplMap = new Map<string, { subject: string; html_body: string }>();
+    for (const row of tplRows ?? []) tplMap.set(row.key, row);
+
+    const vars: Record<string, string> = {
+      full_name: fullName,
+      otp_code: otpCode,
+    };
+
+    const interpolate = (s: string) =>
+      s.replace(/\{\{(\w+)\}\}/g, (_, k: string) => vars[k] ?? `{{${k}}}`);
+
+    const otpTpl = tplMap.get('otp_verification');
+    const wrapperTpl = tplMap.get('wrapper');
+
+    const emailSubject = otpTpl ? interpolate(otpTpl.subject) : 'Verify your StallBook account';
+    let emailBody = otpTpl
+      ? interpolate(otpTpl.html_body)
+      : `<h1>Welcome to StallBook!</h1><p>Hi ${fullName}, your code is <strong>${otpCode}</strong></p>`;
+
+    if (wrapperTpl) {
+      emailBody = wrapperTpl.html_body.replace('{{content}}', emailBody);
+    }
+
+    // Send email using Resend
     const emailResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -68,29 +97,10 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'StallBook <noreply@resend.dev>',
+        from: 'StallBook <contact@contact.geekgrin.com>',
         to: [email],
-        subject: 'Verify your StallBook account',
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h1 style="color: #333; text-align: center;">Welcome to StallBook!</h1>
-            <p>Hi ${fullName},</p>
-            <p>Thank you for registering with StallBook. Please use the following verification code to complete your registration:</p>
-            
-            <div style="background-color: #f5f5f5; padding: 20px; text-align: center; margin: 20px 0; border-radius: 8px;">
-              <h2 style="color: #2563eb; font-size: 32px; margin: 0; letter-spacing: 4px;">${otpCode}</h2>
-            </div>
-            
-            <p><strong>This code will expire in 10 minutes.</strong></p>
-            
-            <p>If you didn't create an account with StallBook, please ignore this email.</p>
-            
-            <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
-            <p style="color: #666; font-size: 12px;">
-              This email was sent from StallBook. Please do not reply to this email.
-            </p>
-          </div>
-        `,
+        subject: emailSubject,
+        html: emailBody,
       }),
     });
 

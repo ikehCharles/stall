@@ -507,8 +507,8 @@ BEGIN
     RETURN jsonb_build_object('status', 'error', 'message', 'Payment processed successfully');
   END IF;
 
-  IF v_booking.status != 'pending' THEN
-    RETURN jsonb_build_object('status', 'error', 'message', 'Booking must be pending before payment');
+  IF v_booking.status NOT IN ('pending', 'reserved') THEN
+    RETURN jsonb_build_object('status', 'error', 'message', 'Booking must be pending or reserved before payment');
   END IF;
 
   UPDATE bookings

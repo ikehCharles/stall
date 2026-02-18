@@ -21,7 +21,7 @@ import AdminBookings from "./pages/admin/AdminBookings";
 import Settings from "./pages/admin/Settings";
 import Markets from "./pages/admin/Markets";
 import MarketCanvas from "./pages/admin/MarketCanvas";
-import StallTemplates from "./pages/admin/StallTemplates";
+import Templates from "./pages/admin/Templates";
 import UserManagement from "./pages/admin/UserManagement";
 import RoleManagement from "./pages/admin/RoleManagement";
 import { KYCReview } from "./pages/admin/KYCReview";
@@ -41,6 +41,7 @@ import { ConfirmProvider } from "./components/ui/confirmDialog";
 import VATReporting from "./pages/admin/VATReporting";
 import Reporting from "./pages/admin/Reporting";
 import CashReconciliation from "./pages/admin/CashReconciliation";
+import Notifications from "./pages/vendor/Notifications";
 
 const queryClient = new QueryClient();
 
@@ -162,6 +163,7 @@ const AppContent = () => {
             }
           />
           <Route path="profile" element={<VendorProfile />} />
+          <Route path="notifications" element={<Notifications />} />
           <Route
             path="invoice/:id"
             element={
@@ -220,9 +222,9 @@ const AppContent = () => {
             element={
               <PermissionGate
                 fallback={<AccessDenied />}
-                permissions={Object.values(PERMISSIONS.STALLS)}
+                permissions={[...Object.values(PERMISSIONS.STALLS), PERMISSIONS.NOTIFICATIONS.MANAGE]}
               >
-                <StallTemplates />
+                <Templates />
               </PermissionGate>
             }
           />
@@ -325,7 +327,6 @@ const AppContent = () => {
               </PermissionGate>
             }
           />
-
           {/* FCA Routes */}
           <Route
             path="fca/markets"
