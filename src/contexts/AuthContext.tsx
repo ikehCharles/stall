@@ -123,22 +123,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  // Auth state listener
+  // Auth state listener — rely on onAuthStateChange for all session updates.
+  // INITIAL_SESSION fires automatically on mount (Supabase JS v2.39+),
+  // so a separate getSession() call is not needed and avoids race conditions.
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, newSession) => {
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
+        setLoading(false);
+      }
+    );
 
-      setSession(newSession);
-      const newUser = newSession?.user ?? null;
-      setUser(newUser);
-      setLoading(false);
-    });
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      const loggedInUser = session?.user ?? null;
-      setUser(loggedInUser);
-      setLoading(false);
-    });
 
     return () => subscription.unsubscribe();
   }, []);

@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -60,6 +60,11 @@ const AdminBookings = () => {
   const toggleBooking = useAdminToggleBooking();
   const syncOffline = useSyncOfflineBooking();
   const reconcileOffline = useReconcileOfflineBooking();
+
+  useEffect(() => {
+    syncOffline.mutateAsync();
+    reconcileOffline.mutateAsync();
+  }, []);
 
   const filteredBookings =
     bookings?.filter((booking) => {
@@ -177,12 +182,6 @@ const AdminBookings = () => {
     return false;
   }, []);
 
-  const handleSyncBookings = async () => {
-    await syncOffline.mutateAsync();
-  };
-  const handleReconcileBookings = async () => {
-    await reconcileOffline.mutateAsync();
-  };
 
   return (
     <div className="space-y-8">
@@ -192,22 +191,6 @@ const AdminBookings = () => {
           <p className="text-gray-600 mt-1">
             Manage and review all vendor bookings
           </p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            disabled={reconcileOffline.isPending}
-            onClick={handleReconcileBookings}
-            variant="default"
-          >
-            {reconcileOffline.isPending && <Loader />} Reconcile Payments
-          </Button>
-          <Button
-            disabled={syncOffline.isPending}
-            onClick={handleSyncBookings}
-            variant="default"
-          >
-            {syncOffline.isPending && <Loader />} Sync Bookings
-          </Button>
         </div>
       </div>
 

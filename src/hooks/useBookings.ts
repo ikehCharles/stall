@@ -247,7 +247,7 @@ export const useCreateBooking = () => {
         bookingData.pricePerDay || bookingData.totalAmount / daysCount;
 
       // Determine status based on FCA context (auto-approve FCA bookings)
-      const bookingStatus = bookingData.createdByFcaId ? "approved" : bookingData.payLater ? "reserved" : "pending";
+      const bookingStatus = bookingData.createdByFcaId || bookingData.payLater ? "reserved" : "pending";
 
       // Booking expiration from platform settings: when active, use configured minutes; else never expire (null)
       const settings = queryClient.getQueryData<PlatformSettings>(["platform-settings"]);

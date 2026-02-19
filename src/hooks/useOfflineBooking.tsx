@@ -16,10 +16,6 @@ export const useSyncOfflineBooking = () => {
       },
       onSuccess: (res) => {
         queryClient.invalidateQueries({ queryKey: ["admin-bookings"] });
-        toast({
-          title: res.message,
-          // description: res.message,
-        });
       },
       onError: (error) => {
         toast({
@@ -44,10 +40,6 @@ export const useReconcileOfflineBooking = () => {
       },
       onSuccess: (res) => {
         queryClient.invalidateQueries({ queryKey: ["admin-bookings"] });
-        toast({
-          title: res.message,
-          // description: res.message,
-        });
       },
       onError: (error) => {
         toast({
