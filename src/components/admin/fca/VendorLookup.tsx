@@ -101,8 +101,11 @@ export const VendorLookup = ({
             value={email}
             className="lg:w-[300px] rounded-r-none"
             onChange={(e) => {
-              // bookingRes.reset();
-              // vendorLookup.reset();
+              bookingRes.reset();
+              if(!e.target.value.trim()) {
+                setSearchParams(new URLSearchParams(), { replace: true });
+              }
+              vendorLookup.reset();
               setEmail(e.target.value);
             }}
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
