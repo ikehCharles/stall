@@ -13,7 +13,7 @@ const VendorDashboard = () => {
   // Calculate metrics from real data
   const totalStalls = bookings?.reduce((sum, booking) => sum + (booking.booking_stalls?.length || 0), 0) || 0;
   const totalPaid = bookings?.reduce((sum, booking) => sum + Number(booking.paid_amount || 0), 0) || 0;
-  const totalAmount = bookings?.reduce((sum, booking) => sum + Number(booking.total_amount || 0), 0) || 0;
+  const totalAmount = bookings?.reduce((sum, booking) => sum + Number(booking.gross_amount || booking.total_amount || 0), 0) || 0;
   const unpaidBalance = totalAmount - totalPaid;
   const upcomingBookings = bookings?.filter(booking => 
     booking.markets && new Date(booking.markets.start_at) > new Date()
