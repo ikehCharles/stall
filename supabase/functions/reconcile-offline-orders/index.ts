@@ -7,7 +7,7 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 )
 
-const PROVIDER = 'zettle'
+const PROVIDER = 'POS'
 const ZETTLE_CLIENT_ID = Deno.env.get("ZETTLE_CLIENT_ID");
 const ZETTLE_CLIENT_SECRET = Deno.env.get("ZETTLE_CLIENT_SECRET");
 const corsHeaders = {

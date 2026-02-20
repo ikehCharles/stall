@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useState, useCallback } from "react";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,7 +19,7 @@ import { toast } from "@/hooks/use-toast";
 import CheckingBookingByQR from "@/components/admin/fca/CheckingBookingByQR";
 import { VendorLookup } from "@/components/admin/fca/VendorLookup";
 import CheckingBookingsByEmail from "@/components/admin/fca/CheckingBookingsByEmail";
-import { UserBookingsResponse } from "@/hooks/useVendorLookup";
+import { UserBookingsResponse, useVendorLookupInMarket } from "@/hooks/useVendorLookup";
 import { FCAVendorCreationModal } from "@/components/admin/fca/FCAVendorCreationModal";
 import { Booking } from "@/data/mockData";
 import { generateInvoiceUrl } from "@/lib/utils";
@@ -29,6 +29,7 @@ import CurrencyWrapper from "@/components/shared/currency";
 const FCAStallBooking = () => {
   const { marketId } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [selectedStall, setSelectedStall] = useState<StallInstance | null>(
     null
   );
@@ -43,6 +44,7 @@ const FCAStallBooking = () => {
 
   const [bookingsWithProfile, setBookingsWithProfile] =
     useState<UserBookingsResponse | null>(null);
+  const refreshVendorLookup = useVendorLookupInMarket();
 
   const market = useMarkets();
   const stalls = useStallInstances(marketId || "");
@@ -80,6 +82,15 @@ const FCAStallBooking = () => {
   const handleVendorLookupError = (err) => {
     setVendorLookupError(err);
   };
+
+  const refreshBookings = useCallback(() => {
+    const email = searchParams.get("vendorEmail");
+    if (!email || !marketId) return;
+    refreshVendorLookup.mutate(
+      { email, marketId },
+      { onSuccess: (data) => { if (data) setBookingsWithProfile(data); } }
+    );
+  }, [searchParams, marketId, refreshVendorLookup]);
 
   const handleStallClick = (stall: StallInstance) => {
     
@@ -381,6 +392,7 @@ const FCAStallBooking = () => {
           bookingRes={bookingRes}
           market={currentMarket}
           invoiceUrl={invoiceUrl}
+          onBookingUpdated={refreshBookings}
         />
       )}
 

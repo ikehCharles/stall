@@ -64,6 +64,14 @@ const FCAInvoiceView = () => {
     bookingRes.mutate(id);
   }, [id]);
 
+  const backUrl = bookingRes.data?.market_id
+    ? `/admin/fca/markets/${bookingRes.data.market_id}${
+        bookingRes.data.profile?.email
+          ? `?vendorEmail=${encodeURIComponent(bookingRes.data.profile.email)}`
+          : ""
+      }`
+    : "/admin/fca/markets";
+
   if (bookingRes.isPending) {
     return (
       <div className="flex justify-center items-center py-12">
@@ -74,8 +82,7 @@ const FCAInvoiceView = () => {
 
   if (
     bookingRes.error ||
-    !bookingRes.data ||
-    bookingRes.data.status === "pending"
+    !bookingRes.data
   ) {
     return (
       <div className="text-center py-12">
@@ -83,8 +90,8 @@ const FCAInvoiceView = () => {
           Invoice not found or processed yet
         </h2>
         <Button asChild className="mt-4">
-          <div onClick={() => navigate("/admin/fca/markets")}>
-            Back to Markets
+          <div onClick={() => navigate(backUrl)}>
+            Back to Stall
           </div>
         </Button>
       </div>
@@ -97,10 +104,10 @@ const FCAInvoiceView = () => {
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
-            onClick={() => navigate("/admin/fca/markets")}
+            onClick={() => navigate(backUrl)}
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Markets
+            Back to Stall
           </Button>
           <h1 className="text-2xl font-bold text-foreground">
             Booking Confirmation

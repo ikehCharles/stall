@@ -29,13 +29,15 @@ interface Booking {
   id: string;
   status: "completed" | "approved" | "pending" | string;
   market_id: string;
-  created_at: string; // ISO 8601 date string
+  created_at: string;
   days_count: number;
   paid_amount: number;
   total_amount: number;
+  gross_amount: number | null;
   invoice_number: string;
   payment_status: "success" | null;
-  selected_dates: string[]; // dates in "YYYY-MM-DD" format
+  selected_dates: string[];
+  hold_expires_at: string | null;
 }
 
 export interface UserBookingsResponse {

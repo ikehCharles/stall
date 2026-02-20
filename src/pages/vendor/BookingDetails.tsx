@@ -6,7 +6,7 @@ import {
   useSearchParams,
 } from "react-router-dom";
 import QRCode from "qrcode";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +15,6 @@ import {
   BookingWithStalls,
   useBookingDetails,
   useCancelBooking,
-  useExpireBooking,
   useReserveBooking,
 } from "@/hooks/useBookings";
 import { useBookingDatesForBooking } from "@/hooks/useBookingDatesForBooking";
@@ -75,12 +74,10 @@ const BookingDetails = () => {
   const toggleAuthorizedBooking = useAdminToggleAuthorizedBooking();
   const cancelBooking = useCancelBooking();
   const reserveBooking = useReserveBooking();
-  const expireBooking = useExpireBooking();
   const createPayment = useCreatePayment();
   const isAdminView = location.pathname.includes("/admin/");
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [invoiceQR, setInvoiceQR] = useState<string | null>(null);
-  const hasAttemptedExpireFor = useRef<string | null>(null);
   const queryClient = useQueryClient();
   // look for search params status=processing and set dependency on payment_status, if it changes to success, remove search param
   useEffect(() => {
@@ -93,21 +90,6 @@ const BookingDetails = () => {
     }
   }, [booking?.payment_status, id, navigate, searchParams]);
 
-  // On load (and refresh): if hold has passed and booking is unpaid and not already expired, call expire_booking once to set status to 'expired'
-  useEffect(() => {
-    if (
-      !booking?.id ||
-      booking.status === "expired" ||
-      booking.payment_status === "success" ||
-      booking.payment_status === "authorized" ||
-      !booking.hold_expires_at
-    )
-      return;
-    if (new Date(booking.hold_expires_at) > new Date()) return;
-    if (hasAttemptedExpireFor.current === booking.id) return;
-    hasAttemptedExpireFor.current = booking.id;
-    expireBooking.mutate(booking.id);
-  }, [booking?.id, booking?.status, booking?.payment_status, booking?.hold_expires_at]); // eslint-disable-line react-hooks/exhaustive-deps -- expireBooking omitted to avoid loop when mutation state updates
 
   const canShowActions = useCallback((booking: BookingWithStalls) => {
     const { status, payment_status } = booking;
@@ -475,16 +457,14 @@ const BookingDetails = () => {
                   </div>
                 </div>
 
-                {booking.hold_expires_at &&
-                  ['pending', 'approved'].includes(booking.status) &&
-                  booking.payment_status !== "success" && (
-                    <div className="pt-2">
-                      <BookingHoldTimer
-                        bookingId={booking.id}
-                        expiresAt={booking.hold_expires_at}
-                      />
-                    </div>
-                  )}
+                <div className="pt-2">
+                  <BookingHoldTimer
+                    bookingId={booking.id}
+                    expiresAt={booking.hold_expires_at}
+                    bookingStatus={booking.status}
+                    paymentStatus={booking.payment_status}
+                  />
+                </div>
               </CardContent>
             </Card>
 

@@ -30,6 +30,8 @@ import {
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { UserBookingsResponse } from "@/hooks/useVendorLookup";
+import CurrencyWrapper from "@/components/shared/currency";
+
 
 interface CheckingBookingsByEmailProps {
   open;
@@ -188,12 +190,12 @@ const CheckingBookingsByEmail: React.FC<CheckingBookingsByEmailProps> = (
                               Total
                             </p>
                             <p className="text-lg font-bold">
-                              £{booking.total_amount}
+                              <CurrencyWrapper amount={booking.gross_amount ?? booking.total_amount} />
                             </p>
                             {booking.paid_amount > 0 &&
-                              booking.paid_amount < booking.total_amount && (
+                              booking.paid_amount < (booking.gross_amount ?? booking.total_amount) && (
                                 <p className="text-xs text-green-600">
-                                  £{booking.paid_amount} paid
+                                  <CurrencyWrapper amount={booking.paid_amount} /> paid
                                 </p>
                               )}
                           </div>

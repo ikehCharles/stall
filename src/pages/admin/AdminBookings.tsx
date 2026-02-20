@@ -30,6 +30,7 @@ import {
   useAdminBookings,
   useAdminToggleBooking,
   useAdminToggleAuthorizedBooking,
+  useDeclineBooking,
 } from "@/hooks/useAdminBookings";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Check, Loader, X } from "lucide-react";
@@ -58,6 +59,7 @@ const AdminBookings = () => {
   const { data: bookings, isLoading } = useAdminBookings();
   const toggleAuthorizedBooking = useAdminToggleAuthorizedBooking();
   const toggleBooking = useAdminToggleBooking();
+  const declineBooking = useDeclineBooking();
   const syncOffline = useSyncOfflineBooking();
   const reconcileOffline = useReconcileOfflineBooking();
 
@@ -116,54 +118,17 @@ const AdminBookings = () => {
   };
 
   const handleDecline = async (booking: BookingWithStalls) => {
-    const bookingId = booking.id;
-
-    const declineInfo = {
+    const val = await confirm({
       title: "Confirm Decline",
       description:
-        "Are you sure you want to decline this booking? This action cannot be undone.",
+        "Are you sure you want to decline this booking? Any payment will be refunded accordingly. This action cannot be undone.",
       confirmText: "Decline Booking",
       cancelText: "Cancel",
       confirmClassName: "bg-red-600 hover:bg-red-700 text-white",
-    };
+    });
+    if (!val) return;
 
-    if (
-      booking.status === "reserved" &&
-      (!booking.payment_status || booking.payment_status === "pending")
-    ) {
-      const val = await confirm({
-        ...declineInfo,
-        description:
-          "This booking is currently reserved with no payment or pending payment. Declining will void the booking. Are you sure you want to proceed?",
-      });
-      if (!val) return;
-      toggleBooking.mutate({ bookingId, intent: INTENT.VOID });
-      return;
-    }
-
-    if (ENV.PAYMENT_INTENT == INTENT.AUTHORIZE) {
-      const val = await confirm({
-        ...declineInfo,
-        description:
-          "This will void authorized payment and decline booking. Are you sure you want to proceed?",
-      });
-      if (!val) return;
-      toggleAuthorizedBooking.mutate({ bookingId, intent: INTENT.VOID });
-      return;
-    }
-    if (ENV.PAYMENT_INTENT == INTENT.CAPTURE) {
-      const val = await confirm({
-        ...declineInfo,
-        description:
-          "This will refund payment and decline booking. Are you sure you want to proceed?",
-      });
-      if (!val) return;
-      toggleBooking.mutate({ bookingId, intent: INTENT.REFUND });
-      return;
-    }
-
-    // error message for unsupported intent
-    toast.error("Unsupported payment intent configured.");
+    declineBooking.mutate(booking.id);
   };
 
   const canShowActions = useCallback((booking: BookingWithStalls) => {
@@ -333,11 +298,16 @@ const AdminBookings = () => {
                                   size="sm"
                                   onClick={() => handleDecline(booking)}
                                   disabled={
+                                    declineBooking.isPending ||
                                     toggleAuthorizedBooking.isPending ||
                                     toggleBooking.isPending
                                   }
                                 >
-                                  <X className="w-4 h-4 mr-1" />
+                                  {declineBooking.isPending ? (
+                                    <Loader className="w-4 h-4 mr-1 animate-spin" />
+                                  ) : (
+                                    <X className="w-4 h-4 mr-1" />
+                                  )}
                                   Decline
                                 </Button>
                               </>

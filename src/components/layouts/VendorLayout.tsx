@@ -18,7 +18,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   ShoppingCart,
   CreditCard,
@@ -101,8 +100,7 @@ function NotificationBell() {
 
         {/* Notification list */}
         {recent.length > 0 ? (
-          <ScrollArea className="max-h-[320px]">
-            <div className="divide-y">
+          <div className="max-h-[320px] overflow-y-auto divide-y">
               {recent.map((n) => {
                 const Icon = ICON_MAP[n.type] ?? Bell;
                 const colorClass = COLOR_MAP[n.type] ?? "text-gray-600 bg-gray-50";
@@ -135,8 +133,7 @@ function NotificationBell() {
                   </button>
                 );
               })}
-            </div>
-          </ScrollArea>
+          </div>
         ) : (
           <div className="flex flex-col items-center py-8 px-4 text-center">
             <Bell className="h-8 w-8 text-gray-300 mb-2" />

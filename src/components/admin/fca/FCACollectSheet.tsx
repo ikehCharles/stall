@@ -85,14 +85,35 @@ export const FCACollectSheet = ({
   const [denominations, setDenominations] = useState<CashDenominations>({});
   const [showDenominations, setShowDenominations] = useState(false);
   const [cashError, setCashError] = useState<string>("");
-
+  const reconcileOffline = useReconcileOfflineBooking();
   const syncOffline = useSyncOfflineBooking();
   const recordCashPayment = useRecordCashPayment();
   const { user } = useAuth();
 
-  const handleProceedWithUnpaidInvoice = async () => {
-    await syncOffline.mutateAsync();
-    onOpenChange(false);
+  const handlePOSSelect = async () => {
+    setSelectedMethod("card");
+    setPaymentState("processing");
+    try {
+      await syncOffline.mutateAsync();
+    } catch {
+      // sync failed but we still show the POS waiting view
+    }
+  };
+
+  const handlePOSRefresh = async () => {
+    if (!bookingRes.data?.id) return;
+    try {
+      await reconcileOffline.mutateAsync();
+      const booking = await bookingRes.mutateAsync(bookingRes.data.id);
+      if (booking?.payment_status === "success") {
+        setPaymentState("success");
+        setTimeout(() => {
+          handleClose();
+        }, 1500);
+      }
+    } catch {
+      // reconcile or fetch failed — user can try again
+    }
   };
 
   const handleReset = () => {
@@ -206,7 +227,7 @@ export const FCACollectSheet = ({
   };
 
   const isLoading =
-    bookingRes?.isPending || syncOffline?.isPending || recordCashPayment.isPending;
+    bookingRes?.isPending || syncOffline?.isPending || reconcileOffline?.isPending || recordCashPayment.isPending;
 
   const renderCashPaymentForm = () => {
     return (
@@ -396,17 +417,62 @@ export const FCACollectSheet = ({
     );
   };
 
+  const renderPOSWaitingView = () => {
+    return (
+      <div className="space-y-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleReset}
+          className="mb-2 -ml-2"
+        >
+          <ArrowLeft className="h-4 w-4 mr-1" />
+          Back
+        </Button>
+
+        <div className="p-4 bg-muted rounded-lg">
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-muted-foreground">Amount Due:</span>
+            <span className="text-2xl font-bold">
+              <CurrencyWrapper amount={amount} />
+            </span>
+          </div>
+        </div>
+
+        <div className="py-8 text-center space-y-4">
+          <CreditCard className="h-12 w-12 text-primary mx-auto" />
+          <div className="space-y-2">
+            <h3 className="text-lg font-semibold">Waiting for POS Payment</h3>
+            <p className="text-sm text-muted-foreground">
+              Complete the payment on the Zettle terminal, then tap refresh to confirm.
+            </p>
+          </div>
+        </div>
+
+        <Button
+          className="w-full h-12 text-base"
+          size="lg"
+          onClick={handlePOSRefresh}
+          disabled={isLoading}
+        >
+          {(reconcileOffline.isPending || bookingRes.isPending) ? (
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+          ) : null}
+          Refresh Payment Status
+        </Button>
+      </div>
+    );
+  };
+
   const renderPaymentState = () => {
-    if (paymentState === "processing") {
+    if (paymentState === "processing" && selectedMethod !== "card") {
       return (
         <div className="py-12 text-center space-y-4">
           <Loader2 className="h-16 w-16 animate-spin text-primary mx-auto" />
           <div className="space-y-2">
             <h3 className="text-lg font-semibold">Processing Payment...</h3>
             <p className="text-sm text-muted-foreground">
-              {selectedMethod === "card"
-                ? "Please follow instructions on the card machine"
-                : "Recording cash payment..."}
+              Recording cash payment...
             </p>
           </div>
         </div>
@@ -455,6 +521,11 @@ export const FCACollectSheet = ({
       return renderCashPaymentForm();
     }
 
+    // Show POS waiting view when card is selected
+    if (selectedMethod === "card") {
+      return renderPOSWaitingView();
+    }
+
     return (
       <div className="space-y-6">
         <div className="p-4 bg-muted rounded-lg">
@@ -475,7 +546,7 @@ export const FCACollectSheet = ({
               disabled={isLoading}
               variant="outline"
               className="w-full h-auto p-4 justify-start hover:border-primary"
-              onClick={handleProceedWithUnpaidInvoice}
+              onClick={handlePOSSelect}
             >
               <CreditCard className="h-5 w-5 mr-3" />
               {syncOffline?.isPending && (
@@ -541,6 +612,8 @@ export const FCACollectSheet = ({
           <SheetDescription>
             {selectedMethod === "cash"
               ? "Enter the cash amount collected from the vendor"
+              : selectedMethod === "card"
+              ? "Complete payment on the POS terminal"
               : "Process offline payment for this booking"}
           </SheetDescription>
         </SheetHeader>

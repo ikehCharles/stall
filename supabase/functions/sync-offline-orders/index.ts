@@ -57,6 +57,11 @@ async function getZettleAccessToken(): Promise<string> {
 }
 
 Deno.serve(async (req) => {
+
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
   const isCron = req.headers.get("x-supabase-trigger") === "cron";
 
   // If this is NOT cron, we must authenticate the user

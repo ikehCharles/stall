@@ -69,7 +69,6 @@ export const useAdminToggleAuthorizedBooking = () => {
       queryClient.invalidateQueries({ queryKey: ["admin-bookings"] });
       toast({
         title: res.message,
-        // description: res.message,
       });
     },
     onError: (error) => {
@@ -114,8 +113,42 @@ export const useAdminToggleBooking = () => {
       queryClient.invalidateQueries({ queryKey: ["admin-bookings"] });
       toast({
         title: res.message,
-        // description: res.message,
       });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to decline booking.",
+        variant: "destructive",
+      });
+    },
+  });
+};
+
+export const useDeclineBooking = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (bookingId: string) => {
+      const { data, error } = await supabase.functions.invoke(
+        "decline-booking",
+        { body: { bookingId } }
+      );
+      if (error) throw error;
+      if (data?.status === "error" || data?.error) {
+        throw new Error(data.error || data.message || "Failed to decline booking");
+      }
+      return data as {
+        status: string;
+        message: string;
+        refund_method: string;
+        refund_details: unknown;
+      };
+    },
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-bookings"] });
+      toast({ title: res.message });
     },
     onError: (error) => {
       toast({

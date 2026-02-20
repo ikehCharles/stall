@@ -19,10 +19,12 @@ import { SessionVendorStorage } from "@/components/admin/fca/FCABookingModal";
 import {
   getKycBadge,
   getPaymentStatusBadge,
+  getStatusBadge,
 } from "@/components/shared/statuses";
 import { useReconcileOfflineBooking } from "@/hooks/useOfflineBooking";
 import CurrencyWrapper from "@/components/shared/currency";
 import VatBreakdown from "@/components/shared/VatBreakdown";
+import { BookingHoldTimer } from "@/components/vendor/BookingHoldTimer";
 import { formatCurrency } from "@/lib/utils";
 import { usePlatformSettings } from "@/hooks/useSettings";
 
@@ -38,6 +40,16 @@ const FCACheckout = () => {
   const createBooking = useCreateBooking();
   const reconcileOffline = useReconcileOfflineBooking();
   const { data: platformSettings } = usePlatformSettings();
+
+  useEffect(() => {
+    if (!bookingId) return;
+    const handleFocus = () => {
+      bookingRes.mutateAsync(bookingId);
+    };
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bookingId]);
 
   useEffect(() => {
     const bookingIdFromUrl = searchParams.get("bookingId");
@@ -207,20 +219,37 @@ const FCACheckout = () => {
 
   const { stallSelection, vendorDetails } = bookingData;
 
+  const backUrl = bookingData.marketId
+    ? `/admin/fca/markets/${bookingData.marketId}${
+        vendorDetails?.email
+          ? `?vendorEmail=${encodeURIComponent(vendorDetails.email)}`
+          : ""
+      }`
+    : "/admin/fca/markets";
+
   return (
     <div className="p-6 space-y-6 max-w-2xl mx-auto">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
-            onClick={() => navigate("/admin/fca/markets")}
+            onClick={() => navigate(backUrl)}
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Markets
+            Back to Stall
           </Button>
           <h1 className="text-2xl font-bold text-foreground">
             Payment Summary
           </h1>
+          {bookingRes.data && (
+            <BookingHoldTimer
+              bookingId={bookingRes.data.id}
+              expiresAt={bookingRes.data.hold_expires_at}
+              bookingStatus={bookingRes.data.status}
+              paymentStatus={bookingRes.data.payment_status}
+              onExpired={() => bookingRes.mutateAsync(bookingRes.data.id)}
+            />
+          )}
         </div>
         <div className="flex items-center gap-3">
           <Badge variant="outline">
@@ -273,7 +302,10 @@ const FCACheckout = () => {
         <CardHeader>
           <CardTitle>
             <div className="flex flex-wrap justify-between gap-2">
-              <h2>Booking Details</h2>
+              <div className="space-y-2">
+                <h2>Booking Details</h2>
+                {bookingRes?.data?.status && getStatusBadge(bookingRes.data.status)}
+              </div>
               <div className="flex flex-col justify-end items-end text-sm">
                 <h4>Payment Status</h4>
                 <div>{getPaymentStatusBadge(bookingRes?.data?.payment_status)}</div>
@@ -340,31 +372,33 @@ const FCACheckout = () => {
               settings={platformSettings}
             />
           </div>
-          <div>
-            {!bookingRes.data?.offline_invoice_id && bookingRes.data?.payment_status !== 'success' && (
-              <Button
-                className="w-full mt-4"
-                size="lg"
-                onClick={() => setShowCollectSheet(true)}
-                disabled={!bookingId}
-              >
-                Collect Payment
-              </Button>
-            )}
-            {bookingRes.data?.offline_invoice_id && (
-              <Button
-                className="w-full mt-4"
-                size="lg"
-                onClick={handleRefresh}
-                disabled={!bookingId || reconcileOffline.isPending}
-              >
-                {reconcileOffline.isPending && (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                )}
-                Refresh
-              </Button>
-            )}
-          </div>
+          {bookingRes.data?.status !== "cancelled" && bookingRes.data?.payment_status !== "cancelled" && bookingRes.data?.payment_status !== "refunded" && (
+            <div>
+              {!bookingRes.data?.offline_invoice_id && bookingRes.data?.payment_status !== 'success' && (
+                <Button
+                  className="w-full mt-4"
+                  size="lg"
+                  onClick={() => setShowCollectSheet(true)}
+                  disabled={!bookingId}
+                >
+                  Collect Payment
+                </Button>
+              )}
+              {bookingRes.data?.offline_invoice_id && (
+                <Button
+                  className="w-full mt-4"
+                  size="lg"
+                  onClick={handleRefresh}
+                  disabled={!bookingId || reconcileOffline.isPending}
+                >
+                  {reconcileOffline.isPending && (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  )}
+                  Refresh
+                </Button>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
