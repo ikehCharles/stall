@@ -133,7 +133,7 @@ async function handleRequest(
         market:market_id!inner (name, banner_url)
       `
       )
-      .eq("status", "approved")
+      .in("status", ["approved", "reserved", "pending"])
       .is("offline_invoice_id", null)
       .is("offline_synced_at", null)
       .or("payment_status.eq.pending,payment_status.is.null");

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Briefcase, Loader2 } from "lucide-react";
+import { ArrowLeft, Briefcase, Loader2, RefreshCcw } from "lucide-react";
 import { FCACollectSheet } from "@/components/admin/fca/FCACollectSheet";
 import {
   useCreateBooking,
@@ -241,6 +241,7 @@ const FCACheckout = () => {
           <h1 className="text-2xl font-bold text-foreground">
             Payment Summary
           </h1>
+          
           {bookingRes.data && (
             <BookingHoldTimer
               bookingId={bookingRes.data.id}
@@ -303,7 +304,18 @@ const FCACheckout = () => {
           <CardTitle>
             <div className="flex flex-wrap justify-between gap-2">
               <div className="space-y-2">
+                <div className="flex items-center gap-1 justify-between">
                 <h2>Booking Details</h2>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleRefresh}
+                  disabled={reconcileOffline.isPending}
+                  title="Refresh payment status"
+                >
+                  <RefreshCcw className="h-4 w-4" />
+                </Button>
+                </div>
                 {bookingRes?.data?.status && getStatusBadge(bookingRes.data.status)}
               </div>
               <div className="flex flex-col justify-end items-end text-sm">
@@ -374,7 +386,7 @@ const FCACheckout = () => {
           </div>
           {bookingRes.data?.status !== "cancelled" && bookingRes.data?.payment_status !== "cancelled" && bookingRes.data?.payment_status !== "refunded" && (
             <div>
-              {!bookingRes.data?.offline_invoice_id && bookingRes.data?.payment_status !== 'success' && (
+              {bookingRes.data?.payment_status !== 'success' && (
                 <Button
                   className="w-full mt-4"
                   size="lg"
@@ -382,19 +394,6 @@ const FCACheckout = () => {
                   disabled={!bookingId}
                 >
                   Collect Payment
-                </Button>
-              )}
-              {bookingRes.data?.offline_invoice_id && (
-                <Button
-                  className="w-full mt-4"
-                  size="lg"
-                  onClick={handleRefresh}
-                  disabled={!bookingId || reconcileOffline.isPending}
-                >
-                  {reconcileOffline.isPending && (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  )}
-                  Refresh
                 </Button>
               )}
             </div>

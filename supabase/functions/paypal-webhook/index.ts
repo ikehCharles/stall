@@ -22,6 +22,8 @@ enum PAYPAL_EVENT {
   failed = "failed",
   voided = "voided",
   reversed = "reversed",
+  refunded = "refunded",
+  cancelled = "cancelled",
 }
 
 // Map PayPal events to internal payment status
@@ -33,7 +35,11 @@ const statusRank: Record<string, number> = {
   [PAYPAL_EVENT.failed]: 99,
   [PAYPAL_EVENT.voided]: 100,
   [PAYPAL_EVENT.reversed]: 100,
+  [PAYPAL_EVENT.refunded]: 100,
+  [PAYPAL_EVENT.cancelled]: 100,
 };
+
+const TERMINAL_BOOKING_STATUSES = ["cancelled", "expired"];
 
 function mapPayPalEventToStatus(event: any): string | null {
   switch (event.event_type) {
@@ -195,6 +201,24 @@ serve(async (req) => {
     const bookingId =
       resource.custom_id || resource.purchase_units?.[0]?.custom_id;
 
+    // Guard: reject events for cancelled/expired bookings
+    if (bookingId) {
+      const { data: booking } = await supabase
+        .from("bookings")
+        .select("status")
+        .eq("id", bookingId)
+        .single();
+
+      if (booking && TERMINAL_BOOKING_STATUSES.includes(booking.status)) {
+        console.warn(
+          `Ignoring webhook for booking ${bookingId}: booking status is "${booking.status}"`
+        );
+        return new Response(
+          JSON.stringify({ ok: true, skipped: true, reason: `booking is ${booking.status}` }),
+          { status: 200, headers: corsHeaders }
+        );
+      }
+    }
 
     // Fetch current payment status
     const { data: payment, error: paymentError } = await supabase
