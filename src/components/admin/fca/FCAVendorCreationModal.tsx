@@ -36,6 +36,7 @@ import { User } from "@supabase/supabase-js";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import UserRegister from "@/pages/auth/UserRegister";
 import { KYCForm } from "@/components/kyc/KYCForm";
+import { MagicLinkResend } from "./MagicLinkResend";
 
 interface FCAVendorCreationModalProps {
   open: boolean;
@@ -60,6 +61,7 @@ export const FCAVendorCreationModal = ({
   const [vendor, setVendor] = useState<Partial<
     UserPayload & { id?: string }
   > | null>(null);
+  const [vendorCreated, setVendorCreated] = useState(false);
 
   useEffect(() => {
     if (user?.user_id) {
@@ -82,8 +84,8 @@ export const FCAVendorCreationModal = ({
       phoneNumber: user.user_metadata.phone_number,
     };
     setVendor(userPayload);
+    setVendorCreated(true);
     setState(ModalState.kycProcessing);
-    // save user and navigate to ModalState.kycProcessing
   };
 
   const handleKYCSubmit = () => {
@@ -126,7 +128,7 @@ export const FCAVendorCreationModal = ({
                     Please provide information to set up profile.
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
                   <UserRegister
                     user={vendor}
                     onUserCreated={(userRes) => {
@@ -135,6 +137,20 @@ export const FCAVendorCreationModal = ({
                     disabled={!!vendor?.id}
                     isVendor={true}
                   />
+
+                  {/* Magic link section — shown after vendor is created */}
+                  {vendorCreated && vendor?.email && (
+                    <div className="pt-4 border-t">
+                      <p className="text-sm font-medium text-foreground mb-2">
+                        Account Verification
+                      </p>
+                      <MagicLinkResend
+                        email={vendor.email}
+                        autoSend={true}
+                        cooldownSeconds={60}
+                      />
+                    </div>
+                  )}
                 </CardContent>
               </Card>
               {!!vendor?.id && (
