@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -226,12 +227,11 @@ export const KYCForm = ({ onSubmit, existingKYC, externalUserId }: KYCFormProps)
             </div>
             <div className="space-y-2">
               <Label htmlFor="contactPhone">Phone Number *</Label>
-              <Input
+              <PhoneInput
                 id="contactPhone"
-                type="tel"
                 value={formData.contactPhone}
-                onChange={(e) => handleInputChange('contactPhone', e.target.value)}
-                placeholder="+1 (555) 123-4567"
+                onChange={(value) => handleInputChange('contactPhone', value)}
+                placeholder="Enter your phone number"
                 required
               />
             </div>

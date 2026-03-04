@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,11 +15,11 @@ import { KYCForm } from "@/components/kyc/KYCForm";
 import { KYCStatus } from "@/components/kyc/KYCStatus";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PERMISSIONS } from "@/lib/permissions";
+import { isValidPhoneNumber } from "libphonenumber-js";
 
 const VendorProfile = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const activeTab = searchParams.get("tab") || "personal";
   const { userProfile, refreshProfile } = useAuth();
   const { hasPermission } = usePermissions();
   const isAdmin = hasPermission(PERMISSIONS.USERS.MANAGE);
@@ -26,6 +27,10 @@ const VendorProfile = () => {
   // Detect if profile is incomplete (new user from magic link)
   const isProfileIncomplete =
     !userProfile?.full_name?.trim() || !userProfile?.phone_number?.trim();
+
+  // Force tab back to "personal" if profile is incomplete and they try to visit verification directly
+  const requestedTab = searchParams.get("tab") || "personal";
+  const activeTab = (isProfileIncomplete && requestedTab === "verification") ? "personal" : requestedTab;
 
   const [profile, setProfile] = useState({
     full_name: "",
@@ -83,6 +88,45 @@ const VendorProfile = () => {
   };
 
   const handleSave = async () => {
+    // Validate required fields
+    if (!profile.full_name.trim()) {
+      toast({
+        title: "Full Name Required",
+        description: "Please enter your full name.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!profile.phone_number.trim()) {
+      toast({
+        title: "Phone Number Required",
+        description: "Please enter your phone number.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!isValidPhoneNumber(profile.phone_number)) {
+      toast({
+        title: "Invalid Phone Number",
+        description: "Please enter a valid phone number with country code.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate email format (display-only but sanity check)
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (profile.email && !emailRegex.test(profile.email)) {
+      toast({
+        title: "Invalid Email",
+        description: "The email address format appears to be invalid.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setSaving(true);
     try {
       let logoUrl = businessLogo;
@@ -210,10 +254,29 @@ const VendorProfile = () => {
         <p className="text-muted-foreground mt-1">Manage your account information and business verification</p>
       </div>
 
-      <Tabs value={activeTab} onValueChange={(value) => setSearchParams({ tab: value })}>
+      <Tabs value={activeTab} onValueChange={(value) => {
+        // Block navigation to verification tab if profile is incomplete
+        if (value === 'verification' && isProfileIncomplete) {
+          toast({
+            title: "Complete Your Profile First",
+            description: "Please fill in your full name and phone number before proceeding to business verification.",
+            variant: "destructive"
+          });
+          return;
+        }
+        setSearchParams({ tab: value });
+      }}>
         <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-1' : 'grid-cols-2'}`}>
           <TabsTrigger value="personal">Personal Information</TabsTrigger>
-          {!isAdmin && <TabsTrigger value="verification">Business Verification</TabsTrigger>}
+          {!isAdmin && (
+            <TabsTrigger
+              value="verification"
+              disabled={isProfileIncomplete}
+              className={isProfileIncomplete ? "opacity-50 cursor-not-allowed" : ""}
+            >
+              Business Verification
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="personal" className="space-y-6 mt-6">
@@ -300,12 +363,13 @@ const VendorProfile = () => {
                 <CardContent className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="full_name">Full Name</Label>
+                      <Label htmlFor="full_name">Full Name <span className="text-destructive">*</span></Label>
                       <Input
                         id="full_name"
                         value={profile.full_name}
                         onChange={(e) => handleChange('full_name', e.target.value)}
                         disabled={!isEditing}
+                        placeholder="Enter your full name"
                       />
                     </div>
                     <div className="space-y-2">
@@ -320,13 +384,14 @@ const VendorProfile = () => {
                       <p className="text-xs text-muted-foreground">Email cannot be changed</p>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="phone_number">Phone Number</Label>
-                      <Input
+                      <Label htmlFor="phone_number">Phone Number <span className="text-destructive">*</span></Label>
+                      <PhoneInput
                         id="phone_number"
                         value={profile.phone_number}
-                        onChange={(e) => handleChange('phone_number', e.target.value)}
+                        onChange={(value) => handleChange('phone_number', value)}
+                        placeholder="Enter your phone number"
                         disabled={!isEditing}
-                        placeholder="+1 (555) 123-4567"
+                        required
                       />
                     </div>
                     {/* <div className="space-y-2">
