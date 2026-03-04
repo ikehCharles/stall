@@ -4,7 +4,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/auth/Login";
-import Register from "./pages/auth/Register";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import AuthCallback from "./pages/auth/AuthCallback";
 import VendorLayout from "./components/layouts/VendorLayout";
@@ -63,9 +62,19 @@ const AppContent = () => {
   // Check if user needs email verification
   const needsEmailVerification = user && !user.email_confirmed_at;
 
-  // Check if user needs KYC (for redirects)
+  // Profile completeness: full_name and phone_number are required
+  const isProfileComplete =
+    userProfile?.role === "vendor" &&
+    !!userProfile?.full_name?.trim() &&
+    !!userProfile?.phone_number?.trim();
+
+  // Check if user needs KYC (for redirects) — only relevant when profile IS complete
   const needsKYC =
     userProfile?.role === "vendor" && userProfile.kyc_status !== "APPROVED";
+
+  // Incomplete profile takes priority over KYC
+  const needsProfileCompletion =
+    userProfile?.role === "vendor" && !isProfileComplete;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
@@ -74,11 +83,11 @@ const AppContent = () => {
         {/* Authentication Routes */}
         <Route
           path="/login"
-          element={!user ? <Login /> : <Navigate to={"/vendor"} />}
+          element={!user ? <Login /> : <Navigate to={userProfile?.role === 'admin' ? '/admin' : '/vendor'} />}
         />
         <Route
           path="/register"
-          element={!user ? <Register /> : <Navigate to={"/vendor"} />}
+          element={<Navigate to="/login" replace />}
         />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
@@ -99,7 +108,9 @@ const AppContent = () => {
           <Route
             index
             element={
-              needsKYC ? (
+              needsProfileCompletion ? (
+                <Navigate to="/vendor/profile" />
+              ) : needsKYC ? (
                 <Navigate to="/vendor/profile?tab=verification" />
               ) : (
                 <VendorDashboard />
@@ -109,7 +120,9 @@ const AppContent = () => {
           <Route
             path="bookings"
             element={
-              needsKYC ? (
+              needsProfileCompletion ? (
+                <Navigate to="/vendor/profile" />
+              ) : needsKYC ? (
                 <Navigate to="/vendor/profile?tab=verification" />
               ) : (
                 <MyBookings />
@@ -120,7 +133,9 @@ const AppContent = () => {
           <Route
             path="bookings/:id/confirmation"
             element={
-              needsKYC ? (
+              needsProfileCompletion ? (
+                <Navigate to="/vendor/profile" />
+              ) : needsKYC ? (
                 <Navigate to="/vendor/profile?tab=verification" />
               ) : (
                 <PermissionGate
@@ -135,7 +150,9 @@ const AppContent = () => {
           <Route
             path="markets"
             element={
-              needsKYC ? (
+              needsProfileCompletion ? (
+                <Navigate to="/vendor/profile" />
+              ) : needsKYC ? (
                 <Navigate to="/vendor/profile?tab=verification" />
               ) : (
                 <PermissionGate
@@ -150,7 +167,9 @@ const AppContent = () => {
           <Route
             path="book-stall/:marketId"
             element={
-              needsKYC ? (
+              needsProfileCompletion ? (
+                <Navigate to="/vendor/profile" />
+              ) : needsKYC ? (
                 <Navigate to="/vendor/profile?tab=verification" />
               ) : (
                 <PermissionGate
@@ -167,7 +186,9 @@ const AppContent = () => {
           <Route
             path="invoice/:id"
             element={
-              needsKYC ? (
+              needsProfileCompletion ? (
+                <Navigate to="/vendor/profile" />
+              ) : needsKYC ? (
                 <Navigate to="/vendor/profile?tab=verification" />
               ) : (
                 <PermissionGate

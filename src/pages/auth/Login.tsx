@@ -6,45 +6,51 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { EmailVerificationPending } from "@/components/auth/EmailVerificationPending";
+import { Mail } from "lucide-react";
 
 const Login = () => {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
 
-  const { signIn, userProfile } = useAuth();
+  const { signInWithMagicLink, userProfile } = useAuth();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const nextUrl = searchParams.get('next');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
 
-    const { error } = await signIn(email, password);
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const { error } = await signInWithMagicLink(normalizedEmail);
 
     if (error) {
       setError(error.message);
-      toast.error("Login failed: " + error.message);
+      toast.error("Failed to send sign-in link: " + error.message);
     } else {
-      toast.success("Welcome back!");
+      setMagicLinkSent(true);
+      toast.success("Check your email for the sign-in link!");
     }
 
     setIsLoading(false);
   };
 
-  // Handle redirect after successful login
+  // If already logged in, redirect
   useEffect(() => {
     if (userProfile) {
-      // Redirect to appropriate dashboard based on role
       const defaultPath = userProfile.role === 'admin' ? '/admin' : '/vendor';
-      navigate(nextUrl && nextUrl !== '/login' ? nextUrl : defaultPath);
+      navigate(defaultPath);
     }
-  }, [userProfile, navigate, nextUrl]);
+  }, [userProfile, navigate]);
+
+  if (magicLinkSent) {
+    return <EmailVerificationPending email={email} />;
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
@@ -60,7 +66,7 @@ const Login = () => {
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl font-semibold">Sign in</CardTitle>
             <CardDescription>
-              Enter your credentials to access your account
+              Enter your email and we'll send you a magic link to sign in
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -70,22 +76,9 @@ const Login = () => {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="Enter your email"
+                  placeholder="you@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="transition-all duration-200 focus:scale-[1.02]"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
                   required
                   className="transition-all duration-200 focus:scale-[1.02]"
                 />
@@ -96,7 +89,14 @@ const Login = () => {
                 className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all duration-200 transform hover:scale-[1.02]"
                 disabled={isLoading}
               >
-                {isLoading ? "Signing in..." : "Sign in"}
+                {isLoading ? (
+                  "Sending link..."
+                ) : (
+                  <>
+                    <Mail className="mr-2 h-4 w-4" />
+                    Send Magic Link
+                  </>
+                )}
               </Button>
               
               {error && (
@@ -104,23 +104,11 @@ const Login = () => {
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
-
-              <div className="text-center">
-                <Link 
-                  to="/forgot-password" 
-                  className="text-sm text-blue-600 hover:text-blue-700 transition-colors"
-                >
-                  Forgot your password?
-                </Link>
-              </div>
             </form>
-            
-            <div className="text-center text-sm mt-4">
-              Don't have an account?{" "}
-              <Link to="/register" className="text-primary hover:underline">
-                Create account
-              </Link>
-            </div>
+
+            <p className="text-center text-xs text-muted-foreground mt-6">
+              No account? One will be created for you automatically.
+            </p>
           </CardContent>
         </Card>
       </div>

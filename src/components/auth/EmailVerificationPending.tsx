@@ -2,9 +2,10 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Mail, RefreshCw } from "lucide-react";
+import { Mail, RefreshCw, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
 
 interface EmailVerificationPendingProps {
   email: string;
@@ -17,18 +18,18 @@ export const EmailVerificationPending = ({ email }: EmailVerificationPendingProp
   const handleResendEmail = async () => {
     setIsResending(true);
     try {
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
+      const { error } = await supabase.auth.signInWithOtp({
         email: email,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`
-        }
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          shouldCreateUser: true,
+        },
       });
 
       if (error) {
         toast.error("Failed to resend email: " + error.message);
       } else {
-        toast.success("Verification email sent!");
+        toast.success("Sign-in link sent!");
         setResendCount(prev => prev + 1);
       }
     } catch (error) {
@@ -39,15 +40,15 @@ export const EmailVerificationPending = ({ email }: EmailVerificationPendingProp
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-4">
+      <Card className="w-full max-w-md shadow-xl border-0 bg-white/80 backdrop-blur-sm">
         <CardHeader className="space-y-1 text-center">
           <div className="mx-auto mb-4 p-3 bg-primary/10 rounded-full w-fit">
             <Mail className="h-6 w-6 text-primary" />
           </div>
-          <CardTitle className="text-2xl font-bold">Check your email to verify your account</CardTitle>
+          <CardTitle className="text-2xl font-bold">Check your email</CardTitle>
           <CardDescription>
-            We've sent a sign-in link to <span className="font-semibold">{email}</span>. Click the link to continue.
+            We've sent a sign-in link to <span className="font-semibold">{email}</span>. Click the link in the email to continue.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -71,7 +72,7 @@ export const EmailVerificationPending = ({ email }: EmailVerificationPendingProp
             ) : (
               <>
                 <Mail className="mr-2 h-4 w-4" />
-                Resend verification email
+                Resend sign-in link
               </>
             )}
           </Button>
@@ -84,8 +85,14 @@ export const EmailVerificationPending = ({ email }: EmailVerificationPendingProp
             </Alert>
           )}
 
-          <div className="text-center text-sm text-muted-foreground">
-            Need help? Contact support if you continue having issues.
+          <div className="text-center">
+            <Link
+              to="/login"
+              className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="mr-1 h-3 w-3" />
+              Back to sign in
+            </Link>
           </div>
         </CardContent>
       </Card>

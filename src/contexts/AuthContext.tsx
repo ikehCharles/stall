@@ -30,6 +30,7 @@ interface AuthContextType {
   profileLoading: boolean;
   signUp: (email: string, password: string, fullName: string, phoneNumber: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signInWithMagicLink: (email: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   sendOTP: (email: string, fullName: string, phoneNumber: string) => Promise<{ error: Error | null }>;
   verifyOTP: (email: string, otpCode: string) => Promise<{ error: Error | null }>;
@@ -94,6 +95,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [navigate, searchParams]);
 
+  const signInWithMagicLink = useCallback(async (email: string) => {
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          shouldCreateUser: true,
+        },
+      });
+      if (error) return { error };
+      return { error: null };
+    } catch (error) {
+      return { error: error as Error };
+    }
+  }, []);
+
   const signOut = useCallback(async () => {
     const { error } = await supabase.auth.signOut();
     if (error) toast.error("Error signing out");
@@ -147,11 +164,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     profileLoading,
     signUp,
     signIn,
+    signInWithMagicLink,
     signOut,
     sendOTP,
     verifyOTP,
     refreshProfile,
-  }), [user, session, userProfile, loading, profileLoading, signUp, signIn, signOut, sendOTP, verifyOTP, refreshProfile]);
+  }), [user, session, userProfile, loading, profileLoading, signUp, signIn, signInWithMagicLink, signOut, sendOTP, verifyOTP, refreshProfile]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

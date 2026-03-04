@@ -614,6 +614,7 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
+          last_login_at: string | null
           phone_number: string | null
           updated_at: string
         }
@@ -625,6 +626,7 @@ export type Database = {
           email: string
           full_name?: string | null
           id: string
+          last_login_at?: string | null
           phone_number?: string | null
           updated_at?: string
         }
@@ -636,6 +638,7 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
+          last_login_at?: string | null
           phone_number?: string | null
           updated_at?: string
         }

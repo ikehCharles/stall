@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,10 +17,16 @@ import { PERMISSIONS } from "@/lib/permissions";
 
 const VendorProfile = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const activeTab = searchParams.get("tab") || "personal";
   const { userProfile, refreshProfile } = useAuth();
   const { hasPermission } = usePermissions();
   const isAdmin = hasPermission(PERMISSIONS.USERS.MANAGE);
+
+  // Detect if profile is incomplete (new user from magic link)
+  const isProfileIncomplete =
+    !userProfile?.full_name?.trim() || !userProfile?.phone_number?.trim();
+
   const [profile, setProfile] = useState({
     full_name: "",
     email: "",
@@ -30,7 +36,7 @@ const VendorProfile = () => {
   });
   const [businessLogo, setBusinessLogo] = useState<string | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(isProfileIncomplete);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [kycData, setKycData] = useState<any>(null);
@@ -121,6 +127,11 @@ const VendorProfile = () => {
         title: "Profile Updated",
         description: "Your profile has been successfully updated."
       });
+
+      // If profile was incomplete and now has required fields, move to KYC
+      if (isProfileIncomplete && profile.full_name.trim() && profile.phone_number.trim()) {
+        navigate("/vendor/profile?tab=verification");
+      }
     } catch (error) {
       console.error('Error updating profile:', error);
       toast({
@@ -185,6 +196,15 @@ const VendorProfile = () => {
 
   return (
     <div className="space-y-8">
+      {isProfileIncomplete && (
+        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+          <h2 className="text-lg font-semibold text-blue-900">Welcome to StallBook!</h2>
+          <p className="text-sm text-blue-700 mt-1">
+            Please complete your profile information below to get started.
+          </p>
+        </div>
+      )}
+
       <div>
         <h1 className="text-3xl font-bold text-foreground">Profile</h1>
         <p className="text-muted-foreground mt-1">Manage your account information and business verification</p>
