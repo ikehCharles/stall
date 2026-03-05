@@ -105,7 +105,7 @@ const FCAStallBooking = () => {
     }
     
     // On any error do not allow stall selection
-    if (vendorLookupError || !bookingsWithProfile?.profile?.kyc_status || bookingsWithProfile?.profile?.kyc_status === 'REJECTED') return;
+    if (vendorLookupError || !bookingsWithProfile.profile.last_login_at || bookingsWithProfile?.profile?.kyc_status === 'REJECTED') return;
     const available = isStallAvailable(stall);
     if (!available) {
       toast({
