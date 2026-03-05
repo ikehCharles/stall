@@ -5,7 +5,6 @@ import {
   Phone,
   Building,
   IdCard,
-  UserPlus,
   Calendar,
   ArrowUpRight,
   RefreshCw,
@@ -14,7 +13,6 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FCAVendorCreationModal } from "./FCAVendorCreationModal";
 import { MagicLinkResend } from "./MagicLinkResend";
 import { useState } from "react";
 import { UseMutationResult } from "@tanstack/react-query";
@@ -34,7 +32,6 @@ interface VendorCheckinBookingProps {
   email: string;
   market: Market;
   onViewBookings: () => void;
-  onSuccessVendorCreation: () => void;
 }
 
 const VendorCheckinBooking: React.FC<VendorCheckinBookingProps> = ({
@@ -42,14 +39,11 @@ const VendorCheckinBooking: React.FC<VendorCheckinBookingProps> = ({
   email,
   market,
   onViewBookings,
-  onSuccessVendorCreation,
 }) => {
   const { error, data, isError, isSuccess } = vendorLookup;
   const profile = data?.profile;
   const hasBookings = data?.bookings?.length > 0;
-  const [showCreationModal, setShowCreationModal] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [userCreatedForEmail, setUserCreatedForEmail] = useState<string | null>(null);
 
   const handleRefreshLookup = async () => {
     setIsRefreshing(true);
@@ -94,30 +88,17 @@ const VendorCheckinBooking: React.FC<VendorCheckinBookingProps> = ({
                     <p className="text-sm text-muted-foreground mt-1">{email}</p>
                   </div>
                 </div>
-
-                {!userCreatedForEmail && (
-                  <Button
-                    onClick={() => setShowCreationModal(true)}
-                    className="gap-2"
-                  >
-                    <UserPlus className="h-4 w-4" />
-                    Create User
-                  </Button>
-                )}
               </div>
 
-              {/* After user is created, show magic link banner */}
-              {userCreatedForEmail && (
-                <div className="border-t border-destructive/20 pt-4">
-                  <MagicLinkResend
-                    email={userCreatedForEmail}
-                    autoSend={true}
-                    shouldCreateUser={false}
-                    cooldownSeconds={60}
-                    successMessage={`A magic link has been sent to ${userCreatedForEmail}. Kindly inform the vendor to verify by signing in for the first time.`}
-                  />
-                </div>
-              )}
+              {/* Magic link with shouldCreateUser=true to create user on first send */}
+              <div className="border-t border-destructive/20 pt-4">
+                <MagicLinkResend
+                  email={email}
+                  shouldCreateUser={true}
+                  cooldownSeconds={60}
+                  successMessage={`A magic link has been sent to ${email}. Kindly inform the vendor to verify by signing in for the first time.`}
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -410,18 +391,6 @@ const VendorCheckinBooking: React.FC<VendorCheckinBookingProps> = ({
         </Card>
       )}
 
-      {/* Modal */}
-      {showCreationModal && (
-        <FCAVendorCreationModal
-          open={showCreationModal}
-          onOpenChange={setShowCreationModal}
-          onSuccess={() => {
-            setUserCreatedForEmail(email);
-            onSuccessVendorCreation();
-          }}
-          user={profile || { email }}
-        />
-      )}
     </>
   );
 };

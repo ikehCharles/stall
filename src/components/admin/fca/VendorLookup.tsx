@@ -130,7 +130,6 @@ export const VendorLookup = ({
           vendorLookup={vendorLookup}
           email={email}
           onViewBookings={onViewBookings}
-          onSuccessVendorCreation={handleSearch}
         />
       </div>
     </>
