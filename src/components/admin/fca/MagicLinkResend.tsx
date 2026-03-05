@@ -13,6 +13,10 @@ interface MagicLinkResendProps {
   cooldownSeconds?: number;
   /** Callback after a successful send */
   onSent?: () => void;
+  /** If true, creates the user if they don't exist (used for FCA new vendor flow) */
+  shouldCreateUser?: boolean;
+  /** Custom success message shown after the link is sent */
+  successMessage?: string;
 }
 
 export const MagicLinkResend = ({
@@ -20,6 +24,8 @@ export const MagicLinkResend = ({
   autoSend = false,
   cooldownSeconds = 60,
   onSent,
+  shouldCreateUser = false,
+  successMessage,
 }: MagicLinkResendProps) => {
   const [isSending, setIsSending] = useState(false);
   const [hasSent, setHasSent] = useState(false);
@@ -34,7 +40,7 @@ export const MagicLinkResend = ({
         email,
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
-          shouldCreateUser: false, // user already exists via invite-user
+          shouldCreateUser,
         },
       });
 
@@ -89,8 +95,9 @@ export const MagicLinkResend = ({
         <Alert className="border-green-200 bg-green-50">
           <CheckCircle2 className="h-4 w-4 text-green-600" />
           <AlertDescription className="text-sm text-green-800">
-            Magic link sent to <span className="font-semibold">{email}</span>.
-            The vendor should check their inbox to verify their account.
+            {successMessage || (
+              <>Magic link sent to <span className="font-semibold">{email}</span>. The vendor should check their inbox to verify their account.</>
+            )}
           </AlertDescription>
         </Alert>
       )}

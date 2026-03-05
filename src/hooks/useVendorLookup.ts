@@ -23,6 +23,7 @@ export interface Profile {
   company_name: string | null;
   phone_number: string;
   kyc_contact_email: string;
+  last_login_at: string | null;
 }
 
 interface Booking {

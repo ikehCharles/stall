@@ -8,11 +8,14 @@ import {
   UserPlus,
   Calendar,
   ArrowUpRight,
+  ShieldAlert,
+  RefreshCw,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FCAVendorCreationModal } from "./FCAVendorCreationModal";
+import { MagicLinkResend } from "./MagicLinkResend";
 import { useState } from "react";
 import { UseMutationResult } from "@tanstack/react-query";
 import { Profile, UserBookingsResponse } from "@/hooks/useVendorLookup";
@@ -41,10 +44,14 @@ const VendorCheckinBooking: React.FC<VendorCheckinBookingProps> = ({
   onViewBookings,
   onSuccessVendorCreation,
 }) => {
-  const { error, data, isError, isSuccess } = vendorLookup;
+  const { error, data, isError, isSuccess, mutate, isPending: isRefreshing } = vendorLookup;
   const profile = data?.profile;
   const hasBookings = data?.bookings?.length > 0;
   const [showCreationModal, setShowCreationModal] = useState(false);
+
+  const handleRefreshLookup = () => {
+    mutate({ email, marketId: market.id });
+  };
 
   // Helper: KYC Badge
   const KycBadge = () => {
@@ -63,11 +70,11 @@ const VendorCheckinBooking: React.FC<VendorCheckinBookingProps> = ({
 
   return (
     <>
-      {/* Case 1: No user found → Create user */}
+      {/* Case 1: No user found → Send magic link to create & invite */}
       {isError && error?.code === "P4040" && (
         <Card className="border-destructive/70 bg-destructive/5">
           <CardContent className="pt-8 pb-10">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-5">
               <div className="flex items-center gap-3">
                 <div className="rounded-full bg-destructive/10 p-3">
                   <AlertCircle className="h-6 w-6 text-destructive" />
@@ -80,13 +87,12 @@ const VendorCheckinBooking: React.FC<VendorCheckinBookingProps> = ({
                 </div>
               </div>
 
-              <Button
-                onClick={() => setShowCreationModal(true)}
-                className="gap-2"
-              >
-                <UserPlus className="h-4 w-4" />
-                Create User
-              </Button>
+              <MagicLinkResend
+                email={email}
+                shouldCreateUser={true}
+                cooldownSeconds={60}
+                successMessage={`A magic link has been sent to ${email}. Kindly inform the vendor to verify by signing in for the first time.`}
+              />
             </div>
           </CardContent>
         </Card>
@@ -96,6 +102,36 @@ const VendorCheckinBooking: React.FC<VendorCheckinBookingProps> = ({
       {isSuccess && profile && !hasBookings && (
         <Card className="border-2 border-orange-300 bg-orange-50/70 shadow-sm">
           <CardContent className="p-4 sm:p-6">
+            {/* Pending Verification Banner */}
+            {!profile.last_login_at && (
+              <div className="mb-5 p-4 rounded-lg border border-amber-300 bg-amber-50">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <ShieldAlert className="h-4 w-4 text-amber-700" />
+                    <p className="text-sm font-semibold text-amber-900">
+                      Pending Verification — Vendor has not signed in yet
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleRefreshLookup}
+                    disabled={isRefreshing}
+                    className="gap-1.5 text-amber-800 hover:text-amber-900 hover:bg-amber-100"
+                  >
+                    <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    {isRefreshing ? 'Checking…' : 'Refresh'}
+                  </Button>
+                </div>
+                <MagicLinkResend
+                  email={profile.email}
+                  shouldCreateUser={false}
+                  cooldownSeconds={60}
+                  successMessage={`A magic link has been sent to ${profile.email}. Kindly inform the vendor to verify by signing in for the first time.`}
+                />
+              </div>
+            )}
+
             {/* Header – Stacked on mobile */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
               <div className="flex items-center gap-3">
@@ -228,6 +264,36 @@ const VendorCheckinBooking: React.FC<VendorCheckinBookingProps> = ({
       {isSuccess && profile && hasBookings && (
         <Card className="border-2 border-green-700 bg-green-50/90 shadow-md">
           <CardContent className="p-4 sm:p-6">
+            {/* Pending Verification Banner */}
+            {!profile.last_login_at && (
+              <div className="mb-5 p-4 rounded-lg border border-amber-300 bg-amber-50">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <ShieldAlert className="h-4 w-4 text-amber-700" />
+                    <p className="text-sm font-semibold text-amber-900">
+                      Pending Verification — Vendor has not signed in yet
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleRefreshLookup}
+                    disabled={isRefreshing}
+                    className="gap-1.5 text-amber-800 hover:text-amber-900 hover:bg-amber-100"
+                  >
+                    <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    {isRefreshing ? 'Checking…' : 'Refresh'}
+                  </Button>
+                </div>
+                <MagicLinkResend
+                  email={profile.email}
+                  shouldCreateUser={false}
+                  cooldownSeconds={60}
+                  successMessage={`A magic link has been sent to ${profile.email}. Kindly inform the vendor to verify by signing in for the first time.`}
+                />
+              </div>
+            )}
+
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
               <div className="flex items-center gap-3">
