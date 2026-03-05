@@ -174,9 +174,13 @@ const VendorLayout = () => {
   // Subscribe to real-time notification updates
   useNotificationRealtime();
 
+  const kycApproved = userProfile?.kyc_status === "APPROVED";
+
   const navigation = [
-    { name: 'Dashboard', href: '/vendor', icon: Calendar },
-    { name: 'My Bookings', href: '/vendor/bookings', icon: FileText },
+    ...(kycApproved ? [
+      { name: 'Dashboard', href: '/vendor', icon: Calendar },
+      { name: 'My Bookings', href: '/vendor/bookings', icon: FileText },
+    ] : []),
     { name: 'Profile', href: '/vendor/profile', icon: User },
   ];
 

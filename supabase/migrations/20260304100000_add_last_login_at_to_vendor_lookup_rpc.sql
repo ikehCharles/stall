@@ -52,6 +52,19 @@ BEGIN
   END IF;
 
   -------------------------------------------------------------------
+  -- 2b. Ensure the user has a vendor role
+  -------------------------------------------------------------------
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.user_roles ur
+    JOIN public.roles r ON r.id = ur.role_id
+    WHERE ur.user_id = v_user_id
+      AND r.key = 'vendor'
+  ) THEN
+    RAISE EXCEPTION 'User % is not a vendor', p_email USING ERRCODE = 'P4031';
+  END IF;
+
+  -------------------------------------------------------------------
   -- 3. Fetch all bookings for this market
   -------------------------------------------------------------------
   SELECT COALESCE(jsonb_agg(

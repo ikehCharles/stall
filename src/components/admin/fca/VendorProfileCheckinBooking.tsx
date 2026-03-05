@@ -71,33 +71,56 @@ const VendorCheckinBooking: React.FC<VendorCheckinBookingProps> = ({
 
   return (
     <>
+
+      {/* Case 0: User found but not a vendor */}
+      {isError && error?.code === "P4031" && (
+        <Card className="border-amber-400 bg-amber-50">
+          <CardContent className="pt-8 pb-10">
+            <div className="flex items-center gap-3">
+              <div className="rounded-full bg-amber-100 p-3">
+                <ShieldAlert className="h-6 w-6 text-amber-700" />
+              </div>
+              <div>
+                <p className="font-medium text-amber-900">
+                  This user is not a vendor
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  <span className="font-medium">{email}</span> exists but does not have the vendor role.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Case 1: No user found → Create user & send magic link */}
       {isError && error?.code === "P4040" && (
         <Card className="border-destructive/70 bg-destructive/5">
           <CardContent className="pt-8 pb-10">
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-full bg-destructive/10 p-3">
-                    <AlertCircle className="h-6 w-6 text-destructive" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-destructive">
-                      No user found for email
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-1">{email}</p>
-                  </div>
-                </div>
+          <div className="flex items-center gap-3">
+            <div className="rounded-full bg-destructive/10 p-3">
+              <AlertCircle className="h-6 w-6 text-destructive" />
+            </div>
+            <div>
+              <p className="font-medium text-destructive">
+                No user found for email
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">{email}</p>
+            </div>
+          </div>
+        
               </div>
 
               {/* Magic link with shouldCreateUser=true to create user on first send */}
               <div className="border-t border-destructive/20 pt-4">
-                <MagicLinkResend
-                  email={email}
-                  shouldCreateUser={true}
-                  cooldownSeconds={60}
-                  successMessage={`A magic link has been sent to ${email}. Kindly inform the vendor to verify by signing in for the first time.`}
-                />
+          <MagicLinkResend
+            email={email}
+            shouldCreateUser={true}
+            cooldownSeconds={60}
+            successMessage={`A magic link has been sent to ${email}. Kindly inform the vendor to verify by signing in for the first time.`}
+          />
               </div>
             </div>
           </CardContent>
@@ -150,18 +173,9 @@ const VendorCheckinBooking: React.FC<VendorCheckinBookingProps> = ({
             <div className="border-t border-amber-200 pt-4">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-sm font-semibold text-amber-900">
-                  Pending Verification \u2014 Vendor has not signed in yet
+                  Pending Verification! Vendor has not signed in yet
                 </p>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleRefreshLookup}
-                  disabled={isRefreshing}
-                  className="gap-1.5 text-amber-800 hover:text-amber-900 hover:bg-amber-100"
-                >
-                  <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-                  {isRefreshing ? 'Checking\u2026' : 'Refresh'}
-                </Button>
+                
               </div>
               <MagicLinkResend
                 email={profile.email}
