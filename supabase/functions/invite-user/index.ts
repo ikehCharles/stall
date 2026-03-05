@@ -139,6 +139,15 @@ Deno.serve(async (req) => {
     // FCA vendor onboarding: notifications + welcome email
     // -----------------------------------------------------------------------
     if (hasVendorsInvitePermission && !roleId && data?.user) {
+      // Fetch configured app name from settings
+      const { data: appNameRow } = await supabaseAdmin
+        .from('settings')
+        .select('value')
+        .eq('key', 'app_name')
+        .eq('source', 'platform')
+        .maybeSingle();
+      const appName = appNameRow?.value || 'Stall Inc';
+
       // Get the FCA's profile for display in notifications
       const { data: fcaProfile } = await supabaseAdmin
         .from("profiles")
@@ -167,6 +176,7 @@ Deno.serve(async (req) => {
           vendor_email: email,
           fca_name: fcaName,
           reset_url: resetUrl,
+          app_name: appName,
         };
 
         const interpolate = (s: string) =>
@@ -175,8 +185,8 @@ Deno.serve(async (req) => {
         const welcomeTpl = tplMap.get("vendor_welcome");
         const wrapperTpl = tplMap.get("wrapper");
 
-        const welcomeSubject = welcomeTpl ? interpolate(welcomeTpl.subject) : "Welcome to StallBook — Set Up Your Password";
-        let welcomeBody = welcomeTpl ? interpolate(welcomeTpl.html_body) : `<h2>Welcome to StallBook!</h2><p>Hi ${fullName}, please set your password.</p>`;
+        const welcomeSubject = welcomeTpl ? interpolate(welcomeTpl.subject) : `Welcome to ${appName} — Set Up Your Password`;
+        let welcomeBody = welcomeTpl ? interpolate(welcomeTpl.html_body) : `<h2>Welcome to ${appName}!</h2><p>Hi ${fullName}, please set your password.</p>`;
 
         if (wrapperTpl) {
           welcomeBody = wrapperTpl.html_body.replace("{{content}}", welcomeBody);
@@ -189,7 +199,7 @@ Deno.serve(async (req) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            from: "StallBook <contact@contact.geekgrin.com>",
+            from: `${appName} <contact@contact.geekgrin.com>`,
             to: [email],
             subject: welcomeSubject,
             html: welcomeBody,

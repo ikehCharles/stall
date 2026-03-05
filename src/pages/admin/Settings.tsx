@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -8,6 +9,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
 import { useCreateCred, usePlatformSettings, useSaveSingleSetting, PlatformSettings } from "@/hooks/useSettings";
 import { useConfirm } from "@/components/ui/confirmDialog";
+import { supabase } from "@/integrations/supabase/client";
+import { Upload, X as XIcon, Loader2 } from "lucide-react";
 
 const Settings = () => {
   const { data: settingsData, isLoading, error } = usePlatformSettings();
@@ -18,6 +21,9 @@ const Settings = () => {
 
   // Local state for form fields (initialized from fetched data)
   const [settings, setSettings] = useState<PlatformSettings>({
+    appName: "Stall Inc",
+    appLogoUrl: "",
+    appSlogan: "",
     depositPercentage: 50,
     platformFee: 5,
     autoConfirmBookings: true,
@@ -37,6 +43,10 @@ const Settings = () => {
     vatMode: "exclusive",
   });
 
+  // Logo upload state
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+
   // Track original settings to detect changes
   const originalSettingsRef = useRef<PlatformSettings>({ ...settings });
 
@@ -47,6 +57,97 @@ const Settings = () => {
       originalSettingsRef.current = { ...settingsData };
     }
   }, [settingsData]);
+
+  // ── Logo upload handlers ──────────────────────────────────────────
+  const handleLogoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Reset input so re-selecting the same file triggers onChange
+    e.target.value = "";
+
+    // Validate type
+    const allowedTypes = ["image/png", "image/jpeg", "image/svg+xml", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      toast({ title: "Invalid file type", description: "Please upload a PNG, JPG, SVG, or WebP image.", variant: "destructive" });
+      return;
+    }
+
+    // Validate size (2 MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Logo must be under 2 MB.", variant: "destructive" });
+      return;
+    }
+
+    setIsUploadingLogo(true);
+    try {
+      const ext = file.name.split(".").pop() || "png";
+      const filePath = `logo_${Date.now()}.${ext}`;
+
+      // Remove old file if it exists in the same bucket
+      if (settings.appLogoUrl) {
+        const oldPath = settings.appLogoUrl.split("/app-branding/")[1];
+        if (oldPath) {
+          await supabase.storage.from("app-branding").remove([oldPath]);
+        }
+      }
+
+      const { error: uploadError } = await supabase.storage
+        .from("app-branding")
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from("app-branding")
+        .getPublicUrl(filePath);
+
+      const publicUrl = urlData.publicUrl;
+
+      // Save to settings
+      await saveSingleSetting.mutateAsync({ key: "appLogoUrl", value: publicUrl });
+      setSettings((prev) => ({ ...prev, appLogoUrl: publicUrl }));
+      originalSettingsRef.current = { ...originalSettingsRef.current, appLogoUrl: publicUrl };
+
+      toast({ title: "Logo uploaded", description: "App logo has been updated." });
+    } catch (err) {
+      toast({ title: "Upload failed", description: err instanceof Error ? err.message : "Could not upload logo.", variant: "destructive" });
+    } finally {
+      setIsUploadingLogo(false);
+    }
+  };
+
+  const handleRemoveLogo = async () => {
+    const confirmed = await confirm({
+      title: "Remove Logo",
+      description: "Are you sure you want to remove the app logo? The letter logo will be used instead.",
+      confirmText: "Remove",
+      cancelText: "Cancel",
+    });
+    if (!confirmed) return;
+
+    setIsUploadingLogo(true);
+    try {
+      // Delete from storage
+      if (settings.appLogoUrl) {
+        const oldPath = settings.appLogoUrl.split("/app-branding/")[1];
+        if (oldPath) {
+          await supabase.storage.from("app-branding").remove([oldPath]);
+        }
+      }
+
+      // Clear setting
+      await saveSingleSetting.mutateAsync({ key: "appLogoUrl", value: "" });
+      setSettings((prev) => ({ ...prev, appLogoUrl: "" }));
+      originalSettingsRef.current = { ...originalSettingsRef.current, appLogoUrl: "" };
+
+      toast({ title: "Logo removed", description: "Reverted to letter logo." });
+    } catch (err) {
+      toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to remove logo.", variant: "destructive" });
+    } finally {
+      setIsUploadingLogo(false);
+    }
+  };
 
   const handleChange = (field: keyof PlatformSettings, value: string | number | boolean | "") => {
     // Allow empty strings for number fields (will be validated on blur)
@@ -90,6 +191,9 @@ const Settings = () => {
 
     // Get field label for confirmation message
     const fieldLabels: Record<keyof PlatformSettings, string> = {
+      appName: "App Name",
+      appLogoUrl: "App Logo",
+      appSlogan: "App Slogan",
       depositPercentage: "Required Deposit",
       platformFee: "Platform Fee",
       autoConfirmBookings: "Auto-confirm Bookings",
@@ -164,6 +268,9 @@ const Settings = () => {
 
     // Get field label for confirmation message
     const fieldLabels: Record<keyof PlatformSettings, string> = {
+      appName: "App Name",
+      appLogoUrl: "App Logo",
+      appSlogan: "App Slogan",
       depositPercentage: "Required Deposit",
       platformFee: "Platform Fee",
       autoConfirmBookings: "Auto-confirm Bookings",
@@ -313,16 +420,16 @@ const Settings = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Payment Settings */}
-        <Card className="shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <span className="mr-2">💰</span>
-              Payment Settings
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
+      {/* Payment Settings - hidden for now
+      <Card className="shadow-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <span className="mr-2">💰</span>
+            Payment Settings
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             <div className="space-y-2">
               <Label htmlFor="deposit">Required Deposit (%)</Label>
               <Input
@@ -375,6 +482,111 @@ const Settings = () => {
               />
               <p className="text-sm text-gray-600">
                 Minimum hours before event for cancellations
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      */}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Branding */}
+        <Card className="shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <span className="mr-2">🏷️</span>
+              Branding
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Logo */}
+            <div className="space-y-2">
+              <Label className="text-sm text-center block">App Logo</Label>
+              <div className="flex flex-col items-center gap-2">
+                <div className="relative group w-20 h-20">
+                  {settings.appLogoUrl ? (
+                    <img
+                      src={settings.appLogoUrl}
+                      alt="App logo"
+                      className="h-20 w-20 rounded-xl object-cover shadow-lg ring-1 ring-slate-200"
+                    />
+                  ) : (
+                    <div className="h-20 w-20 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                      <span className="text-3xl font-bold text-white">
+                        {(settings.appName || "S").charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                  )}
+
+                  {settings.appLogoUrl && (
+                    <button
+                      type="button"
+                      onClick={handleRemoveLogo}
+                      disabled={isUploadingLogo}
+                      className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Remove logo"
+                    >
+                      <XIcon className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+
+                  {/* Upload overlay */}
+                  <input
+                    ref={logoInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                    className="hidden"
+                    onChange={handleLogoFileChange}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => logoInputRef.current?.click()}
+                    disabled={isUploadingLogo}
+                    className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/0 group-hover:bg-black/40 transition-colors cursor-pointer"
+                    title="Upload logo"
+                  >
+                    {isUploadingLogo ? (
+                      <Loader2 className="h-5 w-5 text-white animate-spin opacity-100" />
+                    ) : (
+                      <Upload className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                    )}
+                  </button>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  PNG, JPG, SVG or WebP. Max 2 MB.
+                </p>
+              </div>
+            </div>
+
+            {/* App Name */}
+            <div className="space-y-2">
+              <Label htmlFor="appName">App Name</Label>
+              <Input
+                id="appName"
+                type="text"
+                value={settings.appName}
+                onChange={(e) => handleChange("appName", e.target.value)}
+                onBlur={() => handleBlur("appName")}
+                placeholder="Stall Inc"
+              />
+              <p className="text-sm text-gray-600">
+                Displayed in the sidebar, login page, invoices, and emails
+              </p>
+            </div>
+
+            {/* App Slogan */}
+            <div className="space-y-2">
+              <Label htmlFor="appSlogan">App Slogan</Label>
+              <Input
+                id="appSlogan"
+                type="text"
+                value={settings.appSlogan}
+                onChange={(e) => handleChange("appSlogan", e.target.value)}
+                onBlur={() => handleBlur("appSlogan")}
+                placeholder="Your stall booking platform"
+              />
+              <p className="text-sm text-gray-600">
+                Shown on the login page below the app name
               </p>
             </div>
           </CardContent>

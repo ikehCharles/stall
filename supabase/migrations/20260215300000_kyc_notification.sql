@@ -22,7 +22,7 @@ VALUES
   <tr><td style="padding: 8px 12px; border: 1px solid #e5e7eb; background: #f9fafb; font-weight: 600; color: #374151; font-size: 14px;">Reviewed On</td><td style="padding: 8px 12px; border: 1px solid #e5e7eb; color: #1f2937; font-size: 14px;">{{reviewed_at}}</td></tr>
 </table>
 <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px; margin: 16px 0;">
-  <p style="color: #166534; margin: 0; font-size: 14px;">You can now proceed to book stalls on StallBook. Log in to your account to get started!</p>
+  <p style="color: #166534; margin: 0; font-size: 14px;">You can now proceed to book stalls on {{app_name}}. Log in to your account to get started!</p>
 </div>
 <p style="color: #6b7280; font-size: 14px;">If you have any questions, please contact our support team.</p>',
 '["vendor_name","business_name","business_address","contact_email","reviewed_at","review_notes","reviewer_name","reviewer_email"]', true),

@@ -26,6 +26,15 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    // Fetch configured app name from settings
+    const { data: appNameRow } = await supabaseClient
+      .from('settings')
+      .select('value')
+      .eq('key', 'app_name')
+      .eq('source', 'platform')
+      .maybeSingle();
+    const appName = appNameRow?.value || 'Stall Inc';
+
     // Generate 6-digit OTP
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
     
@@ -72,6 +81,7 @@ serve(async (req) => {
     const vars: Record<string, string> = {
       full_name: fullName,
       otp_code: otpCode,
+      app_name: appName,
     };
 
     const interpolate = (s: string) =>
@@ -80,10 +90,10 @@ serve(async (req) => {
     const otpTpl = tplMap.get('otp_verification');
     const wrapperTpl = tplMap.get('wrapper');
 
-    const emailSubject = otpTpl ? interpolate(otpTpl.subject) : 'Verify your StallBook account';
+    const emailSubject = otpTpl ? interpolate(otpTpl.subject) : `Verify your ${appName} account`;
     let emailBody = otpTpl
       ? interpolate(otpTpl.html_body)
-      : `<h1>Welcome to StallBook!</h1><p>Hi ${fullName}, your code is <strong>${otpCode}</strong></p>`;
+      : `<h1>Welcome to ${appName}!</h1><p>Hi ${fullName}, your code is <strong>${otpCode}</strong></p>`;
 
     if (wrapperTpl) {
       emailBody = wrapperTpl.html_body.replace('{{content}}', emailBody);
@@ -97,7 +107,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'StallBook <contact@contact.geekgrin.com>',
+        from: `${appName} <contact@contact.geekgrin.com>`,
         to: [email],
         subject: emailSubject,
         html: emailBody,

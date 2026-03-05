@@ -13,6 +13,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Upload, X } from "lucide-react";
 import { KYCForm } from "@/components/kyc/KYCForm";
 import { KYCStatus } from "@/components/kyc/KYCStatus";
+import { usePlatformSettings } from "@/hooks/useSettings";
+import { APP_NAME_DEFAULT } from "@/lib/appBranding";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PERMISSIONS } from "@/lib/permissions";
 import { isValidPhoneNumber } from "libphonenumber-js";
@@ -23,6 +25,8 @@ const VendorProfile = () => {
   const { userProfile, refreshProfile } = useAuth();
   const { hasPermission } = usePermissions();
   const isAdmin = hasPermission(PERMISSIONS.USERS.MANAGE);
+  const { data: platformSettings } = usePlatformSettings();
+  const appName = platformSettings?.appName || APP_NAME_DEFAULT;
 
   // Detect if profile is incomplete (new user from magic link)
   const isProfileIncomplete =
@@ -44,7 +48,7 @@ const VendorProfile = () => {
   const [isEditing, setIsEditing] = useState(isProfileIncomplete);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [kycData, setKycData] = useState<any>(null);
+  const [kycData, setKycData] = useState(null);
   const [kycLoading, setKycLoading] = useState(true);
   const [showKYCForm, setShowKYCForm] = useState(false);
 
@@ -242,7 +246,7 @@ const VendorProfile = () => {
     <div className="space-y-8">
       {isProfileIncomplete && (
         <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-          <h2 className="text-lg font-semibold text-blue-900">Welcome to StallBook!</h2>
+          <h2 className="text-lg font-semibold text-blue-900">Welcome to {appName}!</h2>
           <p className="text-sm text-blue-700 mt-1">
             Please complete your profile information below to get started.
           </p>

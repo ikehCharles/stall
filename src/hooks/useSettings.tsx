@@ -67,6 +67,9 @@ export const useCreateCred = () => {
 
 // Settings type matching the UI state
 export type PlatformSettings = {
+  appName: string;
+  appLogoUrl: string;
+  appSlogan: string;
   depositPercentage: number;
   platformFee: number;
   autoConfirmBookings: boolean;
@@ -86,6 +89,9 @@ export type PlatformSettings = {
 
 // Default settings
 const defaultSettings: PlatformSettings = {
+  appName: "Stall Inc",
+  appLogoUrl: "",
+  appSlogan: "",
   depositPercentage: 50,
   platformFee: 5,
   autoConfirmBookings: true,
@@ -107,6 +113,9 @@ const defaultSettings: PlatformSettings = {
 
 // Map UI keys to database keys (*Active flags use is_active of their linked row; no separate key)
 const SETTING_KEYS: Record<Exclude<keyof PlatformSettings, "minBookingsActive" | "bookingExpirationActive">, string> = {
+  appName: "app_name",
+  appLogoUrl: "app_logo_url",
+  appSlogan: "app_slogan",
   depositPercentage: "deposit_percentage",
   platformFee: "platform_fee",
   autoConfirmBookings: "auto_confirm_bookings",

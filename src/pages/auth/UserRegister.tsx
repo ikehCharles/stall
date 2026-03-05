@@ -205,43 +205,6 @@ const UserRegister: React.FC<UserRegisterProps> = (props) => {
         )}
       </div>}
 
-      {!props.disabled && <div className="space-x-2 flex items-center">
-        <Checkbox
-          id="confirmEmail"
-          disabled={props.disabled}
-          checked={payload.confirmEmail}
-          onCheckedChange={(e) => setPayload({ ...payload, confirmEmail: !!e })}
-        />
-        <Label className="" htmlFor="confirmEmail">
-          Email Confirmed
-        </Label>
-      </div>}
-      {payload.confirmEmail && !props.disabled && (
-        <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
-          <div
-            className={
-              fieldErrors.password ? "border border-destructive rounded-md" : ""
-            }
-          >
-            <Input
-              id="password"
-              type="password"
-              placeholder="Create a password"
-              disabled={props.disabled}
-              value={payload.password}
-              onChange={(e) =>
-                setPayload({ ...payload, password: e.target.value })
-              }
-              required
-            />
-          </div>
-          {fieldErrors.password && (
-            <p className="text-sm text-destructive">{fieldErrors.password} </p>
-          )}
-        </div>
-      )}
-
       {error && (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>

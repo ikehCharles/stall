@@ -9,11 +9,15 @@ import { format } from "date-fns";
 import { getPaymentStatusBadge } from "@/components/shared/statuses";
 import CurrencyWrapper from "@/components/shared/currency";
 import VatBreakdown from "@/components/shared/VatBreakdown";
+import { usePlatformSettings } from "@/hooks/useSettings";
+import { APP_NAME_DEFAULT } from "@/lib/appBranding";
 
 const InvoiceView = () => {
   const { id } = useParams();
   const location = useLocation();
   const { data: booking, isLoading, error } = useBookingDetails(id || "");
+  const { data: platformSettings } = usePlatformSettings();
+  const appName = platformSettings?.appName || APP_NAME_DEFAULT;
   const isAdminView = location.pathname.includes("/admin/");
 
   const handlePrint = () => {
@@ -69,7 +73,7 @@ const InvoiceView = () => {
             <div className="flex justify-between items-start mb-8">
               <div>
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  StallBook
+                  {appName}
                 </h1>
                 <p className="text-muted-foreground mt-1">
                   Marketplace Management Platform
@@ -249,7 +253,7 @@ const InvoiceView = () => {
               <p>Thank you for your business!</p>
               <p className="text-sm mt-2">
                 For questions about this invoice, contact us at
-                support@stallbook.com
+                support@stallinc.com
               </p>
             </div>
           </CardContent>

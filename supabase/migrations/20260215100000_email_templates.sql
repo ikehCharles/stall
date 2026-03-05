@@ -59,14 +59,14 @@ INSERT INTO public.email_templates (key, name, subject, html_body, variables, is
 ('wrapper', 'Email Wrapper (Header + Footer)', 'N/A',
 '<div style="font-family: ''Segoe UI'', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
   <div style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); padding: 32px 24px; text-align: center;">
-    <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700;">StallBook</h1>
+    <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700;">{{app_name}}</h1>
   </div>
   <div style="padding: 32px 24px;">
     {{content}}
   </div>
   <div style="border-top: 1px solid #e5e7eb; padding: 20px 24px; text-align: center;">
     <p style="color: #9ca3af; font-size: 12px; margin: 0;">
-      This is an automated notification from StallBook. Please do not reply to this email.
+      This is an automated notification from {{app_name}}. Please do not reply to this email.
     </p>
   </div>
 </div>',
@@ -139,7 +139,7 @@ INSERT INTO public.email_templates (key, name, subject, html_body, variables, is
   <tr><td style="padding: 8px 12px; border: 1px solid #e5e7eb; background: #f9fafb; font-weight: 600; color: #374151; width: 40%; font-size: 14px;">Dates</td><td style="padding: 8px 12px; border: 1px solid #e5e7eb; color: #1f2937; font-size: 14px;">{{selected_dates}}</td></tr>
 </table>
 <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 16px; margin: 16px 0;">
-  <p style="color: #065f46; margin: 0; font-size: 14px;"><strong>Your QR code is now available.</strong> Log in to your StallBook account to view your booking details and QR code for check-in.</p>
+  <p style="color: #065f46; margin: 0; font-size: 14px;"><strong>Your QR code is now available.</strong> Log in to your {{app_name}} account to view your booking details and QR code for check-in.</p>
 </div>',
 '["invoice_number","market_name","stall_label","selected_dates"]', true),
 
@@ -174,30 +174,30 @@ INSERT INTO public.email_templates (key, name, subject, html_body, variables, is
 '["market_name","stall_label","checked_in_date","invoice_number","selected_dates"]', true),
 
 -- ---- vendor_welcome ----
-('vendor_welcome', 'Vendor Welcome (FCA Onboarding)', 'Welcome to StallBook — Set Up Your Password',
-'<h2 style="color: #1f2937; margin: 0 0 8px;">Welcome to StallBook!</h2>
+('vendor_welcome', 'Vendor Welcome (FCA Onboarding)', 'Welcome to {{app_name}} — Set Up Your Password',
+'<h2 style="color: #1f2937; margin: 0 0 8px;">Welcome to {{app_name}}!</h2>
 <p style="color: #6b7280;">Hi {{vendor_name}},</p>
-<p style="color: #6b7280;">An account has been created for you by <strong>{{fca_name}}</strong> on StallBook, the market stall booking platform.</p>
+<p style="color: #6b7280;">An account has been created for you by <strong>{{fca_name}}</strong> on {{app_name}}, the market stall booking platform.</p>
 <p style="color: #6b7280;">To get started, you''ll need to set a password for your account.</p>
 <div style="text-align: center; margin: 28px 0;">
   <a href="{{reset_url}}" style="display: inline-block; background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: #ffffff; text-decoration: none; padding: 12px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">Set Your Password</a>
 </div>
 <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 16px; margin: 20px 0;">
-  <p style="color: #1e40af; margin: 0; font-size: 14px;"><strong>Your login email:</strong> {{vendor_email}}<br/>Click the button above or go to the StallBook login page and use "Forgot Password" to set your password.</p>
+  <p style="color: #1e40af; margin: 0; font-size: 14px;"><strong>Your login email:</strong> {{vendor_email}}<br/>Click the button above or go to the {{app_name}} login page and use "Forgot Password" to set your password.</p>
 </div>
 <p style="color: #6b7280; font-size: 14px;">If you didn''t expect this email, please ignore it or contact support.</p>',
 '["vendor_name","vendor_email","fca_name","reset_url"]', true),
 
 -- ---- otp_verification ----
-('otp_verification', 'OTP Verification', 'Verify your StallBook account',
-'<h2 style="color: #1f2937; margin: 0 0 8px; text-align: center;">Welcome to StallBook!</h2>
+('otp_verification', 'OTP Verification', 'Verify your {{app_name}} account',
+'<h2 style="color: #1f2937; margin: 0 0 8px; text-align: center;">Welcome to {{app_name}}!</h2>
 <p style="color: #6b7280;">Hi {{full_name}},</p>
-<p style="color: #6b7280;">Thank you for registering with StallBook. Please use the following verification code to complete your registration:</p>
+<p style="color: #6b7280;">Thank you for registering with {{app_name}}. Please use the following verification code to complete your registration:</p>
 <div style="background-color: #f5f5f5; padding: 20px; text-align: center; margin: 20px 0; border-radius: 8px;">
   <h2 style="color: #2563eb; font-size: 32px; margin: 0; letter-spacing: 4px;">{{otp_code}}</h2>
 </div>
 <p style="color: #6b7280;"><strong>This code will expire in 10 minutes.</strong></p>
-<p style="color: #6b7280;">If you didn''t create an account with StallBook, please ignore this email.</p>',
+<p style="color: #6b7280;">If you didn''t create an account with {{app_name}}, please ignore this email.</p>',
 '["full_name","otp_code"]', true)
 
 ON CONFLICT (key) DO NOTHING;

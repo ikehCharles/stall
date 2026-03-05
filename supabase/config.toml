@@ -1,5 +1,9 @@
 project_id = "mjqlglcrxgwxwhksxvfc"
 
+[auth]
+site_url = "http://localhost:8080"
+additional_redirect_urls = ["http://localhost:8080/auth/callback"]
+
 [functions.send-otp-email]
 verify_jwt = true
 

@@ -245,9 +245,11 @@ const VendorCheckinBooking: React.FC<VendorCheckinBookingProps> = ({
                         Select any available stall below to book
                       </p>
                       <p className="text-xs sm:text-sm text-orange-700 mt-1">
-                        {profile.kyc_status === "APPROVED" 
+                        {!profile.kyc_status? "KYC not started" :profile.kyc_status === "APPROVED" 
                           ? "Booking is allowed • KYC approved"
-                          : "Booking is allowed • KYC under review"}
+                          : "Booking is allowed • KYC under review"
+                          
+                          }
                       </p>
                     </div>
                   )}

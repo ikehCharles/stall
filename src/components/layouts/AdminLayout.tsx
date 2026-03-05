@@ -7,11 +7,16 @@ import { useState } from "react";
 import { Menu, X, BarChart3, Map, FileText, Settings, ShieldCheck, Square, Briefcase, Users, Shield, ClipboardList } from "lucide-react";
 import { PermissionGate } from "@/components/PermissionGate";
 import { PERMISSIONS } from "@/lib/permissions";
+import { usePlatformSettings } from "@/hooks/useSettings";
+import { APP_NAME_DEFAULT, appInitial } from "@/lib/appBranding";
 
 const AdminLayout = () => {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { userProfile, signOut } = useAuth();
+  const { data: platformSettings } = usePlatformSettings();
+  const appName = platformSettings?.appName || APP_NAME_DEFAULT;
+  const appLogoUrl = platformSettings?.appLogoUrl || "";
   const isFCAMode = location.pathname.startsWith('/admin/fca');
 
 
@@ -98,11 +103,14 @@ const AdminLayout = () => {
           )}>
             <div className="flex h-full flex-col">
               <div className="flex h-16 items-center justify-between px-4 md:justify-center">
-                <div className="flex items-center">
-                  <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                    StallBook
-                  </h1>
-                  <span className="ml-2 text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">Admin</span>
+                <div className="flex justify-between w-full items-center gap-2.5">
+                  {appLogoUrl ? (
+                    <img src={appLogoUrl} alt={appName} className="h-10 w-10 rounded-xl object-cover shadow-md" />
+                  ) : (
+                    <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center shadow-md shadow-blue-500/20">
+                      <span className="text-lg font-bold text-white">{appInitial(appName)}</span>
+                    </div>
+                  )}
                 </div>
                 <Button
                   variant="ghost"
@@ -170,7 +178,7 @@ const AdminLayout = () => {
       <div className="flex flex-1 flex-col">
         {/* Only show mobile header if NOT in FCA mode */}
         {!isFCAMode && (
-          <div className="flex h-16 items-center border-b border-gray-200 bg-white px-4 md:hidden">
+          <div className="flex justify-between h-16 items-center border-b border-gray-200 bg-white px-4 md:hidden">
             <Button
               variant="ghost"
               size="sm"
@@ -178,7 +186,15 @@ const AdminLayout = () => {
             >
               <Menu className="h-6 w-6" />
             </Button>
-            <h1 className="ml-4 text-xl font-semibold text-gray-900">StallBook Admin</h1>
+            <div className="ml-4 flex justify-between items-center gap-2">
+              {appLogoUrl ? (
+                <img src={appLogoUrl} alt={appName} className="h-8 w-8 rounded-lg object-cover shadow-sm" />
+              ) : (
+                <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center shadow-sm">
+                  <span className="text-sm font-bold text-white">{appInitial(appName)}</span>
+                </div>
+              )}
+            </div>
           </div>
         )}
 

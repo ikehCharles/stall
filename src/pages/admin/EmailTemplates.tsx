@@ -126,7 +126,7 @@ interface WrapperConfig {
 }
 
 function parseWrapper(html: string): WrapperConfig {
-  const headerText = html.match(/<h1[^>]*>(.*?)<\/h1>/)?.[1] || "StallBook";
+  const headerText = html.match(/<h1[^>]*>(.*?)<\/h1>/)?.[1] || "Stall Inc";
 
   const headerAlignMatch = html.match(/<div[^>]*?(?:text-align:\s*(left|center|right))[^>]*>[\s\S]*?<h1/);
   const headerAlign = (headerAlignMatch?.[1] as Align) || "center";
@@ -153,7 +153,7 @@ function parseWrapper(html: string): WrapperConfig {
   const footerBlockMatch = html.match(/<div[^>]*border-top[^>]*>([\s\S]*?)<\/div>\s*<\/div>\s*$/);
   const footerBlock = footerBlockMatch?.[1] || "";
   const footerPMatch = footerBlock.match(/<p[^>]*>([\s\S]*?)<\/p>/);
-  const footerText = footerPMatch?.[1]?.trim() || "This is an automated notification from StallBook. Please do not reply to this email.";
+  const footerText = footerPMatch?.[1]?.trim() || "This is an automated notification from Stall Inc. Please do not reply to this email.";
 
   const footerAlignMatch = footerBlock.match(/text-align:\s*(left|center|right)/) || html.match(/<div[^>]*border-top[^>]*text-align:\s*(left|center|right)/);
   const footerAlign = (footerAlignMatch?.[1] as Align) || "center";
@@ -311,7 +311,7 @@ function WrapperEditor({
 
                 <div className="space-y-1.5">
                   <Label className="text-sm">Header Text</Label>
-                  <Input value={cfg.headerText} onChange={(e) => set("headerText", e.target.value)} placeholder="e.g. StallBook" />
+                  <Input value={cfg.headerText} onChange={(e) => set("headerText", e.target.value)} placeholder="e.g. Stall Inc" />
                 </div>
 
                 <div className="space-y-1.5">

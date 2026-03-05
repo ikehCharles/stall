@@ -78,7 +78,8 @@ async function loadTemplates(
  */
 function buildEmail(
   templates: Map<string, EmailTemplate>,
-  notification: NotificationRecord
+  notification: NotificationRecord,
+  appName: string
 ): { subject: string; html: string } {
   const meta = notification.metadata;
   const templateKey = notification.type;
@@ -91,6 +92,7 @@ function buildEmail(
     title: notification.title,
     body: notification.body,
     recipient_email: notification.recipient_email,
+    app_name: appName,
   };
 
   // If selected_dates is an array, join for display
@@ -119,12 +121,12 @@ function buildEmail(
     html = `
       <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
         <div style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); padding: 32px 24px; text-align: center;">
-          <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700;">StallBook</h1>
+          <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700;">${appName}</h1>
         </div>
         <div style="padding: 32px 24px;">${bodyHtml}</div>
         <div style="border-top: 1px solid #e5e7eb; padding: 20px 24px; text-align: center;">
           <p style="color: #9ca3af; font-size: 12px; margin: 0;">
-            This is an automated notification from StallBook. Please do not reply to this email.
+            This is an automated notification from ${appName}. Please do not reply to this email.
           </p>
         </div>
       </div>`;
@@ -147,6 +149,15 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
+
+    // Fetch configured app name from settings
+    const { data: appNameRow } = await supabase
+      .from('settings')
+      .select('value')
+      .eq('key', 'app_name')
+      .eq('source', 'platform')
+      .maybeSingle();
+    const appName = appNameRow?.value || 'Stall Inc';
 
     const body = await req.json();
 
@@ -210,7 +221,7 @@ serve(async (req) => {
       }
 
       try {
-        const { subject, html } = buildEmail(templates, notification);
+        const { subject, html } = buildEmail(templates, notification, appName);
 
         const emailResponse = await fetch("https://api.resend.com/emails", {
           method: "POST",
@@ -219,7 +230,7 @@ serve(async (req) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            from: "StallBook <contact@contact.geekgrin.com>",
+            from: `${appName} <contact@contact.geekgrin.com>`,
             to: [notification.recipient_email],
             subject,
             html,
