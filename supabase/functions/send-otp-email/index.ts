@@ -26,14 +26,17 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Fetch configured app name from settings
-    const { data: appNameRow } = await supabaseClient
+    // Fetch configured branding from settings
+    const { data: brandingRows } = await supabaseClient
       .from('settings')
-      .select('value')
-      .eq('key', 'app_name')
+      .select('key, value')
       .eq('source', 'platform')
-      .maybeSingle();
-    const appName = appNameRow?.value || 'Stall Inc';
+      .in('key', ['app_name', 'app_logo_url']);
+    const brandingMap = Object.fromEntries(
+      (brandingRows ?? []).map((r: { key: string; value: string }) => [r.key, r.value])
+    );
+    const appName = brandingMap['app_name'] || 'Stall Inc';
+    const appLogoUrl = brandingMap['app_logo_url'] || '';
 
     // Generate 6-digit OTP
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -82,6 +85,7 @@ serve(async (req) => {
       full_name: fullName,
       otp_code: otpCode,
       app_name: appName,
+      app_logo_url: appLogoUrl,
     };
 
     const interpolate = (s: string) =>
@@ -96,7 +100,7 @@ serve(async (req) => {
       : `<h1>Welcome to ${appName}!</h1><p>Hi ${fullName}, your code is <strong>${otpCode}</strong></p>`;
 
     if (wrapperTpl) {
-      emailBody = wrapperTpl.html_body.replace('{{content}}', emailBody);
+      emailBody = interpolate(wrapperTpl.html_body.replace('{{content}}', emailBody));
     }
 
     // Send email using Resend

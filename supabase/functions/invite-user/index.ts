@@ -139,14 +139,17 @@ Deno.serve(async (req) => {
     // FCA vendor onboarding: notifications + welcome email
     // -----------------------------------------------------------------------
     if (hasVendorsInvitePermission && !roleId && data?.user) {
-      // Fetch configured app name from settings
-      const { data: appNameRow } = await supabaseAdmin
+      // Fetch configured branding from settings
+      const { data: brandingRows } = await supabaseAdmin
         .from('settings')
-        .select('value')
-        .eq('key', 'app_name')
+        .select('key, value')
         .eq('source', 'platform')
-        .maybeSingle();
-      const appName = appNameRow?.value || 'Stall Inc';
+        .in('key', ['app_name', 'app_logo_url']);
+      const brandingMap = Object.fromEntries(
+        (brandingRows ?? []).map((r: { key: string; value: string }) => [r.key, r.value])
+      );
+      const appName = brandingMap['app_name'] || 'Stall Inc';
+      const appLogoUrl = brandingMap['app_logo_url'] || '';
 
       // Get the FCA's profile for display in notifications
       const { data: fcaProfile } = await supabaseAdmin
@@ -177,6 +180,7 @@ Deno.serve(async (req) => {
           fca_name: fcaName,
           reset_url: resetUrl,
           app_name: appName,
+          app_logo_url: appLogoUrl,
         };
 
         const interpolate = (s: string) =>
@@ -189,7 +193,7 @@ Deno.serve(async (req) => {
         let welcomeBody = welcomeTpl ? interpolate(welcomeTpl.html_body) : `<h2>Welcome to ${appName}!</h2><p>Hi ${fullName}, please set your password.</p>`;
 
         if (wrapperTpl) {
-          welcomeBody = wrapperTpl.html_body.replace("{{content}}", welcomeBody);
+          welcomeBody = interpolate(wrapperTpl.html_body.replace("{{content}}", welcomeBody));
         }
 
         await fetch("https://api.resend.com/emails", {
@@ -231,6 +235,8 @@ Deno.serve(async (req) => {
                 onboarded_by: user.id,
                 fca_name: fcaName,
                 fca_email: fcaEmail,
+                app_name: appName,
+                app_logo_url: appLogoUrl,
               },
               idempotency_key: `vendor_onboarded:${data.user.id}:${recipient.user_id}`,
             })

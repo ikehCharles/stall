@@ -79,7 +79,8 @@ async function loadTemplates(
 function buildEmail(
   templates: Map<string, EmailTemplate>,
   notification: NotificationRecord,
-  appName: string
+  appName: string,
+  appLogoUrl: string
 ): { subject: string; html: string } {
   const meta = notification.metadata;
   const templateKey = notification.type;
@@ -93,6 +94,7 @@ function buildEmail(
     body: notification.body,
     recipient_email: notification.recipient_email,
     app_name: appName,
+    app_logo_url: appLogoUrl,
   };
 
   // If selected_dates is an array, join for display
@@ -150,14 +152,17 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // Fetch configured app name from settings
-    const { data: appNameRow } = await supabase
+    // Fetch configured branding from settings
+    const { data: brandingRows } = await supabase
       .from('settings')
-      .select('value')
-      .eq('key', 'app_name')
+      .select('key, value')
       .eq('source', 'platform')
-      .maybeSingle();
-    const appName = appNameRow?.value || 'Stall Inc';
+      .in('key', ['app_name', 'app_logo_url']);
+    const brandingMap = Object.fromEntries(
+      (brandingRows ?? []).map((r: { key: string; value: string }) => [r.key, r.value])
+    );
+    const appName = brandingMap['app_name'] || 'Stall Inc';
+    const appLogoUrl = brandingMap['app_logo_url'] || '';
 
     const body = await req.json();
 
@@ -221,7 +226,7 @@ serve(async (req) => {
       }
 
       try {
-        const { subject, html } = buildEmail(templates, notification, appName);
+        const { subject, html } = buildEmail(templates, notification, appName, appLogoUrl);
 
         const emailResponse = await fetch("https://api.resend.com/emails", {
           method: "POST",
