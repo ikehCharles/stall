@@ -95,11 +95,9 @@ serve(async (req) => {
     return new Response("Server misconfigured", { status: 200 });
   }
 
-  console.warn("Using signing key", signing_key);
 
   const isValid = await verifyZettleWebhook(rawBody, req.headers, signing_key);
 
-  console.warn("Is valid signature:", isValid);
 
   if (!isValid) {
     return new Response("Invalid signature", { status: 200 });
@@ -107,7 +105,6 @@ serve(async (req) => {
 
   // ... handle InvoicePaid etc.
 
-  console.warn("We made it through webhook payload", payload);
 
   return new Response("OK", { status: 200 });
 });

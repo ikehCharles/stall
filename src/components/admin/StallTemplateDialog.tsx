@@ -41,7 +41,6 @@ export const StallTemplateDialog = ({ open, onOpenChange, template, onSuccess }:
   const createTemplate = useCreateStallTemplate();
   const updateTemplate = useUpdateStallTemplate();
 
-  console.warn("Template Library", template)
   // Tags CRUD
   const { data: tags = [] } = useTags();
   const createTag = useCreateTag();

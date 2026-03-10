@@ -33,7 +33,6 @@ export const KYCForm = ({ onSubmit, existingKYC, externalUserId }: KYCFormProps)
   });
   // Fetch categories for business type
   const { data: categories, isLoading: categoriesLoading } = useCategories();
-  console.warn("Categories loading:", categoriesLoading, "Categories data:", categories);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
