@@ -10,9 +10,14 @@ export type StallInstance = Database["public"]["Tables"]["stall_instances"]["Row
     stroke_color: string;
     price: number;
     capacity: number;
+    category_id: string | null;
+    stall_template_tags?: { tag_id: string }[];
   };
+  stall_instance_tags?: { tag_id: string }[];
   isSelected?: boolean;
   isHeld?: boolean;
+  isIneligible?: boolean;
+  ineligibleReason?: string;
   selectedDates?: Date[];
 };
 type StallInstanceInsert =
@@ -35,7 +40,14 @@ export const useStallInstances = (marketId: string) => {
             fill_color,
             stroke_color,
             price,
-            capacity
+            capacity,
+            category_id,
+            stall_template_tags (
+              tag_id
+            )
+          ),
+          stall_instance_tags (
+            tag_id
           )
         `
         )

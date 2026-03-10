@@ -14,26 +14,26 @@ import {
 } from "@/components/ui/select";
 import { useRoles } from "@/hooks/useRolesAndPermissions";
 import { UserPayload, useUsers } from "@/hooks/useUsers";
-import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
 import { useLoading } from "@/contexts/LoadingContext";
 import { User } from "@supabase/supabase-js";
+import { UserPayloadSchema, ValidatePayload } from "@/lib/schemaValidation";
 
 interface UserRegisterProps {
-  onUserCreated: (user: {user: User}) => void;
+  onUserCreated: (user: { user: User }) => void;
   user?: Partial<UserPayload>;
   isVendor?: boolean;
   disabled?: boolean;
 }
 
-const initialPayload = {
+const initialPayload: UserPayload = {
   email: "",
   fullName: "",
   phoneNumber: "",
   roleId: "",
   confirmEmail: false,
   password: "",
+  tags: [],
 };
 const UserRegister: React.FC<UserRegisterProps> = (props) => {
   const { data: roles } = useRoles();
@@ -41,6 +41,7 @@ const UserRegister: React.FC<UserRegisterProps> = (props) => {
   const [payload, setPayload] = useState<UserPayload>(initialPayload);
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<{
+    fullName?: string;
     email?: string;
     phone?: string;
     roleId?: string;
@@ -51,9 +52,15 @@ const UserRegister: React.FC<UserRegisterProps> = (props) => {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if(props.disabled) return;
+    if (props.disabled) return;
     const { email, fullName, phoneNumber, roleId, password, confirmEmail } =
       payload;
+
+    const validationResult = ValidatePayload(UserPayloadSchema, payload);
+    if (validationResult.hasError) {
+      setFieldErrors(validationResult.fieldErrors);
+      return;
+    }
 
     if (confirmEmail && !password) {
       setFieldErrors({ password: "Password is required" });
@@ -104,6 +111,7 @@ const UserRegister: React.FC<UserRegisterProps> = (props) => {
       roleId,
       confirmEmail,
       password,
+      tags: payload.tags || [],
     };
     mutate(userPayload, {
       onSuccess: (data) => {
@@ -134,6 +142,9 @@ const UserRegister: React.FC<UserRegisterProps> = (props) => {
           onChange={(e) => setPayload({ ...payload, fullName: e.target.value })}
           required
         />
+        {fieldErrors.fullName && (
+          <p className="text-sm text-destructive">{fieldErrors.fullName} </p>
+        )}
       </div>
 
       <div className="space-y-2">

@@ -28,6 +28,7 @@ import { StallCanvasView } from "@/components/shared/StallCanvasView";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import { useVendorEligibility, checkStallEligibility } from "@/hooks/useVendorEligibility";
 import { format } from "date-fns";
 import CurrencyWrapper from "@/components/shared/currency";
 import VatBreakdown from "@/components/shared/VatBreakdown";
@@ -61,6 +62,7 @@ const EnhancedStallBooking = () => {
   const cleanupHolds = useCleanupExpiredHolds();
   const { data: platformSettings, error: settingsError } = usePlatformSettings();
   const { data: completedBookingCount = 0 } = useVendorSuccessBookingCount();
+  const { data: vendorEligibility } = useVendorEligibility();
 
   const currentMarket = markets?.find((m) => m.id === marketId);
 
@@ -86,14 +88,27 @@ const EnhancedStallBooking = () => {
       // Check if this stall has any active holds
       const stallHeldDates = currentStallHolds[stall.id] || [];
 
+      // Check vendor eligibility for this stall
+      const eligibility = checkStallEligibility(stall, vendorEligibility);
+
       return {
         ...stall,
         isSelected: stallBookedDates.length > 0,
         isHeld: stallHeldDates.length > 0,
+        isIneligible: !eligibility.eligible,
+        ineligibleReason: eligibility.message,
       };
     }) || [];
 
   const handleStallClick = (stall: StallInstance) => {
+    if (stall.isIneligible) {
+      toast({
+        title: "Not Eligible",
+        description: stall.ineligibleReason || "You are not eligible to book this stall",
+        variant: "destructive",
+      });
+      return;
+    }
     if (stall.status !== "AVAILABLE") {
       toast({
         title: "Stall Unavailable",
@@ -197,6 +212,7 @@ const EnhancedStallBooking = () => {
 
   const getStallColor = (stall: StallInstance) => {
     if (stall.status === "BOOKED") return "#ef4444"; // red - booked
+    if (stall.isIneligible) return "#9ca3af"; // grey - ineligible
     if (stall.isSelected) return "#3b82f6"; // blue - selected
     // if (stall.isHeld) return '#f97316'; // orange - held
     return "#22c55e"; // green - available
@@ -303,6 +319,10 @@ const EnhancedStallBooking = () => {
                   <div className="w-4 h-4 bg-orange-500 rounded mr-2"></div>
                   Held
                 </div> */}
+                <div className="flex items-center">
+                  <div className="w-4 h-4 bg-gray-400 rounded mr-2"></div>
+                  Ineligible
+                </div>
                 <div className="flex items-center">
                   <div className="w-4 h-4 bg-blue-500 rounded mr-2"></div>
                   Selected

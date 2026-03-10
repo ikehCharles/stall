@@ -5,6 +5,7 @@ import { PhoneInput } from "@/components/ui/phone-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useCategories } from "@/hooks/useCategories";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,15 +22,18 @@ interface KYCFormProps {
 }
 
 export const KYCForm = ({ onSubmit, existingKYC, externalUserId }: KYCFormProps) => {
-  
+
   const [formData, setFormData] = useState({
     businessName: "",
     contactEmail: "",
     contactPhone: "",
-    businessType: "",
+    businessTypeId: "",
     businessAddress: "",
     taxId: ""
   });
+  // Fetch categories for business type
+  const { data: categories, isLoading: categoriesLoading } = useCategories();
+  console.warn("Categories loading:", categoriesLoading, "Categories data:", categories);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -43,7 +47,7 @@ export const KYCForm = ({ onSubmit, existingKYC, externalUserId }: KYCFormProps)
         businessName: existingKYC.business_name || "",
         contactEmail: existingKYC.contact_email || "",
         contactPhone: existingKYC.contact_phone || "",
-        businessType: existingKYC.business_type || "",
+        businessTypeId: existingKYC.business_type_id || "",
         businessAddress: existingKYC.business_address || "",
         taxId: existingKYC.tax_id || ""
       };
@@ -67,11 +71,11 @@ export const KYCForm = ({ onSubmit, existingKYC, externalUserId }: KYCFormProps)
 
   const handleSubmit = async (e: React.FormEvent) => {
 
-// if external (on user creation) or logged in user (vendor creation)
+    // if external (on user creation) or logged in user (vendor creation)
     const userId = externalUserId || user.id
 
     e.preventDefault();
-    
+
     if (!user) {
       setError("You must be logged in to submit verification");
       return;
@@ -120,7 +124,7 @@ export const KYCForm = ({ onSubmit, existingKYC, externalUserId }: KYCFormProps)
             business_name: formData.businessName,
             contact_email: formData.contactEmail,
             contact_phone: formData.contactPhone,
-            business_type: formData.businessType || null,
+            business_type_id: formData.businessTypeId || null,
             business_address: formData.businessAddress || null,
             tax_id: formData.taxId || null,
             status: 'PENDING'
@@ -140,7 +144,7 @@ export const KYCForm = ({ onSubmit, existingKYC, externalUserId }: KYCFormProps)
             business_name: formData.businessName,
             contact_email: formData.contactEmail,
             contact_phone: formData.contactPhone,
-            business_type: formData.businessType || null,
+            business_type_id: formData.businessTypeId || null,
             business_address: formData.businessAddress || null,
             tax_id: formData.taxId || null,
             status: 'PENDING'
@@ -166,7 +170,7 @@ export const KYCForm = ({ onSubmit, existingKYC, externalUserId }: KYCFormProps)
       <CardHeader>
         <CardTitle>Business Verification (KYC)</CardTitle>
         <CardDescription>
-          {existingKYC?.status === 'APPROVED' ? 
+          {existingKYC?.status === 'APPROVED' ?
             'Your business verification has been approved.' :
             'Please provide your business information to start booking stalls. All information will be verified before approval.'
           }
@@ -201,92 +205,95 @@ export const KYCForm = ({ onSubmit, existingKYC, externalUserId }: KYCFormProps)
             </div>
           </div>
         ) : (
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="businessName">Business Name *</Label>
-            <Input
-              id="businessName"
-              value={formData.businessName}
-              onChange={(e) => handleInputChange('businessName', e.target.value)}
-              placeholder="Enter your business name"
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="contactEmail">Contact Email *</Label>
+              <Label htmlFor="businessName">Business Name *</Label>
               <Input
-                id="contactEmail"
-                type="email"
-                value={formData.contactEmail}
-                onChange={(e) => handleInputChange('contactEmail', e.target.value)}
-                placeholder="business@example.com"
+                id="businessName"
+                value={formData.businessName}
+                onChange={(e) => handleInputChange('businessName', e.target.value)}
+                placeholder="Enter your business name"
                 required
               />
             </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="contactEmail">Contact Email *</Label>
+                <Input
+                  id="contactEmail"
+                  type="email"
+                  value={formData.contactEmail}
+                  onChange={(e) => handleInputChange('contactEmail', e.target.value)}
+                  placeholder="business@example.com"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="contactPhone">Phone Number *</Label>
+                <PhoneInput
+                  id="contactPhone"
+                  value={formData.contactPhone}
+                  onChange={(value) => handleInputChange('contactPhone', value)}
+                  placeholder="Enter your phone number"
+                  required
+                />
+              </div>
+            </div>
+
             <div className="space-y-2">
-              <Label htmlFor="contactPhone">Phone Number *</Label>
-              <PhoneInput
-                id="contactPhone"
-                value={formData.contactPhone}
-                onChange={(value) => handleInputChange('contactPhone', value)}
-                placeholder="Enter your phone number"
-                required
+              <Label htmlFor="businessType">Business Type</Label>
+              <Select
+                value={formData.businessTypeId}
+                onValueChange={(value) => handleInputChange('businessTypeId', value)}
+                disabled={categoriesLoading}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select business type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories && categories.length > 0 ? (
+                    categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem disabled value="none">No categories available</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="businessAddress">Business Address</Label>
+              <Textarea
+                id="businessAddress"
+                value={formData.businessAddress}
+                onChange={(e) => handleInputChange('businessAddress', e.target.value)}
+                placeholder="Enter your complete business address"
+                rows={3}
               />
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="businessType">Business Type</Label>
-            <Select 
-              value={formData.businessType}
-              onValueChange={(value) => handleInputChange('businessType', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select business type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="retail">Retail</SelectItem>
-                <SelectItem value="food_beverage">Food & Beverage</SelectItem>
-                <SelectItem value="services">Services</SelectItem>
-                <SelectItem value="crafts">Arts & Crafts</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+            <div className="space-y-2">
+              <Label htmlFor="taxId">Tax ID / Registration Number</Label>
+              <Input
+                id="taxId"
+                value={formData.taxId}
+                onChange={(e) => handleInputChange('taxId', e.target.value)}
+                placeholder="Enter your tax ID or business registration number"
+              />
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="businessAddress">Business Address</Label>
-            <Textarea
-              id="businessAddress"
-              value={formData.businessAddress}
-              onChange={(e) => handleInputChange('businessAddress', e.target.value)}
-              placeholder="Enter your complete business address"
-              rows={3}
-            />
-          </div>
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
 
-          <div className="space-y-2">
-            <Label htmlFor="taxId">Tax ID / Registration Number</Label>
-            <Input
-              id="taxId"
-              value={formData.taxId}
-              onChange={(e) => handleInputChange('taxId', e.target.value)}
-              placeholder="Enter your tax ID or business registration number"
-            />
-          </div>
-
-          {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
-          <Button type="submit" disabled={isSubmitting} className="w-full">
-            {isSubmitting ? "Submitting..." : "Submit for Verification"}
-          </Button>
-        </form>
+            <Button type="submit" disabled={isSubmitting} className="w-full">
+              {isSubmitting ? "Submitting..." : "Submit for Verification"}
+            </Button>
+          </form>
         )}
       </CardContent>
     </Card>

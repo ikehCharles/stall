@@ -24,6 +24,8 @@ export interface Profile {
   phone_number: string;
   kyc_contact_email: string;
   last_login_at: string | null;
+  business_type_id: string | null;
+  vendor_tag_ids: string[];
 }
 
 interface Booking {

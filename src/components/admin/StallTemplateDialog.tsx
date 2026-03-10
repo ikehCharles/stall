@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -6,7 +7,11 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { CrudMultiSelect, CrudSelect } from '@/components/ui/crud-select';
 import { useCreateStallTemplate, useUpdateStallTemplate } from '@/hooks/useStallTemplates';
+import type { StallTemplate } from '@/hooks/useStallTemplates';
+import { useTags, useCreateTag, useUpdateTag, useDeleteTag, useStallTemplateTags, useSyncStallTemplateTags } from '@/hooks/useTags';
+import { useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory } from '@/hooks/useCategories';
 import { toast } from '@/hooks/use-toast';
 import CurrencyWrapper from '../shared/currency';
 
@@ -17,10 +22,10 @@ const formSchema = z.object({
   stroke_color: z.string().min(1, 'Stroke color is required'),
   width: z.number().min(10, 'Width must be at least 10'),
   height: z.number().min(10, 'Height must be at least 10'),
-  radius: z.number().min(5, 'Radius must be at least 5').optional(),
+  radius: z.number().min(5, 'Radius must be at least 5'),
   price: z.number().min(0, 'Price must be non-negative'),
   capacity: z.number().min(1, 'Capacity must be at least 1'),
-  tags: z.string().optional(),
+  category_id: z.string().nullable().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -28,14 +33,37 @@ type FormData = z.infer<typeof formSchema>;
 interface StallTemplateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  template?: any;
+  template?: StallTemplate;
   onSuccess: () => void;
 }
 
 export const StallTemplateDialog = ({ open, onOpenChange, template, onSuccess }: StallTemplateDialogProps) => {
   const createTemplate = useCreateStallTemplate();
   const updateTemplate = useUpdateStallTemplate();
-  
+
+  console.warn("Template Library", template)
+  // Tags CRUD
+  const { data: tags = [] } = useTags();
+  const createTag = useCreateTag();
+  const updateTag = useUpdateTag();
+  const deleteTag = useDeleteTag();
+  const { data: existingTagIds = [] } = useStallTemplateTags(template?.id);
+  const syncTags = useSyncStallTemplateTags();
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+
+  // Categories CRUD
+  const { data: categories = [] } = useCategories();
+  const createCategory = useCreateCategory();
+  const updateCategory = useUpdateCategory();
+  const deleteCategory = useDeleteCategory();
+
+  // Sync existing tag ids into local state when editing
+  const existingTagIdsKey = JSON.stringify(existingTagIds);
+  useEffect(() => {
+    const parsed: string[] = JSON.parse(existingTagIdsKey);
+    setSelectedTagIds(parsed);
+  }, [existingTagIdsKey]);
+
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -48,7 +76,7 @@ export const StallTemplateDialog = ({ open, onOpenChange, template, onSuccess }:
       radius: template?.radius || 30,
       price: template?.price || 100,
       capacity: template?.capacity || 1,
-      tags: template?.tags?.join(', ') || '',
+      category_id: template?.category_id || null,
     },
   });
 
@@ -66,17 +94,22 @@ export const StallTemplateDialog = ({ open, onOpenChange, template, onSuccess }:
         radius: data.radius || null,
         price: data.price,
         capacity: data.capacity,
-        tags: data.tags ? data.tags.split(',').map(tag => tag.trim()).filter(Boolean) : [],
+        category_id: data.category_id || null,
+        tags: [] as string[],
       };
 
       if (template) {
         await updateTemplate.mutateAsync({ ...payload, id: template.id });
+        await syncTags.mutateAsync({ stallTemplateId: template.id, tagIds: selectedTagIds });
         toast({
           title: 'Template updated',
           description: 'Stall template has been updated successfully',
         });
       } else {
-        await createTemplate.mutateAsync(payload);
+        const created = await createTemplate.mutateAsync(payload);
+        if (created?.id && selectedTagIds.length > 0) {
+          await syncTags.mutateAsync({ stallTemplateId: created.id, tagIds: selectedTagIds });
+        }
         toast({
           title: 'Template created',
           description: 'New stall template has been created successfully',
@@ -319,19 +352,40 @@ export const StallTemplateDialog = ({ open, onOpenChange, template, onSuccess }:
 
               <FormField
                 control={form.control}
-                name="tags"
+                name="category_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Tags (comma-separated)</FormLabel>
+                    <FormLabel>Default Category</FormLabel>
                     <FormControl>
-                      <Input placeholder="food, retail, premium" {...field} />
+                      <CrudSelect
+                        value={field.value ?? null}
+                        options={categories.map((c) => ({ id: c.id, name: c.name, color: c.color }))}
+                        onChange={(id) => field.onChange(id)}
+                        onCreate={async (name, color) => { await createCategory.mutateAsync({ name, color }); }}
+                        onUpdate={async (id, name, color) => { await updateCategory.mutateAsync({ id, name, color }); }}
+                        onDelete={async (id) => { await deleteCategory.mutateAsync(id); }}
+                        placeholder="Select category…"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
-              <div className="flex justify-end space-x-2">
+              <FormItem>
+                <FormLabel>Tags</FormLabel>
+                <CrudMultiSelect
+                  value={selectedTagIds}
+                  options={tags.map((t) => ({ id: t.id, name: t.name, color: t.color }))}
+                  onChange={setSelectedTagIds}
+                  onCreate={async (name, color) => { await createTag.mutateAsync({ name, color }); }}
+                  onUpdate={async (id, name, color) => { await updateTag.mutateAsync({ id, name, color }); }}
+                  onDelete={async (id) => { await deleteTag.mutateAsync(id); }}
+                  placeholder="Select tags…"
+                />
+              </FormItem>
+
+              <div className="flex space-x-2">
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                   Cancel
                 </Button>

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Briefcase, Camera, LayoutGrid, Map } from "lucide-react";
 import { useMarkets } from "@/hooks/useMarkets";
 import { StallInstance, useStallInstances } from "@/hooks/useStallInstances";
+import { checkStallEligibilityByFCA } from "@/hooks/useVendorEligibility";
 import { useStallHolds } from "@/hooks/useStallHolds";
 import { useBookingDates } from "@/hooks/useBookingDates";
 import { FCABookingModal } from "@/components/admin/fca/FCABookingModal";
@@ -50,7 +51,32 @@ const FCAStallBooking = () => {
   const stalls = useStallInstances(marketId || "");
   // const stallHolds = useStallHolds(marketId || "");
   const bookingDates = useBookingDates(marketId || "");
+  // Derive vendor eligibility data from lookup profile (category + tags)
+  const vendorEligibilityData = useMemo(() => {
+    const profile = bookingsWithProfile?.profile;
+    if (!profile) return null;
+    return {
+      last_login_at: profile.last_login_at,
+      categoryId: profile.business_type_id ?? null,
+      tagIds: profile.vendor_tag_ids ?? [],
+      kyc_status: profile.kyc_status
+    };
+  }, [bookingsWithProfile]);
 
+  // Enrich stalls with eligibility info when a vendor is looked up
+  const enrichedStalls: StallInstance[] = useMemo(() => {
+    if (!stalls.data) return [];
+    // No vendor looked up yet — show stalls without eligibility flags
+    if (!vendorEligibilityData) return stalls.data;
+    return stalls.data.map((stall) => {
+      const eligibility = checkStallEligibilityByFCA(stall, vendorEligibilityData);
+      return {
+        ...stall,
+        isIneligible: !eligibility.eligible,
+        ineligibleReason: eligibility.message,
+      };
+    });
+  }, [stalls.data, vendorEligibilityData]);
   const currentMarket = market.data?.find((m) => m.id === marketId);
 
   const onScanResult = async (text) => {
@@ -105,7 +131,18 @@ const FCAStallBooking = () => {
     }
     
     // On any error do not allow stall selection
-    if (vendorLookupError || !bookingsWithProfile.profile.last_login_at || bookingsWithProfile?.profile?.kyc_status === 'REJECTED') return;
+    if (vendorLookupError || bookingsWithProfile?.profile?.kyc_status === 'REJECTED') return;
+
+    // Check vendor-stall eligibility (category + tags)
+    if (stall.isIneligible) {
+      toast({
+        title: "Not Eligible",
+        description: stall.ineligibleReason || "This vendor is not eligible to book this stall",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const available = isStallAvailable(stall);
     if (!available) {
       toast({
@@ -118,10 +155,8 @@ const FCAStallBooking = () => {
       return;
     }
     
-    // if (stall.status === 'AVAILABLE') {
     setSelectedStall(stall);
     setShowModal(true);
-    // }
   };
 
   // Get booked dates for the selected stall
@@ -154,6 +189,7 @@ const FCAStallBooking = () => {
   };
 
   const getStallColorForFCA = (stall: StallInstance) => {
+    if (stall.isIneligible) return "#9ca3af"; // grey - vendor not eligible
     const available = isStallAvailable(stall);
     if (available) return "#22c55e"; // green - available
     return "#ef4444"; // red - fully booked
@@ -297,16 +333,18 @@ const FCAStallBooking = () => {
 
       {viewMode === "list" ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {stalls.data?.map((stall) => {
+          {enrichedStalls.map((stall) => {
+            console.warn(stall, "stall enriched with eligibility");
             const available = isStallAvailable(stall);
-            const statusVariant = available ? "default" : "destructive";
-            const statusText = available ? "Available" : "Booked";
+            const isIneligible = !!stall.isIneligible;
+            const statusVariant = isIneligible ? "secondary" : available ? "default" : "destructive";
+            const statusText = isIneligible ? "Ineligible" : available ? "Available" : "Booked";
 
             return (
               <Card
                 key={stall.id}
                 className={`cursor-pointer transition-all hover:shadow-lg ${
-                  available ? "hover:border-primary" : "opacity-60"
+                  isIneligible ? "opacity-50" : available ? "hover:border-primary" : "opacity-60"
                 }`}
                 onClick={() => handleStallClick(stall)}
               >
@@ -352,11 +390,17 @@ const FCAStallBooking = () => {
                 <div className="w-4 h-4 bg-red-500 rounded mr-2"></div>
                 Fully Booked
               </div>
+              {vendorEligibilityData && (
+                <div className="flex items-center">
+                  <div className="w-4 h-4 bg-gray-400 rounded mr-2"></div>
+                  Ineligible
+                </div>
+              )}
             </div>
           </CardHeader>
           <CardContent>
             <StallCanvasView
-              stalls={stalls.data || []}
+              stalls={enrichedStalls}
               onStallClick={handleStallClick}
               getStallColor={getStallColorForFCA}
             />

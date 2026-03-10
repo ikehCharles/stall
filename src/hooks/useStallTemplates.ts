@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
 
-type StallTemplate = Database['public']['Tables']['stall_templates']['Row'];
+export type StallTemplate = Database['public']['Tables']['stall_templates']['Row'];
 type StallTemplateInsert = Database['public']['Tables']['stall_templates']['Insert'];
 type StallTemplateUpdate = Database['public']['Tables']['stall_templates']['Update'];
 

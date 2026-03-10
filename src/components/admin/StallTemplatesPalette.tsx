@@ -2,20 +2,7 @@ import { Square, Circle, Hexagon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import CurrencyWrapper from '../shared/currency';
-
-interface StallTemplate {
-  id: string;
-  name: string;
-  shape: 'RECT' | 'CIRCLE' | 'POLY';
-  fill_color: string;
-  stroke_color: string;
-  width: number;
-  height: number;
-  radius: number | null;
-  price: number;
-  capacity: number;
-  tags: string[];
-}
+import type { StallTemplate } from '@/hooks/useStallTemplates';
 
 interface StallTemplatesPaletteProps {
   templates: StallTemplate[];

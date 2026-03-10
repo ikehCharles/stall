@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -6,12 +7,14 @@ import { toast } from "./use-toast";
 import { useLoading } from "@/contexts/LoadingContext";
 
 export interface UserPayload {
+  id: string;
   email: string;
   fullName: string;
   phoneNumber: string;
   roleId?: string;
   confirmEmail: boolean;
   password: string;
+  tags?: string[];
 }
 
 export const useUsers = () => {
@@ -35,7 +38,6 @@ export const useUsers = () => {
       });
       toast({
         title: "User Invite Sent Successfully",
-        // description: 'User can ',
         variant: "default",
       });
     },
@@ -68,6 +70,44 @@ export const useUsers = () => {
           variant: "destructive",
         });
       }
+    },
+  });
+};
+
+export const useUpdateUser = () => {
+  const { startLoading, stopLoading } = useLoading();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (body: UserPayload) => {
+      startLoading();
+      const { data, error } = await supabase.rpc("update_user", {
+        p_user_id: body.id,
+        p_full_name: body.fullName,
+        p_phone: body.phoneNumber,
+        p_role_id: body.roleId,
+        p_email: body.email,
+        p_tags: body.tags || [],
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      stopLoading();
+      queryClient.invalidateQueries({
+        queryKey: [QueryKeysEnum.userManagement],
+      });
+      toast({
+        title: "User updated successfully",
+        variant: "default",
+      });
+    },
+    onError(error) {
+      stopLoading();
+      toast({
+        title: "Update failed: " + error.message,
+        variant: "destructive",
+      });
     },
   });
 };

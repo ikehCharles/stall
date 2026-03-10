@@ -51,6 +51,7 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { useConfirm } from "@/components/ui/confirmDialog";
 import { useKYCAuditHistory } from "@/hooks/useKYCAuditHistory";
 import { MAXKYCREVIEWCOUNT } from "@/lib/utils";
+import { useCategories } from "@/hooks/useCategories";
 
 interface KYCApplication {
   id: string;
@@ -58,7 +59,7 @@ interface KYCApplication {
   business_name: string;
   contact_email: string;
   contact_phone: string;
-  business_type: string | null;
+  business_type_id: string | null;
   business_address: string | null;
   tax_id: string | null;
   status: "PENDING" | "APPROVED" | "REJECTED";
@@ -83,9 +84,11 @@ interface KYCStats {
 
 export const KYCReview = () => {
   const confirm = useConfirm();
+  const { data: categories, isLoading: categoriesLoading } = useCategories();
+
   const [applications, setApplications] = useState<KYCApplication[]>([]);
   const [selectedKYC, setSelectedKYC] = useState<KYCApplication | null>(null);
-  const {data: auditHistory, isLoading:isKYCLoading} = useKYCAuditHistory(selectedKYC?.id);
+  const { data: auditHistory, isLoading: isKYCLoading } = useKYCAuditHistory(selectedKYC?.id);
   const [reviewNotes, setReviewNotes] = useState("");
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -118,7 +121,7 @@ export const KYCReview = () => {
     const status = searchParams.get("status") || "all";
     const dateFromParam = searchParams.get("dateFrom");
     const dateToParam = searchParams.get("dateTo");
-    
+
     return {
       search: contactEmail.trim(),
       status: status,
@@ -197,8 +200,8 @@ export const KYCReview = () => {
         ...item,
         profiles:
           item.profiles &&
-          typeof item.profiles === "object" &&
-          !("error" in item.profiles)
+            typeof item.profiles === "object" &&
+            !("error" in item.profiles)
             ? item.profiles
             : null,
       }));
@@ -263,7 +266,7 @@ export const KYCReview = () => {
 
     // Compare current filters with URL filters
     const currentFilters = filtersRef.current;
-    const filtersChanged = 
+    const filtersChanged =
       urlFilters.search !== currentFilters.search ||
       urlFilters.status !== currentFilters.status ||
       (urlFilters.dateFrom?.getTime() !== currentFilters.dateFrom?.getTime()) ||
@@ -287,7 +290,7 @@ export const KYCReview = () => {
 
     // Update URL search params - this is the source of truth
     const newSearchParams = new URLSearchParams(searchParams);
-    
+
     if (newFilters.search) {
       newSearchParams.set('contactEmail', newFilters.search.trim());
     } else {
@@ -434,7 +437,7 @@ export const KYCReview = () => {
   const handleReject = async () => {
     if (!selectedKYC || !user) return;
 
-   
+
 
     if (!reviewNotes.trim() || reviewNotes.trim().length < 10) {
       toast({
@@ -753,7 +756,13 @@ export const KYCReview = () => {
                   <div>
                     <Label className="font-medium">Business Type</Label>
                     <p className="text-sm text-muted-foreground">
-                      {selectedKYC.business_type || "Not specified"}
+                      {(() => {
+                        if (!selectedKYC?.business_type_id) return "Not specified";
+                        if(categoriesLoading) return "Loading categories...";
+                        if (!categories || categories.length === 0) return "No categories available";
+                        const cat = categories.find(c => c.id === selectedKYC.business_type_id);
+                        return cat ? cat.name : "Unknown";
+                      })()}
                     </p>
                   </div>
                   <div>
@@ -791,7 +800,7 @@ export const KYCReview = () => {
                   <p className="text-sm text-muted-foreground mt-1">
                     {format(
                       new Date(selectedKYC.submitted_at),
-                      "MMMM d, y at h:mm a"
+                      "MMMM d, y h:mm a"
                     )}
                   </p>
                 </div>
@@ -799,7 +808,7 @@ export const KYCReview = () => {
                 <div>
                   <Label htmlFor="reviewNotes">Review Notes</Label>
                   <Textarea
-                  disabled={selectedKYC?.status !== "PENDING" || maxKYCReviewReached}
+                    disabled={selectedKYC?.status !== "PENDING" || maxKYCReviewReached}
                     id="reviewNotes"
                     value={reviewNotes}
                     onChange={(e) => setReviewNotes(e.target.value)}
@@ -857,4 +866,4 @@ export const KYCReview = () => {
       </Dialog>
     </div>
   );
-};
+}

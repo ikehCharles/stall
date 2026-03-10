@@ -14,9 +14,11 @@ export const StallCanvasView = ({ stalls, onStallClick, getStallColor }: StallCa
         {stalls.map((stall) => {
           const fillColor = getStallColor(stall);
           const stallPrice = stall.price_override || stall.stall_templates?.price || 0;
+          const isIneligible = stall.isIneligible;
 
           return (
             <g onClick={() => onStallClick(stall)} key={stall.id}>
+              <title>{isIneligible ? stall.ineligibleReason || "Not eligible" : `Stall ${stall.label} – ${formatCurrency(stallPrice)}/day`}</title>
               <rect
                 x={stall.x}
                 y={stall.y}
@@ -26,7 +28,7 @@ export const StallCanvasView = ({ stalls, onStallClick, getStallColor }: StallCa
                 stroke="#ffffff"
                 strokeWidth="2"
                 rx="4"
-                className="cursor-pointer hover:opacity-80 transition-opacity"
+                className={isIneligible ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:opacity-80 transition-opacity"}
               />
               <text
                 x={stall.x + stall.width / 2}
@@ -36,7 +38,7 @@ export const StallCanvasView = ({ stalls, onStallClick, getStallColor }: StallCa
                 fill="white"
                 fontSize="14"
                 fontWeight="bold"
-                cursor={"pointer"}
+                cursor={isIneligible ? "not-allowed" : "pointer"}
               >
                 {stall.label}
               </text>
@@ -47,7 +49,7 @@ export const StallCanvasView = ({ stalls, onStallClick, getStallColor }: StallCa
                 dominantBaseline="middle"
                 fill="white"
                 fontSize="10"
-                cursor={"pointer"}
+                cursor={isIneligible ? "not-allowed" : "pointer"}
               >
 
                 {formatCurrency(stallPrice)}/day

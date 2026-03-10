@@ -10,11 +10,19 @@ import { useUpdateStallInstance, useDeleteStallInstance } from '@/hooks/useStall
 import { toast } from '@/hooks/use-toast';
 import CurrencyWrapper from '../shared/currency';
 import { formatCurrency } from '@/lib/utils';
+import { useConfirm } from '../ui/confirmDialog';
+import { useCategories } from '@/hooks/useCategories';
+import { useTags, useStallInstanceTags, useSyncStallInstanceTags } from '@/hooks/useTags';
+import { CrudMultiSelect } from '@/components/ui/crud-select';
+import { useCreateTag, useUpdateTag, useDeleteTag } from '@/hooks/useTags';
 
 interface StallInstance {
   id: string;
   market_id: string;
   template_id: string;
+  category_id: string | null;
+  category_overridden: boolean;
+  tags_overridden: boolean;
   label: string;
   x: number;
   y: number;
@@ -30,7 +38,10 @@ interface StallInstance {
     stroke_color: string;
     price: number;
     capacity: number;
+    category_id: string | null;
+    stall_template_tags?: { tag_id: string }[];
   };
+  stall_instance_tags?: { tag_id: string }[];
 }
 
 interface StallPropertiesPanelProps {
@@ -43,10 +54,32 @@ export const StallPropertiesPanel = ({ stallId, stalls, onStallUpdate }: StallPr
   const [editingField, setEditingField] = useState<string | null>(null);
   const updateStall = useUpdateStallInstance();
   const deleteStall = useDeleteStallInstance();
+  const { data: categories = [] } = useCategories();
+  const { data: tags = [] } = useTags();
+  const createTag = useCreateTag();
+  const updateTag = useUpdateTag();
+  const deleteTag = useDeleteTag();
+  const { data: instanceTagIds = [] } = useStallInstanceTags(stallId ?? undefined);
+  const syncInstanceTags = useSyncStallInstanceTags();
 
-  const selectedStall = stalls.find(s => s.id === stallId);
+  const stall = stalls.find(s => s.id === stallId);
+  const template = stall.stall_templates;
+  const effectivePrice = stall.price_override ?? template?.price ?? 0;
 
-  const handleUpdate = async (field: string, value: any) => {
+  const selectedStall: StallInstance = stall;
+  const templateCategoryId = template?.category_id ?? null;
+  const templateTagIds = (template?.stall_template_tags ?? []).map((stt) => stt.tag_id);
+
+  // If overridden, use instance value as-is (even if null/empty).
+  // If not overridden, fall back to template defaults.
+  const displayCategoryId = selectedStall.category_overridden
+    ? selectedStall.category_id
+    : (selectedStall.category_id ?? templateCategoryId);
+  const displayTagIds = selectedStall.tags_overridden
+    ? instanceTagIds
+    : (instanceTagIds.length > 0 ? instanceTagIds : templateTagIds);
+
+  const handleUpdate = async (field: string, value: string | number | null) => {
     if (!selectedStall) return;
 
     try {
@@ -72,10 +105,20 @@ export const StallPropertiesPanel = ({ stallId, stalls, onStallUpdate }: StallPr
     }
   };
 
+  const confirm = useConfirm();
+
   const handleDelete = async () => {
     if (!selectedStall) return;
     
-    if (confirm(`Are you sure you want to delete stall "${selectedStall.label}"?`)) {
+    if (await confirm(
+      {
+        title: 'Confirm Deletion',
+        description: `Are you sure you want to delete stall "${selectedStall.label}"? This action cannot be undone.`,
+          confirmText: 'Delete',
+          cancelText: 'Cancel',
+          confirmClassName: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+      }
+    )) {
       try {
         await deleteStall.mutateAsync({
           id: selectedStall.id,
@@ -124,9 +167,6 @@ export const StallPropertiesPanel = ({ stallId, stalls, onStallUpdate }: StallPr
       </Card>
     );
   }
-
-  const template = selectedStall.stall_templates;
-  const effectivePrice = selectedStall.price_override ?? template?.price ?? 0;
 
   return (
     <Card className="h-full border-none shadow-none">
@@ -195,6 +235,78 @@ export const StallPropertiesPanel = ({ stallId, stalls, onStallUpdate }: StallPr
             <Badge className={`mt-2 ${getStatusColor(selectedStall.status)}`}>
               {selectedStall.status}
             </Badge>
+          </div>
+
+          <div>
+            <Label className="text-sm font-medium">Category Override</Label>
+            <Select
+              value={displayCategoryId || '__none__'}
+              onValueChange={async (value) => {
+                if (value === '__none__') {
+                  // Explicitly clearing → persist the override flag
+                  await updateStall.mutateAsync({
+                    id: selectedStall.id,
+                    market_id: selectedStall.market_id,
+                    category_id: null,
+                    category_overridden: true,
+                  });
+                  onStallUpdate();
+                  toast({ title: 'Category cleared', description: 'Instance category has been cleared' });
+                  return;
+                }
+                await updateStall.mutateAsync({
+                  id: selectedStall.id,
+                  market_id: selectedStall.market_id,
+                  category_id: value,
+                  category_overridden: true,
+                });
+                onStallUpdate();
+                toast({ title: 'Category updated', description: 'Instance category has been updated' });
+              }}
+            >
+              <SelectTrigger className="mt-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">None</SelectItem>
+                {categories.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label className="text-sm font-medium">Tags Override</Label>
+            <CrudMultiSelect
+              value={displayTagIds}
+              options={tags.map((t) => ({ id: t.id, name: t.name, color: t.color }))}
+              onChange={async (newTagIds) => {
+                if (!selectedStall) return;
+                try {
+                  await syncInstanceTags.mutateAsync({
+                    stallInstanceId: selectedStall.id,
+                    tagIds: newTagIds,
+                  });
+                  // Mark tags as explicitly overridden
+                  await updateStall.mutateAsync({
+                    id: selectedStall.id,
+                    market_id: selectedStall.market_id,
+                    tags_overridden: true,
+                  });
+                  onStallUpdate();
+                  toast({ title: 'Tags Updated', description: 'Instance tags have been updated' });
+                } catch {
+                  toast({ title: 'Error', description: 'Failed to update tags', variant: 'destructive' });
+                }
+              }}
+              onCreate={async (name, color) => { await createTag.mutateAsync({ name, color }); }}
+              onUpdate={async (id, name, color) => { await updateTag.mutateAsync({ id, name, color }); }}
+              onDelete={async (id) => { await deleteTag.mutateAsync(id); }}
+              placeholder="Select tags…"
+            />
           </div>
         </div>
 
@@ -294,6 +406,51 @@ export const StallPropertiesPanel = ({ stallId, stalls, onStallUpdate }: StallPr
                 <span className="text-xs text-muted-foreground">
                   {template.shape} • Cap: {template.capacity}
                 </span>
+              </div>
+              
+              {/* Category (effective) */}
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Effective Category</Label>
+                <div>
+                  {(() => {
+                    const effectiveCatId = selectedStall.category_overridden
+                      ? selectedStall.category_id
+                      : (selectedStall.category_id ?? template.category_id);
+                    if (effectiveCatId) {
+                      const cat = categories.find(c => c.id === effectiveCatId);
+                      return (
+                        <Badge variant="outline">
+                          {cat?.name || 'Unknown'}
+                        </Badge>
+                      );
+                    }
+                    return <span className="text-xs text-muted-foreground">No category</span>;
+                  })()}
+                </div>
+              </div>
+              
+              {/* Tags (effective) */}
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Effective Tags</Label>
+                <div className="flex flex-wrap gap-1">
+                  {(() => {
+                    const hasInstanceTags = instanceTagIds.length > 0;
+                    const effectiveTagIds = selectedStall.tags_overridden
+                      ? instanceTagIds
+                      : (hasInstanceTags ? instanceTagIds : (template.stall_template_tags ?? []).map((stt) => stt.tag_id));
+                    if (effectiveTagIds.length > 0) {
+                      return effectiveTagIds.map((tagId) => {
+                        const tag = tags.find(t => t.id === tagId);
+                        return tag ? (
+                          <Badge key={tagId} variant="secondary" className="text-xs">
+                            {tag.name}
+                          </Badge>
+                        ) : null;
+                      });
+                    }
+                    return <span className="text-xs text-muted-foreground">No tags</span>;
+                  })()}
+                </div>
               </div>
             </div>
           </div>

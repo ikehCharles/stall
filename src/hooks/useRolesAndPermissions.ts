@@ -12,14 +12,11 @@ export interface RolePayload {
   description: string | null;
   permissions: string[];
 }
-export interface Role {
+export type Role = {
   id: string;
   key: string;
   name: string;
-  description: string | null;
-  is_system: boolean;
-  created_at: string;
-}
+};
 
 export interface Permission {
   id: string;
@@ -36,6 +33,7 @@ export interface UserProfile {
   id: string;
   email: string;
   full_name: string | null;
+  phone_number: string | null;
   created_at: string;
   role_key: string | null;
   role_name: string | null;
@@ -118,53 +116,23 @@ export const useRolesWithPermissions = () => {
   });
 };
 
-export const useUsersRoles = () => {
-  // Fetch all users with their roles
+export const useUsersRoles = (page: number, pageSize: number, roleFilter: string, search: string) => {
   return useQuery({
-    queryKey: [QueryKeysEnum.userManagement],
+    queryKey: [QueryKeysEnum.userManagement, page, pageSize, roleFilter, search],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select(
-          `
-          id,
-          email,
-          full_name,
-          created_at
-        `
-        )
-        .order("created_at", { ascending: false });
+      const { data, error } = await supabase.rpc("get_profiles_with_roles", {
+        p_page:      page,
+        p_page_size: pageSize,
+        p_search:    search || "",
+        p_role_id:   roleFilter && roleFilter !== "none" ? roleFilter : null,
+      });
 
       if (error) throw error;
 
-      // Fetch user roles separately
-      const usersWithRoles = await Promise.all(
-        (data || []).map(async (user) => {
-          const { data: roleData } = await supabase
-            .from("user_roles")
-            .select(
-              `
-              role_id,
-              roles:role_id (
-                id,
-                key,
-                name
-              )
-            `
-            )
-            .eq("user_id", user.id)
-            .single();
-
-          return {
-            ...user,
-            role_key: roleData?.roles?.key || null,
-            role_name: roleData?.roles?.name || null,
-            role_id: roleData?.role_id || null,
-          };
-        })
-      );
-
-      return usersWithRoles as UserProfile[];
+      return {
+        users: data.users as User[],
+        total: data.total as number,
+      };
     },
   });
 };

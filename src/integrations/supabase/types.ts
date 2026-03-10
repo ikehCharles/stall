@@ -134,10 +134,12 @@ export type Database = {
           created_by_fca_id: string | null
           days_count: number | null
           fca_notes: string | null
+          gross_amount: number | null
           hold_expires_at: string | null
           id: string
           invoice_number: string
           market_id: string
+          net_amount: number | null
           offline_invoice_id: string | null
           offline_synced_at: string | null
           paid_amount: number
@@ -148,21 +150,21 @@ export type Database = {
           total_amount: number
           updated_at: string
           user_id: string
-          vat_rate_at_booking: number | null
-          vat_mode_at_booking: string | null
           vat_amount: number | null
-          net_amount: number | null
-          gross_amount: number | null
+          vat_mode_at_booking: string | null
+          vat_rate_at_booking: number | null
         }
         Insert: {
           created_at?: string
           created_by_fca_id?: string | null
           days_count?: number | null
           fca_notes?: string | null
+          gross_amount?: number | null
           hold_expires_at?: string | null
           id?: string
           invoice_number: string
           market_id: string
+          net_amount?: number | null
           offline_invoice_id?: string | null
           offline_synced_at?: string | null
           paid_amount?: number
@@ -173,21 +175,21 @@ export type Database = {
           total_amount?: number
           updated_at?: string
           user_id: string
-          vat_rate_at_booking?: number | null
-          vat_mode_at_booking?: string | null
           vat_amount?: number | null
-          net_amount?: number | null
-          gross_amount?: number | null
+          vat_mode_at_booking?: string | null
+          vat_rate_at_booking?: number | null
         }
         Update: {
           created_at?: string
           created_by_fca_id?: string | null
           days_count?: number | null
           fca_notes?: string | null
+          gross_amount?: number | null
           hold_expires_at?: string | null
           id?: string
           invoice_number?: string
           market_id?: string
+          net_amount?: number | null
           offline_invoice_id?: string | null
           offline_synced_at?: string | null
           paid_amount?: number
@@ -198,11 +200,9 @@ export type Database = {
           total_amount?: number
           updated_at?: string
           user_id?: string
-          vat_rate_at_booking?: number | null
-          vat_mode_at_booking?: string | null
           vat_amount?: number | null
-          net_amount?: number | null
-          gross_amount?: number | null
+          vat_mode_at_booking?: string | null
+          vat_rate_at_booking?: number | null
         }
         Relationships: [
           {
@@ -216,33 +216,33 @@ export type Database = {
       }
       cash_payments: {
         Row: {
-          id: string
-          booking_id: string
           amount: number
-          denominations: Json | null
+          booking_id: string
           collected_by: string
-          notes: string | null
           created_at: string
+          denominations: Json | null
+          id: string
+          notes: string | null
           updated_at: string
         }
         Insert: {
-          id?: string
-          booking_id: string
           amount: number
-          denominations?: Json | null
+          booking_id: string
           collected_by: string
-          notes?: string | null
           created_at?: string
+          denominations?: Json | null
+          id?: string
+          notes?: string | null
           updated_at?: string
         }
         Update: {
-          id?: string
-          booking_id?: string
           amount?: number
-          denominations?: Json | null
+          booking_id?: string
           collected_by?: string
-          notes?: string | null
           created_at?: string
+          denominations?: Json | null
+          id?: string
+          notes?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -254,6 +254,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      categories: {
+        Row: {
+          color: string | null
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean
+          name: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       cred: {
         Row: {
@@ -282,6 +321,42 @@ export type Database = {
           meta?: Json
           source?: string
           value?: string
+        }
+        Relationships: []
+      }
+      email_templates: {
+        Row: {
+          created_at: string
+          html_body: string
+          id: string
+          is_default: boolean
+          key: string
+          name: string
+          subject: string
+          updated_at: string
+          variables: Json
+        }
+        Insert: {
+          created_at?: string
+          html_body: string
+          id?: string
+          is_default?: boolean
+          key: string
+          name: string
+          subject: string
+          updated_at?: string
+          variables?: Json
+        }
+        Update: {
+          created_at?: string
+          html_body?: string
+          id?: string
+          is_default?: boolean
+          key?: string
+          name?: string
+          subject?: string
+          updated_at?: string
+          variables?: Json
         }
         Relationships: []
       }
@@ -320,6 +395,7 @@ export type Database = {
           business_address: string | null
           business_name: string
           business_type: string | null
+          business_type_id: string | null
           contact_email: string
           contact_phone: string
           created_at: string
@@ -337,6 +413,7 @@ export type Database = {
           business_address?: string | null
           business_name: string
           business_type?: string | null
+          business_type_id?: string | null
           contact_email: string
           contact_phone: string
           created_at?: string
@@ -354,6 +431,7 @@ export type Database = {
           business_address?: string | null
           business_name?: string
           business_type?: string | null
+          business_type_id?: string | null
           contact_email?: string
           contact_phone?: string
           created_at?: string
@@ -375,6 +453,20 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "kyc_applications_business_type_id_fkey"
+            columns: ["business_type_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kyc_applications_reviewed_by_profiles_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       kyc_audit_log: {
@@ -386,6 +478,7 @@ export type Database = {
           reason: string | null
           reviewed_by: string | null
           to_status: Database["public"]["Enums"]["kyc_status"]
+          user_id: string | null
         }
         Insert: {
           created_at?: string
@@ -395,6 +488,7 @@ export type Database = {
           reason?: string | null
           reviewed_by?: string | null
           to_status: Database["public"]["Enums"]["kyc_status"]
+          user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -404,6 +498,7 @@ export type Database = {
           reason?: string | null
           reviewed_by?: string | null
           to_status?: Database["public"]["Enums"]["kyc_status"]
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -411,6 +506,13 @@ export type Database = {
             columns: ["kyc_id"]
             isOneToOne: false
             referencedRelation: "kyc_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kyc_audit_log_user_id_profiles_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -486,6 +588,57 @@ export type Database = {
           status?: Database["public"]["Enums"]["market_status"]
           theme?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          body: string
+          channel: Database["public"]["Enums"]["notification_channel"]
+          created_at: string
+          error_message: string | null
+          id: string
+          idempotency_key: string
+          metadata: Json
+          read_at: string | null
+          recipient_email: string
+          recipient_id: string
+          sent_at: string | null
+          status: Database["public"]["Enums"]["notification_status"]
+          title: string
+          type: Database["public"]["Enums"]["notification_type"]
+        }
+        Insert: {
+          body: string
+          channel?: Database["public"]["Enums"]["notification_channel"]
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          idempotency_key: string
+          metadata?: Json
+          read_at?: string | null
+          recipient_email: string
+          recipient_id: string
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["notification_status"]
+          title: string
+          type: Database["public"]["Enums"]["notification_type"]
+        }
+        Update: {
+          body?: string
+          channel?: Database["public"]["Enums"]["notification_channel"]
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          idempotency_key?: string
+          metadata?: Json
+          read_at?: string | null
+          recipient_email?: string
+          recipient_id?: string
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["notification_status"]
+          title?: string
+          type?: Database["public"]["Enums"]["notification_type"]
         }
         Relationships: []
       }
@@ -746,6 +899,36 @@ export type Database = {
         }
         Relationships: []
       }
+      settings: {
+        Row: {
+          created_at: string
+          id: number
+          is_active: boolean
+          key: string
+          meta: Json
+          source: string
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          is_active: boolean
+          key: string
+          meta: Json
+          source: string
+          value: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          is_active?: boolean
+          key?: string
+          meta?: Json
+          source?: string
+          value?: string
+        }
+        Relationships: []
+      }
       stall_holds: {
         Row: {
           created_at: string
@@ -796,6 +979,8 @@ export type Database = {
       }
       stall_instances: {
         Row: {
+          category_id: string | null
+          category_overridden: boolean
           height: number
           id: string
           label: string
@@ -803,12 +988,15 @@ export type Database = {
           price_override: number | null
           rotation: number
           status: Database["public"]["Enums"]["stall_status"]
+          tags_overridden: boolean
           template_id: string
           width: number
           x: number
           y: number
         }
         Insert: {
+          category_id?: string | null
+          category_overridden?: boolean
           height: number
           id?: string
           label: string
@@ -816,12 +1004,15 @@ export type Database = {
           price_override?: number | null
           rotation?: number
           status?: Database["public"]["Enums"]["stall_status"]
+          tags_overridden?: boolean
           template_id: string
           width: number
           x: number
           y: number
         }
         Update: {
+          category_id?: string | null
+          category_overridden?: boolean
           height?: number
           id?: string
           label?: string
@@ -829,12 +1020,20 @@ export type Database = {
           price_override?: number | null
           rotation?: number
           status?: Database["public"]["Enums"]["stall_status"]
+          tags_overridden?: boolean
           template_id?: string
           width?: number
           x?: number
           y?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "stall_instances_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fk_stall_instances_market"
             columns: ["market_id"]
@@ -851,9 +1050,70 @@ export type Database = {
           },
         ]
       }
+      stall_instance_tags: {
+        Row: {
+          stall_instance_id: string
+          tag_id: string
+        }
+        Insert: {
+          stall_instance_id: string
+          tag_id: string
+        }
+        Update: {
+          stall_instance_id?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stall_instance_tags_stall_instance_id_fkey"
+            columns: ["stall_instance_id"]
+            isOneToOne: false
+            referencedRelation: "stall_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stall_instance_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stall_template_tags: {
+        Row: {
+          stall_template_id: string
+          tag_id: string
+        }
+        Insert: {
+          stall_template_id: string
+          tag_id: string
+        }
+        Update: {
+          stall_template_id?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stall_template_tags_stall_template_id_fkey"
+            columns: ["stall_template_id"]
+            isOneToOne: false
+            referencedRelation: "stall_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stall_template_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stall_templates: {
         Row: {
           capacity: number | null
+          category_id: string | null
           created_at: string
           fill_color: string
           height: number
@@ -868,6 +1128,7 @@ export type Database = {
         }
         Insert: {
           capacity?: number | null
+          category_id?: string | null
           created_at?: string
           fill_color?: string
           height?: number
@@ -882,6 +1143,7 @@ export type Database = {
         }
         Update: {
           capacity?: number | null
+          category_id?: string | null
           created_at?: string
           fill_color?: string
           height?: number
@@ -894,143 +1156,48 @@ export type Database = {
           tags?: string[] | null
           width?: number
         }
-        Relationships: []
-      }
-      vat_ledger: {
-        Row: {
-          id: string
-          booking_id: string
-          vendor_id: string
-          invoice_number: string
-          vat_amount: number
-          net_amount: number
-          gross_amount: number
-          vat_rate: number
-          vat_mode: string
-          period_id: string | null
-          status: string
-          refund_of: string | null
-          notes: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          booking_id: string
-          vendor_id: string
-          invoice_number: string
-          vat_amount: number
-          net_amount: number
-          gross_amount: number
-          vat_rate: number
-          vat_mode: string
-          period_id?: string | null
-          status?: string
-          refund_of?: string | null
-          notes?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          booking_id?: string
-          vendor_id?: string
-          invoice_number?: string
-          vat_amount?: number
-          net_amount?: number
-          gross_amount?: number
-          vat_rate?: number
-          vat_mode?: string
-          period_id?: string | null
-          status?: string
-          refund_of?: string | null
-          notes?: string | null
-          created_at?: string
-          updated_at?: string
-        }
         Relationships: [
           {
-            foreignKeyName: "vat_ledger_booking_id_fkey"
-            columns: ["booking_id"]
+            foreignKeyName: "stall_templates_category_id_fkey"
+            columns: ["category_id"]
             isOneToOne: false
-            referencedRelation: "bookings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "vat_ledger_vendor_id_fkey"
-            columns: ["vendor_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "vat_ledger_period_id_fkey"
-            columns: ["period_id"]
-            isOneToOne: false
-            referencedRelation: "vat_periods"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "vat_ledger_refund_of_fkey"
-            columns: ["refund_of"]
-            isOneToOne: false
-            referencedRelation: "vat_ledger"
+            referencedRelation: "categories"
             referencedColumns: ["id"]
           },
         ]
       }
-      vat_periods: {
+      tags: {
         Row: {
-          id: string
-          name: string
-          start_date: string
-          end_date: string | null
-          status: string
-          closed_at: string | null
-          closed_by: string | null
-          total_vat_collected: number
-          total_vat_outstanding: number
-          total_vat_due: number
+          color: string | null
           created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          slug: string
+          sort_order: number
           updated_at: string
         }
         Insert: {
-          id?: string
-          name: string
-          start_date: string
-          end_date?: string | null
-          status?: string
-          closed_at?: string | null
-          closed_by?: string | null
-          total_vat_collected?: number
-          total_vat_outstanding?: number
-          total_vat_due?: number
+          color?: string | null
           created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          slug: string
+          sort_order?: number
           updated_at?: string
         }
         Update: {
+          color?: string | null
+          created_at?: string
           id?: string
+          is_active?: boolean
           name?: string
-          start_date?: string
-          end_date?: string | null
-          status?: string
-          closed_at?: string | null
-          closed_by?: string | null
-          total_vat_collected?: number
-          total_vat_outstanding?: number
-          total_vat_due?: number
-          created_at?: string
+          slug?: string
+          sort_order?: number
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "vat_periods_closed_by_fkey"
-            columns: ["closed_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       user_roles: {
         Row: {
@@ -1064,18 +1231,197 @@ export type Database = {
           },
         ]
       }
+      vat_ledger: {
+        Row: {
+          booking_id: string
+          created_at: string
+          gross_amount: number
+          id: string
+          invoice_number: string
+          net_amount: number
+          notes: string | null
+          period_id: string | null
+          refund_of: string | null
+          status: string
+          updated_at: string
+          vat_amount: number
+          vat_mode: string
+          vat_rate: number
+          vendor_id: string
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          gross_amount: number
+          id?: string
+          invoice_number: string
+          net_amount: number
+          notes?: string | null
+          period_id?: string | null
+          refund_of?: string | null
+          status?: string
+          updated_at?: string
+          vat_amount: number
+          vat_mode: string
+          vat_rate: number
+          vendor_id: string
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          gross_amount?: number
+          id?: string
+          invoice_number?: string
+          net_amount?: number
+          notes?: string | null
+          period_id?: string | null
+          refund_of?: string | null
+          status?: string
+          updated_at?: string
+          vat_amount?: number
+          vat_mode?: string
+          vat_rate?: number
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vat_ledger_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vat_ledger_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "vat_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vat_ledger_refund_of_fkey"
+            columns: ["refund_of"]
+            isOneToOne: false
+            referencedRelation: "vat_ledger"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vat_ledger_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vat_periods: {
+        Row: {
+          closed_at: string | null
+          closed_by: string | null
+          created_at: string
+          end_date: string | null
+          id: string
+          name: string
+          start_date: string
+          status: string
+          total_vat_collected: number
+          total_vat_due: number
+          total_vat_outstanding: number
+          updated_at: string
+        }
+        Insert: {
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          name: string
+          start_date: string
+          status?: string
+          total_vat_collected?: number
+          total_vat_due?: number
+          total_vat_outstanding?: number
+          updated_at?: string
+        }
+        Update: {
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          name?: string
+          start_date?: string
+          status?: string
+          total_vat_collected?: number
+          total_vat_due?: number
+          total_vat_outstanding?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vat_periods_closed_by_fkey"
+            columns: ["closed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendor_tags: {
+        Row: {
+          user_id: string
+          tag_id: string
+        }
+        Insert: {
+          user_id: string
+          tag_id: string
+        }
+        Update: {
+          user_id?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_tags_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      admin_approve_booking: { Args: { p_booking_id: string }; Returns: Json }
-      admin_decline_booking: { Args: { p_booking_id: string }; Returns: Json }
-      calculate_vat: {
-        Args: { p_base_price: number; p_vat_rate: number; p_vat_mode: string }
+      admin_approve_booking: {
+        Args: { p_booking_id: string }
         Returns: Json
       }
-      cancel_booking: { Args: { p_booking_id: string }; Returns: Json }
+      admin_decline_booking: {
+        Args: { p_booking_id: string }
+        Returns: Json
+      }
+      build_booking_notification_metadata: {
+        Args: { p_booking_id: string }
+        Returns: Json
+      }
+      calculate_vat: {
+        Args: { p_base_price: number; p_vat_mode: string; p_vat_rate: number }
+        Returns: Json
+      }
+      cancel_booking: {
+        Args: { p_booking_id: string }
+        Returns: Json
+      }
       check_stall_date_availability: {
         Args: { dates: string[]; market_id: string; stall_id: string }
         Returns: boolean
@@ -1084,52 +1430,87 @@ export type Database = {
         Args: { p_booking_date_id: string; p_booking_id: string }
         Returns: Json
       }
-      cleanup_expired_holds: { Args: never; Returns: number }
-      create_vat_ledger_entry: {
-        Args: {
-          p_booking_id: string
-          p_vendor_id: string
-          p_invoice_number: string
-          p_total_amount: number
-          p_vat_rate: number
-          p_vat_mode: string
-        }
-        Returns: Json
-      }
-      create_vat_period: {
-        Args: { p_name: string; p_start_date: string; p_end_date?: string }
-        Returns: Json
+      cleanup_expired_holds: {
+        Args: Record<PropertyKey, never>
+        Returns: number
       }
       create_credentials: {
         Args: { p_key: string; p_meta: Json; p_source: string; p_value: string }
         Returns: undefined
       }
+      create_notification: {
+        Args: {
+          p_body: string
+          p_idempotency_key?: string
+          p_metadata?: Json
+          p_recipient_email: string
+          p_recipient_id: string
+          p_title: string
+          p_type: Database["public"]["Enums"]["notification_type"]
+        }
+        Returns: string
+      }
       create_stall_hold: {
         Args: { p_dates: string[]; p_market_id: string; p_stall_id: string }
         Returns: Json
       }
-      expire_booking: { Args: { p_booking_id: string }; Returns: Json }
-      record_cash_payment: {
+      create_vat_ledger_entry: {
         Args: {
           p_booking_id: string
-          p_amount: number
-          p_collected_by: string
-          p_denominations?: Json
-          p_notes?: string
+          p_invoice_number: string
+          p_total_amount: number
+          p_vat_mode: string
+          p_vat_rate: number
+          p_vendor_id: string
         }
-        Returns: string
-      }
-      get_or_create_open_vat_period: { Args: Record<string, never>; Returns: Json }
-      mark_vat_collected: { Args: { p_booking_id: string }; Returns: Json }
-      create_vat_refund_entry: { Args: { p_booking_id: string }; Returns: Json }
-      reconcile_vat_period: { Args: { p_period_id: string }; Returns: Json }
-      update_vat_period: {
-        Args: { p_period_id: string; p_name: string; p_end_date?: string }
         Returns: Json
       }
-      delete_vat_period: { Args: { p_period_id: string }; Returns: Json }
-      generate_invoice_number: { Args: never; Returns: string }
-      generate_stall_label: { Args: { p_market_id: string }; Returns: string }
+      create_vat_period: {
+        Args: { p_end_date?: string; p_name: string; p_start_date: string }
+        Returns: Json
+      }
+      create_vat_refund_entry: {
+        Args: { p_booking_id: string }
+        Returns: Json
+      }
+      delete_vat_period: {
+        Args: { p_period_id: string }
+        Returns: Json
+      }
+      expire_booking: {
+        Args: { p_booking_id: string }
+        Returns: Json
+      }
+      generate_invoice_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      generate_stall_label: {
+        Args: { p_market_id: string }
+        Returns: string
+      }
+      get_notification_recipients: {
+        Args: {
+          p_notification_type: Database["public"]["Enums"]["notification_type"]
+        }
+        Returns: {
+          email: string
+          user_id: string
+        }[]
+      }
+      get_or_create_open_vat_period: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      get_profiles_with_roles: {
+        Args: {
+          p_page?: number
+          p_page_size?: number
+          p_role_id?: string
+          p_search?: string
+        }
+        Returns: Json
+      }
       get_unpaid_invoice_for_stall: {
         Args: { p_stall_id: string; p_vendor_id: string }
         Returns: {
@@ -1141,13 +1522,22 @@ export type Database = {
           total_amount: number
         }[]
       }
-      get_user_permissions: { Args: { user_uuid: string }; Returns: string[] }
+      get_user_permissions: {
+        Args: { user_uuid: string }
+        Returns: string[]
+      }
       get_user_role: {
         Args: { user_uuid: string }
         Returns: Database["public"]["Enums"]["app_role"]
       }
-      get_user_role_id: { Args: { user_uuid: string }; Returns: string }
-      get_user_role_key: { Args: { user_uuid: string }; Returns: string }
+      get_user_role_id: {
+        Args: { user_uuid: string }
+        Returns: string
+      }
+      get_user_role_key: {
+        Args: { user_uuid: string }
+        Returns: string
+      }
       get_user_role_with_permissions: {
         Args: { user_uuid: string }
         Returns: {
@@ -1189,8 +1579,40 @@ export type Database = {
         Args: { p_email: string; p_market_id: string }
         Returns: Json
       }
-      profile_checks: { Args: { p_phone: string }; Returns: Json }
-      reserve_booking: { Args: { p_booking_id: string }; Returns: Json }
+      mark_all_notifications_read: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      mark_notification_read: {
+        Args: { p_notification_id: string }
+        Returns: undefined
+      }
+      mark_vat_collected: {
+        Args: { p_booking_id: string }
+        Returns: Json
+      }
+      profile_checks: {
+        Args: { p_phone: string }
+        Returns: Json
+      }
+      reconcile_vat_period: {
+        Args: { p_period_id: string }
+        Returns: Json
+      }
+      record_cash_payment: {
+        Args: {
+          p_amount: number
+          p_booking_id: string
+          p_collected_by: string
+          p_denominations?: Json
+          p_notes?: string
+        }
+        Returns: string
+      }
+      reserve_booking: {
+        Args: { p_booking_id: string }
+        Returns: Json
+      }
       save_role_with_permissions: {
         Args: {
           p_description: string
@@ -1217,7 +1639,10 @@ export type Database = {
         Args: { p_booking_id: string }
         Returns: Json
       }
-      simulate_payment_refund: { Args: { p_booking_id: string }; Returns: Json }
+      simulate_payment_refund: {
+        Args: { p_booking_id: string }
+        Returns: Json
+      }
       simulate_payment_refund_admin: {
         Args: { p_booking_id: string }
         Returns: Json
@@ -1238,6 +1663,28 @@ export type Database = {
         Args: { p_booking_date_id: string; p_booking_id: string }
         Returns: Json
       }
+      check_vendor_stall_eligibility: {
+        Args: {
+          p_user_id: string
+          p_stall_id: string
+        }
+        Returns: Json
+      }
+      update_user: {
+        Args: {
+          p_email: string
+          p_full_name: string
+          p_phone: string
+          p_role_id: string
+          p_tags: string[]
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+      update_vat_period: {
+        Args: { p_end_date?: string; p_name: string; p_period_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "vendor" | "admin"
@@ -1250,6 +1697,18 @@ export type Database = {
         | "reserved"
       kyc_status: "PENDING" | "APPROVED" | "REJECTED"
       market_status: "DRAFT" | "PUBLISHED" | "ARCHIVED"
+      notification_channel: "email"
+      notification_status: "pending" | "sent" | "failed" | "read"
+      notification_type:
+        | "booking_submitted"
+        | "payment_received"
+        | "offline_payment_complete"
+        | "vendor_onboarded"
+        | "booking_approved"
+        | "booking_rejected"
+        | "vendor_checked_in"
+        | "kyc_approved"
+        | "kyc_rejected"
       payment_status:
         | "pending"
         | "success"
@@ -1401,6 +1860,19 @@ export const Constants = {
       ],
       kyc_status: ["PENDING", "APPROVED", "REJECTED"],
       market_status: ["DRAFT", "PUBLISHED", "ARCHIVED"],
+      notification_channel: ["email"],
+      notification_status: ["pending", "sent", "failed", "read"],
+      notification_type: [
+        "booking_submitted",
+        "payment_received",
+        "offline_payment_complete",
+        "vendor_onboarded",
+        "booking_approved",
+        "booking_rejected",
+        "vendor_checked_in",
+        "kyc_approved",
+        "kyc_rejected",
+      ],
       payment_status: [
         "pending",
         "success",

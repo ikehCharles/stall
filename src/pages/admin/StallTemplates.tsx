@@ -10,10 +10,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import {
   useStallTemplates,
   useDeleteStallTemplate,
+  StallTemplate,
 } from "@/hooks/useStallTemplates";
 import { StallTemplateDialog } from "@/components/admin/StallTemplateDialog";
 import { toast } from "@/hooks/use-toast";
@@ -21,7 +21,7 @@ import CurrencyWrapper from "@/components/shared/currency";
 
 const StallTemplates = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [editingTemplate, setEditingTemplate] = useState<any>(null);
+  const [editingTemplate, setEditingTemplate] = useState<StallTemplate | null>(null);
   const { data: templates, isLoading } = useStallTemplates();
   const deleteTemplate = useDeleteStallTemplate();
 
@@ -56,7 +56,7 @@ const StallTemplates = () => {
     }
   };
 
-  const TemplatePreview = ({ template }: { template: any }) => {
+  const TemplatePreview = ({ template }: { template: StallTemplate }) => {
     const size = 40;
     const props = {
       width: size,
@@ -184,12 +184,12 @@ const StallTemplates = () => {
         onSuccess={() => setIsCreateDialogOpen(false)}
       />
 
-      <StallTemplateDialog
+      {editingTemplate && <StallTemplateDialog
         open={!!editingTemplate}
         onOpenChange={(open) => !open && setEditingTemplate(null)}
         template={editingTemplate}
         onSuccess={() => setEditingTemplate(null)}
-      />
+      />}
     </div>
   );
 };
