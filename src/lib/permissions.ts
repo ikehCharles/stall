@@ -44,6 +44,13 @@ export const PERMISSIONS = {
     COLLECT: 'payments.collect',
     MANAGE: 'payments.manage',
   },
+  REFUNDS: {
+    REQUEST: 'refunds.request',
+    APPROVE: 'refunds.approve',
+  },
+  AUDIT_LOG: {
+    VIEW: 'audit_log.view',
+  },
   USERS: {
     VIEW: 'users.view',
     VIEW_SELF: 'users.view.self',
@@ -69,6 +76,8 @@ export const PERMISSIONS = {
     RECEIVE_PAYMENT_RECEIVED: 'notifications.receive.payment_received',
     RECEIVE_OFFLINE_PAYMENT: 'notifications.receive.offline_payment',
     RECEIVE_VENDOR_ONBOARDED: 'notifications.receive.vendor_onboarded',
+    RECEIVE_REFUND_REQUESTED: 'notifications.receive.refund_requested',
+    RECEIVE_REFUND_RESOLVED: 'notifications.receive.refund_resolved',
     VIEW_ALL: 'notifications.view.all',
     MANAGE: 'notifications.manage',
   },

@@ -21,9 +21,8 @@ import { useBookingDatesForBooking } from "@/hooks/useBookingDatesForBooking";
 import { useStallInstances } from "@/hooks/useStallInstances";
 import { PaymentModal } from "@/components/vendor/PaymentModal";
 import { BookingHoldTimer } from "@/components/vendor/BookingHoldTimer";
-// import { useAdminApproveBooking, useAdminDeclineBooking } from "@/hooks/useAdminBookings";
 import { parseISO, format, differenceInCalendarDays } from "date-fns";
-import { Check, Loader, QrCode, X } from "lucide-react";
+import { Check, Loader, QrCode, X, RotateCcw, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -42,6 +41,11 @@ import {
   useAdminBookings,
   useAdminToggleAuthorizedBooking,
   useAdminToggleBooking,
+  useCancelBooking as useAdminCancelBooking,
+  useRequestRefund,
+  useApproveRefund,
+  useRejectRefund,
+  useAdminCancelBookingRpc,
 } from "@/hooks/useAdminBookings";
 import {
   Tooltip,
@@ -59,6 +63,9 @@ import React from "react";
 import CurrencyWrapper from "@/components/shared/currency";
 import VatBreakdown from "@/components/shared/VatBreakdown";
 import { useQueryClient } from "@tanstack/react-query";
+import { usePermissions } from "@/hooks/usePermissions";
+import { PERMISSIONS } from "@/lib/permissions";
+import { RefundApprovalDialog } from "@/components/admin/RefundApprovalDialog";
 
 const BookingDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -79,6 +86,20 @@ const BookingDetails = () => {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [invoiceQR, setInvoiceQR] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  const { hasPermission } = usePermissions();
+
+  // ── Refund flow state (admin only) ──
+  const adminCancelBooking = useAdminCancelBooking();
+  const adminCancelBookingRpc = useAdminCancelBookingRpc();
+  const requestRefund = useRequestRefund();
+  const approveRefund = useApproveRefund();
+  const rejectRefund = useRejectRefund();
+  const [refundDialogOpen, setRefundDialogOpen] = useState(false);
+  const [refundMode, setRefundMode] = useState<"reject" | "request" | "approve" | "reject_refund">("reject");
+
+  const canApproveRefund = hasPermission(PERMISSIONS.REFUNDS.APPROVE);
+  const canRequestRefund = hasPermission(PERMISSIONS.REFUNDS.REQUEST);
+  const canManageBookings = hasPermission(PERMISSIONS.BOOKINGS.MANAGE);
   // look for search params status=processing and set dependency on payment_status, if it changes to success, remove search param
   useEffect(() => {
     if (searchParams.get("status") === "processing") {
@@ -233,7 +254,11 @@ const BookingDetails = () => {
   const handleCancelBooking = async () => {
     if (!id) return;
     try {
-      await cancelBooking.mutateAsync(id);
+      if (isAdminView) {
+        await adminCancelBookingRpc.mutateAsync(id);
+      } else {
+        await cancelBooking.mutateAsync(id);
+      }
       toast.success("Booking cancelled successfully");
       setCancelDialogOpen(false);
       if (isAdminView) {
@@ -282,22 +307,6 @@ const BookingDetails = () => {
     }
     if (ENV.PAYMENT_INTENT == INTENT.CAPTURE) {
       await toggleBooking.mutateAsync({ bookingId, intent: INTENT.CAPTURE });
-      await queryClient.invalidateQueries({ queryKey: ["booking-details", bookingId] });
-      return;
-    }
-
-    // error message for unsupported intent
-    toast.error("Unsupported payment intent configured.");
-  };
-
-  const handleDecline = async (bookingId: string) => {
-    if (ENV.PAYMENT_INTENT == INTENT.AUTHORIZE) {
-      await toggleAuthorizedBooking.mutateAsync({ bookingId, intent: INTENT.VOID });
-      await queryClient.invalidateQueries({ queryKey: ["booking-details", bookingId] });
-      return;
-    }
-    if (ENV.PAYMENT_INTENT == INTENT.CAPTURE) {
-      await toggleBooking.mutateAsync({ bookingId, intent: INTENT.VOID });
       await queryClient.invalidateQueries({ queryKey: ["booking-details", bookingId] });
       return;
     }
@@ -367,7 +376,11 @@ const BookingDetails = () => {
               <Button
                 onClick={() => setCancelDialogOpen(true)}
                 variant="destructive"
+                disabled={cancelBooking.isPending || adminCancelBookingRpc.isPending}
               >
+                {(cancelBooking.isPending || adminCancelBookingRpc.isPending) ? (
+                  <Loader className="w-4 h-4 mr-1 animate-spin" />
+                ) : null}
                 Cancel Booking
               </Button>
             )}
@@ -383,17 +396,114 @@ const BookingDetails = () => {
                   <Check className="w-4 h-4 mr-1" />
                   Approve
                 </Button>
+                {canManageBookings && (
+                  <Button
+                    variant="destructive"
+                    onClick={() => {
+                      setRefundMode("reject");
+                      setRefundDialogOpen(true);
+                    }}
+                    disabled={adminCancelBooking.isPending}
+                  >
+                    {adminCancelBooking.isPending ? (
+                      <Loader className="w-4 h-4 mr-1 animate-spin" />
+                    ) : (
+                      <X className="w-4 h-4 mr-1" />
+                    )}
+                    Reject
+                  </Button>
+                )}
+              </>
+            )}
+
+            {/* Reject for non-cancelled bookings without the approve flow */}
+            {isAdminView && !canShowActions(booking) && booking.status !== "cancelled" && booking.status !== "expired" && canManageBookings && (
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  setRefundMode("reject");
+                  setRefundDialogOpen(true);
+                }}
+                disabled={adminCancelBooking.isPending}
+              >
+                {adminCancelBooking.isPending ? (
+                  <Loader className="w-4 h-4 mr-1 animate-spin" />
+                ) : (
+                  <X className="w-4 h-4 mr-1" />
+                )}
+                Reject
+              </Button>
+            )}
+
+            {/* Refund: cancelled + paid + no refund yet */}
+            {isAdminView &&
+              booking.status === "cancelled" &&
+              booking.payment_status === "success" &&
+              !booking.refund_status &&
+              (canRequestRefund || canApproveRefund) && (
+              <Button
+                variant="outline"
+                className="border-yellow-500 text-yellow-700 hover:bg-yellow-50"
+                onClick={() => {
+                  setRefundMode("request");
+                  setRefundDialogOpen(true);
+                }}
+                disabled={requestRefund.isPending}
+              >
+                {requestRefund.isPending ? (
+                  <Loader className="w-4 h-4 mr-1 animate-spin" />
+                ) : (
+                  <RotateCcw className="w-4 h-4 mr-1" />
+                )}
+                Request Refund
+              </Button>
+            )}
+
+            {/* Approve / Reject pending refund */}
+            {isAdminView && booking.refund_status === "requested" && canApproveRefund && (
+              <>
                 <Button
                   variant="destructive"
-                  onClick={() => handleDecline(booking.id)}
-                  disabled={
-                    toggleAuthorizedBooking.isPending || toggleBooking.isPending
-                  }
+                  onClick={() => {
+                    setRefundMode("approve");
+                    setRefundDialogOpen(true);
+                  }}
+                  disabled={approveRefund.isPending}
                 >
-                  <X className="w-4 h-4 mr-1" />
-                  Decline
+                  {approveRefund.isPending ? (
+                    <Loader className="w-4 h-4 mr-1 animate-spin" />
+                  ) : (
+                    <RotateCcw className="w-4 h-4 mr-1" />
+                  )}
+                  Approve Refund
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setRefundMode("reject_refund");
+                    setRefundDialogOpen(true);
+                  }}
+                  disabled={rejectRefund.isPending}
+                >
+                  {rejectRefund.isPending ? (
+                    <Loader className="w-4 h-4 mr-1 animate-spin" />
+                  ) : (
+                    <ShieldAlert className="w-4 h-4 mr-1" />
+                  )}
+                  Reject Refund
                 </Button>
               </>
+            )}
+
+            {/* Refund status badges */}
+            {isAdminView && booking.refund_status === "requested" && !canApproveRefund && (
+              <Badge className="bg-yellow-100 text-yellow-800">Refund Pending Approval</Badge>
+            )}
+            {isAdminView && booking.refund_status === "completed" && (
+              <Badge className="bg-green-100 text-green-800">Refunded</Badge>
+            )}
+            {isAdminView && booking.refund_status === "rejected" && (
+              <Badge className="bg-red-50 text-red-700">Refund Rejected</Badge>
             )}
           </div>
         </div>
@@ -632,6 +742,33 @@ const BookingDetails = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Admin Refund Approval Dialog */}
+        {isAdminView && booking && (
+          <RefundApprovalDialog
+            open={refundDialogOpen}
+            onOpenChange={setRefundDialogOpen}
+            booking={booking}
+            mode={refundMode}
+            isPending={adminCancelBooking.isPending || requestRefund.isPending || approveRefund.isPending || rejectRefund.isPending}
+            onConfirm={(reason) => {
+              const bookingId = booking.id;
+              const onSuccess = () => {
+                setRefundDialogOpen(false);
+                queryClient.invalidateQueries({ queryKey: ["booking-details", bookingId] });
+              };
+              if (refundMode === "reject") {
+                adminCancelBooking.mutate({ bookingId, reason }, { onSuccess });
+              } else if (refundMode === "request") {
+                requestRefund.mutate({ bookingId, reason }, { onSuccess });
+              } else if (refundMode === "approve") {
+                approveRefund.mutate({ bookingId, reason }, { onSuccess });
+              } else if (refundMode === "reject_refund") {
+                rejectRefund.mutate({ bookingId, reason }, { onSuccess });
+              }
+            }}
+          />
+        )}
       </div>
 
       <Dialog

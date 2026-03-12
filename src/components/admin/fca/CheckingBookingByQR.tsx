@@ -19,6 +19,7 @@ import {
 import { UseMutationResult } from "@tanstack/react-query";
 import {
   BookingWithStalls,
+  useCancelBooking,
   useCheckInVendor,
   useUndoCheckInVendor,
 } from "@/hooks/useBookings";
@@ -35,9 +36,9 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { INTENT } from "@/lib/enums";
 import {
+  useAdminCancelBookingRpc,
   useAdminToggleAuthorizedBooking,
-  useAdminToggleBooking,
-  useDeclineBooking,
+  useAdminToggleBooking
 } from "@/hooks/useAdminBookings";
 import { ENV } from "@/lib/utils";
 import { useConfirm } from "@/components/ui/confirmDialog";
@@ -61,7 +62,7 @@ const CheckingBookingByQR: React.FC<CheckingBookingByQRProps> = (props) => {
   const confirm = useConfirm();
   const toggleAuthorizedBooking = useAdminToggleAuthorizedBooking();
   const toggleBooking = useAdminToggleBooking();
-  const declineBooking = useDeclineBooking();
+  const declineBooking = useAdminCancelBookingRpc();
   const checkInVendorBookingDate = useCheckInVendor();
   const undoCheckInVendorBookingDate = useUndoCheckInVendor();
 

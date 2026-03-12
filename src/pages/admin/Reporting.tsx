@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { PermissionGate } from "@/components/PermissionGate";
 import { PERMISSIONS } from "@/lib/permissions";
-import { Receipt, Banknote } from "lucide-react";
+import { Receipt, Banknote, ClipboardList } from "lucide-react";
 
 const reportModules = [
   {
@@ -24,6 +24,16 @@ const reportModules = [
     color: "from-green-500 to-emerald-500",
     bgColor: "bg-green-50",
     iconColor: "text-green-600",
+  },
+  {
+    title: "Audit Log",
+    description: "View the full history of system actions, cancellations, and refund decisions",
+    href: "/admin/reports/audit-log",
+    icon: ClipboardList,
+    permissions: [PERMISSIONS.AUDIT_LOG.VIEW],
+    color: "from-purple-500 to-violet-500",
+    bgColor: "bg-purple-50",
+    iconColor: "text-purple-600",
   },
 ];
 

@@ -30,10 +30,19 @@ import {
   useAdminBookings,
   useAdminToggleBooking,
   useAdminToggleAuthorizedBooking,
-  useDeclineBooking,
+  useCancelBooking,
+  useRequestRefund,
+  useApproveRefund,
+  useRejectRefund,
 } from "@/hooks/useAdminBookings";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Check, Loader, X } from "lucide-react";
+import { Check, Loader, X, RotateCcw, ShieldAlert, Eye, ShieldCheck, HandCoins, ShieldX } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { PermissionGate } from "@/components/PermissionGate";
 import { PERMISSIONS } from "@/lib/permissions";
 import { ENV } from "@/lib/utils";
@@ -41,27 +50,40 @@ import { INTENT } from "@/lib/enums";
 import { toast } from "sonner";
 import { BookingWithStalls } from "@/hooks/useBookings";
 import { useConfirm } from "@/components/ui/confirmDialog";
-import { supabase } from "@/integrations/supabase/client";
 import {
   useReconcileOfflineBooking,
   useSyncOfflineBooking,
 } from "@/hooks/useOfflineBooking";
 import {
   getPaymentStatusBadge,
+  getRefundStatusBadge,
   getStatusBadge,
 } from "@/components/shared/statuses";
 import CurrencyWrapper from "@/components/shared/currency";
+import { usePermissions } from "@/hooks/usePermissions";
+import { RefundApprovalDialog } from "@/components/admin/RefundApprovalDialog";
 
 const AdminBookings = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [refundDialogOpen, setRefundDialogOpen] = useState(false);
+  const [refundMode, setRefundMode] = useState<"reject" | "request" | "approve" | "reject_refund">("reject");
+  const [selectedBooking, setSelectedBooking] = useState<BookingWithStalls | null>(null);
   const confirm = useConfirm();
+  const { hasPermission } = usePermissions();
   const { data: bookings, isLoading } = useAdminBookings();
   const toggleAuthorizedBooking = useAdminToggleAuthorizedBooking();
   const toggleBooking = useAdminToggleBooking();
-  const declineBooking = useDeclineBooking();
+  const cancelBooking = useCancelBooking();
+  const requestRefund = useRequestRefund();
+  const approveRefund = useApproveRefund();
+  const rejectRefund = useRejectRefund();
   const syncOffline = useSyncOfflineBooking();
   const reconcileOffline = useReconcileOfflineBooking();
+
+  const canApproveRefund = hasPermission(PERMISSIONS.REFUNDS.APPROVE);
+  const canRequestRefund = hasPermission(PERMISSIONS.REFUNDS.REQUEST);
+  const canManageBookings = hasPermission(PERMISSIONS.BOOKINGS.MANAGE);
 
   useEffect(() => {
     syncOffline.mutateAsync();
@@ -75,10 +97,18 @@ const AdminBookings = () => {
           .toLowerCase()
           .includes(searchTerm.toLowerCase()) ||
         booking.markets?.name.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus =
-        statusFilter === "all" || booking.status === statusFilter;
+
+      let matchesStatus = true;
+      if (statusFilter === "refund_requested") {
+        matchesStatus = booking.refund_status === "requested";
+      } else if (statusFilter !== "all") {
+        matchesStatus = booking.status === statusFilter;
+      }
+
       return matchesSearch && matchesStatus;
     }) || [];
+
+  const pendingRefundCount = bookings?.filter(b => b.refund_status === "requested").length || 0;
 
   const handleApprove = async (booking: BookingWithStalls) => {
     const confirmInfo = {
@@ -117,18 +147,49 @@ const AdminBookings = () => {
     toast.error("Unsupported payment intent configured.");
   };
 
-  const handleDecline = async (booking: BookingWithStalls) => {
-    const val = await confirm({
-      title: "Confirm Decline",
-      description:
-        "Are you sure you want to decline this booking? Any payment will be refunded accordingly. This action cannot be undone.",
-      confirmText: "Decline Booking",
-      cancelText: "Cancel",
-      confirmClassName: "bg-red-600 hover:bg-red-700 text-white",
-    });
-    if (!val) return;
+  // ── Reject (cancel) an active booking (no refund) ──
+  const handleReject = (booking: BookingWithStalls) => {
+    setSelectedBooking(booking);
+    setRefundMode("reject");
+    setRefundDialogOpen(true);
+  };
 
-    declineBooking.mutate(booking.id);
+  // ── Request a refund on a cancelled + paid booking ──
+  const handleRequestRefund = (booking: BookingWithStalls) => {
+    setSelectedBooking(booking);
+    setRefundMode("request");
+    setRefundDialogOpen(true);
+  };
+
+  // ── Approve a pending refund request ──
+  const handleApproveRefund = (booking: BookingWithStalls) => {
+    setSelectedBooking(booking);
+    setRefundMode("approve");
+    setRefundDialogOpen(true);
+  };
+
+  // ── Reject a pending refund request ──
+  const handleRejectRefund = (booking: BookingWithStalls) => {
+    setSelectedBooking(booking);
+    setRefundMode("reject_refund");
+    setRefundDialogOpen(true);
+  };
+
+  // ── Confirm handler dispatches to the correct mutation ──
+  const handleDialogConfirm = (reason: string) => {
+    if (!selectedBooking) return;
+    const bookingId = selectedBooking.id;
+    const onSuccess = () => { setRefundDialogOpen(false); setSelectedBooking(null); };
+
+    if (refundMode === "reject") {
+      cancelBooking.mutate({ bookingId, reason }, { onSuccess });
+    } else if (refundMode === "request") {
+      requestRefund.mutate({ bookingId, reason }, { onSuccess });
+    } else if (refundMode === "approve") {
+      approveRefund.mutate({ bookingId, reason }, { onSuccess });
+    } else if (refundMode === "reject_refund") {
+      rejectRefund.mutate({ bookingId, reason }, { onSuccess });
+    }
   };
 
   const canShowActions = useCallback((booking: BookingWithStalls) => {
@@ -209,6 +270,9 @@ const AdminBookings = () => {
                   <SelectItem value="completed">Completed</SelectItem>
                   <SelectItem value="cancelled">Cancelled</SelectItem>
                   <SelectItem value="expired">Expired</SelectItem>
+                  <SelectItem value="refund_requested">
+                    Refund Requested{pendingRefundCount > 0 ? ` (${pendingRefundCount})` : ""}
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -232,6 +296,7 @@ const AdminBookings = () => {
                   <TableHead>VAT</TableHead>
                   <TableHead>Booking Status</TableHead>
                   <TableHead>Payment Status</TableHead>
+                  <TableHead>Refund Status</TableHead>
                   <PermissionGate permissions={[PERMISSIONS.BOOKINGS.MANAGE]}>
                     <TableHead>Actions</TableHead>
                   </PermissionGate>
@@ -241,7 +306,7 @@ const AdminBookings = () => {
                 {filteredBookings.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={9}
+                      colSpan={10}
                       className="text-center py-8 text-gray-500"
                     >
                       No bookings found matching your filters
@@ -274,50 +339,163 @@ const AdminBookings = () => {
                       <TableCell>
                         {getPaymentStatusBadge(booking.payment_status)}
                       </TableCell>
+                      <TableCell>
+                        {getRefundStatusBadge(booking.refund_status)}
+                      </TableCell>
                       <PermissionGate
                         permissions={[PERMISSIONS.BOOKINGS.MANAGE]}
                       >
-                        <TableCell>
-                          <div className="flex space-x-2">
-                            {canShowActions(booking) && (
-                              <>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleApprove(booking)}
-                                  disabled={
-                                    toggleAuthorizedBooking.isPending ||
-                                    toggleBooking.isPending
-                                  }
-                                >
-                                  <Check className="w-4 h-4 mr-1" />
-                                  Approve
-                                </Button>
-                                <Button
-                                  variant="destructive"
-                                  size="sm"
-                                  onClick={() => handleDecline(booking)}
-                                  disabled={
-                                    declineBooking.isPending ||
-                                    toggleAuthorizedBooking.isPending ||
-                                    toggleBooking.isPending
-                                  }
-                                >
-                                  {declineBooking.isPending ? (
-                                    <Loader className="w-4 h-4 mr-1 animate-spin" />
-                                  ) : (
-                                    <X className="w-4 h-4 mr-1" />
+                        <TableCell >
+                          <TooltipProvider delayDuration={200}>
+                            <div className="flex items-center gap-1">
+                              {/* Approve / Reject for active bookings with payment */}
+                              {canShowActions(booking) && (
+                                <>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        size="icon"
+                                        className="h-8 w-8"
+                                        onClick={() => handleApprove(booking)}
+                                        disabled={
+                                          toggleAuthorizedBooking.isPending ||
+                                          toggleBooking.isPending
+                                        }
+                                      >
+                                        <Check className="w-4 h-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Approve</TooltipContent>
+                                  </Tooltip>
+                                  {canManageBookings && (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          variant="destructive"
+                                          size="icon"
+                                          className="h-8 w-8"
+                                          onClick={() => handleReject(booking)}
+                                          disabled={cancelBooking.isPending}
+                                        >
+                                          {cancelBooking.isPending ? (
+                                            <Loader className="w-4 h-4 animate-spin" />
+                                          ) : (
+                                            <X className="w-4 h-4" />
+                                          )}
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>Reject</TooltipContent>
+                                    </Tooltip>
                                   )}
-                                  Decline
-                                </Button>
-                              </>
-                            )}
-                            <Button variant="outline" size="sm" asChild>
-                              <Link to={`/admin/bookings/${booking.id}`}>
-                                View
-                              </Link>
-                            </Button>
-                          </div>
+                                </>
+                              )}
+
+                              {/* Reject for non-cancelled bookings without the approve flow */}
+                              {!canShowActions(booking) && booking.status !== "cancelled" && booking.status !== "expired" && canManageBookings && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="destructive"
+                                      size="icon"
+                                      className="h-8 w-8"
+                                      onClick={() => handleReject(booking)}
+                                      disabled={cancelBooking.isPending}
+                                    >
+                                      {cancelBooking.isPending ? (
+                                        <Loader className="w-4 h-4 animate-spin" />
+                                      ) : (
+                                        <RotateCcw  />
+                                       
+                                      )}
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Cancel</TooltipContent>
+                                </Tooltip>
+                              )}
+
+                              {/* Refund button: cancelled + paid + no refund yet */}
+                              {booking.status === "cancelled" &&
+                                booking.payment_status === "success" &&
+                                !booking.refund_status &&
+                                (canRequestRefund || canApproveRefund) && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      size="icon"
+                                      className="h-8 w-8 border-yellow-500 text-yellow-700 hover:bg-yellow-50"
+                                      onClick={() => handleRequestRefund(booking)}
+                                      disabled={requestRefund.isPending}
+                                    >
+                                      {requestRefund.isPending ? (
+                                        <Loader className="w-4 h-4 animate-spin" />
+                                      ) : (
+                                        <HandCoins className="w-4 h-4" />
+                                      )}
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Request Refund</TooltipContent>
+                                </Tooltip>
+                              )}
+
+                              {/* Approve / Reject for pending refund requests */}
+                              {booking.refund_status === "requested" && canApproveRefund && (
+                                <>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="destructive"
+                                        size="icon"
+                                        className="h-8 w-8"
+                                        onClick={() => handleApproveRefund(booking)}
+                                        disabled={approveRefund.isPending}
+                                      >
+                                        {approveRefund.isPending ? (
+                                          <Loader className="w-4 h-4 animate-spin" />
+                                        ) : (
+                                          <ShieldCheck className="w-4 h-4" />
+                                        )}
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Approve Refund</TooltipContent>
+                                  </Tooltip>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        size="icon"
+                                        className="h-8 w-8"
+                                        onClick={() => handleRejectRefund(booking)}
+                                        disabled={rejectRefund.isPending}
+                                      >
+                                        {rejectRefund.isPending ? (
+                                          <Loader className="w-4 h-4 animate-spin" />
+                                        ) : (
+                                          <ShieldX className="w-4 h-4" />
+                                        )}
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Reject Refund</TooltipContent>
+                                  </Tooltip>
+                                </>
+                              )}
+
+                             
+
+                              {/* View */}
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button variant="outline" size="icon" className="h-8 w-8" asChild>
+                                    <Link to={`/admin/bookings/${booking.id}`}>
+                                      <Eye className="w-4 h-4" />
+                                    </Link>
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>View Details</TooltipContent>
+                              </Tooltip>
+                            </div>
+                          </TooltipProvider>
                         </TableCell>
                       </PermissionGate>
                     </TableRow>
@@ -328,6 +506,15 @@ const AdminBookings = () => {
           )}
         </CardContent>
       </Card>
+
+      <RefundApprovalDialog
+        open={refundDialogOpen}
+        onOpenChange={setRefundDialogOpen}
+        booking={selectedBooking}
+        mode={refundMode}
+        isPending={cancelBooking.isPending || requestRefund.isPending || approveRefund.isPending || rejectRefund.isPending}
+        onConfirm={handleDialogConfirm}
+      />
     </div>
   );
 };

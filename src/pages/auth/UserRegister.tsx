@@ -27,6 +27,7 @@ interface UserRegisterProps {
 }
 
 const initialPayload: UserPayload = {
+  id:"",
   email: "",
   fullName: "",
   phoneNumber: "",
@@ -105,6 +106,7 @@ const UserRegister: React.FC<UserRegisterProps> = (props) => {
     stopLoading();
 
     const userPayload: UserPayload = {
+      id:"0",
       fullName,
       email: normalizedEmail,
       phoneNumber: formattedPhone,

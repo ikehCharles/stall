@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { QueryKeysEnum } from "@/lib/enums";
 import { toast, useToast } from "./use-toast";
+import { User } from "@supabase/supabase-js";
 
 
 export interface RolePayload {

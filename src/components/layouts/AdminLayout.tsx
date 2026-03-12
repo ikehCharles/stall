@@ -67,7 +67,7 @@ const AdminLayout = () => {
       name: 'Reporting', 
       href: '/admin/reports', 
       icon: ClipboardList,
-      permissions: [PERMISSIONS.VAT.VIEW, PERMISSIONS.VAT.MANAGE]
+      permissions: [PERMISSIONS.VAT.VIEW, PERMISSIONS.VAT.MANAGE, PERMISSIONS.AUDIT_LOG.VIEW]
     },
     { 
       name: 'FCA Mode', 

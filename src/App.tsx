@@ -40,6 +40,7 @@ import { ConfirmProvider } from "./components/ui/confirmDialog";
 import VATReporting from "./pages/admin/VATReporting";
 import Reporting from "./pages/admin/Reporting";
 import CashReconciliation from "./pages/admin/CashReconciliation";
+import AuditLog from "./pages/admin/AuditLog";
 import Notifications from "./pages/vendor/Notifications";
 
 const queryClient = new QueryClient();
@@ -309,7 +310,7 @@ const AppContent = () => {
             element={
               <PermissionGate
                 fallback={<AccessDenied />}
-                permissions={[PERMISSIONS.VAT.VIEW, PERMISSIONS.VAT.MANAGE]}
+                permissions={[PERMISSIONS.VAT.VIEW, PERMISSIONS.VAT.MANAGE, PERMISSIONS.AUDIT_LOG.VIEW]}
               >
                 <Reporting />
               </PermissionGate>
@@ -334,6 +335,17 @@ const AppContent = () => {
                 permissions={[PERMISSIONS.PAYMENTS.MANAGE, PERMISSIONS.PAYMENTS.COLLECT]}
               >
                 <CashReconciliation />
+              </PermissionGate>
+            }
+          />
+          <Route
+            path="reports/audit-log"
+            element={
+              <PermissionGate
+                fallback={<AccessDenied />}
+                permissions={[PERMISSIONS.AUDIT_LOG.VIEW]}
+              >
+                <AuditLog />
               </PermissionGate>
             }
           />

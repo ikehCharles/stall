@@ -15,7 +15,9 @@ export type NotificationType =
   | "vendor_onboarded"
   | "booking_approved"
   | "booking_rejected"
-  | "vendor_checked_in";
+  | "vendor_checked_in"
+  | "refund_requested"
+  | "refund_resolved";
 
 export type NotificationStatus = "pending" | "sent" | "failed" | "read";
 

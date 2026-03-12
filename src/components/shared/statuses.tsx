@@ -69,6 +69,33 @@ export const getStatusBadge = (status: string) => {
     }
   };
 
+  export const getRefundStatusBadge = (status: string | null) => {
+    switch (status) {
+      case "requested":
+        return (
+          <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+            Requested
+          </Badge>
+        );
+      case "completed":
+        return (
+          <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+            Refunded
+          </Badge>
+        );
+      case "rejected":
+        return (
+          <Badge className="bg-red-50 text-red-700 dark:bg-red-900 dark:text-red-200">
+            Rejected
+          </Badge>
+        );
+      default:
+        return (
+          <span className="text-xs text-muted-foreground italic">—</span>
+        );
+    }
+  };
+
   export const getKycBadge = (status:Database['public']['Tables']['kyc_applications']['Row']['status']) => {
     if (status === 'REJECTED')
       return <Badge variant="destructive">Rejected</Badge>;

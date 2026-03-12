@@ -125,35 +125,193 @@ export const useAdminToggleBooking = () => {
   });
 };
 
-export const useDeclineBooking = () => {
+// ── Cancel booking (no refund – just sets status to cancelled) ──
+export const useCancelBooking = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async (bookingId: string) => {
+    mutationFn: async ({
+      bookingId,
+      reason,
+    }: {
+      bookingId: string;
+      reason: string;
+    }) => {
       const { data, error } = await supabase.functions.invoke(
         "decline-booking",
-        { body: { bookingId } }
+        { body: { bookingId, reason, action: "cancel" } }
       );
       if (error) throw error;
-      if (data?.status === "error" || data?.error) {
-        throw new Error(data.error || data.message || "Failed to decline booking");
+      if (data?.error) {
+        throw new Error(data.error || data.message || "Failed to cancel booking");
       }
-      return data as {
-        status: string;
-        message: string;
-        refund_method: string;
-        refund_details: unknown;
-      };
+      return data as { status: string; message: string };
     },
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ["admin-bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["audit-log"] });
       toast({ title: res.message });
     },
     onError: (error) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to decline booking.",
+        description: error.message || "Failed to cancel booking.",
+        variant: "destructive",
+      });
+    },
+  });
+};
+
+// ── Request a refund (requires cancelled + paid) ──
+export const useRequestRefund = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({
+      bookingId,
+      reason,
+    }: {
+      bookingId: string;
+      reason: string;
+    }) => {
+      const { data, error } = await supabase.functions.invoke(
+        "decline-booking",
+        { body: { bookingId, reason, action: "request_refund" } }
+      );
+      if (error) throw error;
+      if (data?.error) {
+        throw new Error(data.error || data.message || "Failed to request refund");
+      }
+      return data as { status: string; message: string };
+    },
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["audit-log"] });
+      toast({ title: res.message });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to request refund.",
+        variant: "destructive",
+      });
+    },
+  });
+};
+
+// ── Approve & execute the refund (processes provider refund) ──
+export const useApproveRefund = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({
+      bookingId,
+      reason,
+    }: {
+      bookingId: string;
+      reason: string;
+    }) => {
+      const { data, error } = await supabase.functions.invoke(
+        "decline-booking",
+        { body: { bookingId, reason, action: "approve_refund" } }
+      );
+      if (error) throw error;
+      if (data?.error) {
+        throw new Error(data.error || data.message || "Failed to approve refund");
+      }
+      return data as {
+        status: string;
+        message: string;
+        refund_method?: string;
+        refund_details?: unknown;
+      };
+    },
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["audit-log"] });
+      toast({ title: res.message });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to approve refund.",
+        variant: "destructive",
+      });
+    },
+  });
+};
+
+// ── Reject a pending refund request ──
+export const useRejectRefund = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({
+      bookingId,
+      reason,
+    }: {
+      bookingId: string;
+      reason: string;
+    }) => {
+      const { data, error } = await supabase.functions.invoke(
+        "decline-booking",
+        { body: { bookingId, reason, action: "reject_refund" } }
+      );
+      if (error) throw error;
+      if (data?.error) {
+        throw new Error(data.error || data.message || "Failed to reject refund");
+      }
+      return data as { status: string; message: string };
+    },
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["audit-log"] });
+      toast({ title: res.message });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to reject refund request.",
+        variant: "destructive",
+      });
+    },
+  });
+};
+
+// ── Admin cancel booking via RPC (bypasses vendor user_id check) ──
+export const useAdminCancelBookingRpc = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (bookingId: string) => {
+      const { data, error } = await supabase.rpc("admin_cancel_booking", {
+        p_booking_id: bookingId,
+      });
+      if (error) throw error;
+      const result = data as { status: string; message: string };
+      if (result.status === "error") {
+        throw new Error(result.message || "Failed to cancel booking");
+      }
+      return result;
+    },
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["booking-details"] });
+      queryClient.invalidateQueries({ queryKey: ["audit-log"] });
+      queryClient.invalidateQueries({ queryKey: ["stall-holds"] });
+      queryClient.invalidateQueries({ queryKey: ["stall-instances"] });
+      queryClient.invalidateQueries({ queryKey: ["booking-dates"] });
+      toast({ title: res.message });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to cancel booking.",
         variant: "destructive",
       });
     },
