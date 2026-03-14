@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -39,10 +40,13 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  KYCSearchFilter,
-  type KYCFilters,
-} from "@/components/admin/KYCSearchFilter";
-import { KYCPagination } from "@/components/admin/KYCPagination";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { PaginationControls } from "@/components/shared/PaginationControls";
 import { KYCAuditHistory } from "@/components/admin/KYCAuditHistory";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
@@ -82,6 +86,13 @@ interface KYCStats {
   total: number;
 }
 
+interface KYCFilters {
+  search: string;
+  status: string;
+  dateFrom: Date | null;
+  dateTo: Date | null;
+}
+
 export const KYCReview = () => {
   const confirm = useConfirm();
   const { data: categories, isLoading: categoriesLoading } = useCategories();
@@ -100,12 +111,15 @@ export const KYCReview = () => {
     total: 0,
   });
   const [error, setError] = useState<string | null>(null);
-  const [auditHistoryKey, setAuditHistoryKey] = useState(0);
+  const queryClient = useQueryClient();
 
   // Pagination and filtering
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const isUpdatingFromUrl = useRef(false);
   const filtersRef = useRef<KYCFilters>({
@@ -115,12 +129,25 @@ export const KYCReview = () => {
     dateTo: null,
   });
 
+  // Debounce search input
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [search]);
+
   // Initialize filters from URL params on mount
   const getInitialFilters = (): KYCFilters => {
     const contactEmail = searchParams.get("contactEmail") || "";
     const status = searchParams.get("status") || "all";
     const dateFromParam = searchParams.get("dateFrom");
     const dateToParam = searchParams.get("dateTo");
+
+    // Sync the local search input with initial URL param
+    if (contactEmail.trim()) {
+      setSearch(contactEmail.trim());
+    }
 
     return {
       search: contactEmail.trim(),
@@ -136,6 +163,14 @@ export const KYCReview = () => {
   useEffect(() => {
     filtersRef.current = filters;
   }, [filters]);
+
+  // Sync debounced search into filters
+  useEffect(() => {
+    setFilters((prev) => {
+      if (prev.search === debouncedSearch) return prev;
+      return { ...prev, search: debouncedSearch };
+    });
+  }, [debouncedSearch]);
 
   const { toast } = useToast();
   const { user } = useAuth();
@@ -164,9 +199,23 @@ export const KYCReview = () => {
       }
 
       if (filters.search) {
-        query = query.or(
-          `business_name.ilike.%${filters.search}%,contact_email.ilike.%${filters.search}%`
-        );
+        // Search across business_name, contact_email, and vendor name (profiles.full_name)
+        const { data: matchingProfiles } = await supabase
+          .from("profiles")
+          .select("id")
+          .ilike("full_name", `%${filters.search}%`);
+
+        const matchingUserIds = matchingProfiles?.map((p) => p.id) || [];
+
+        if (matchingUserIds.length > 0) {
+          query = query.or(
+            `business_name.ilike.%${filters.search}%,contact_email.ilike.%${filters.search}%,user_id.in.(${matchingUserIds.join(",")})`
+          );
+        } else {
+          query = query.or(
+            `business_name.ilike.%${filters.search}%,contact_email.ilike.%${filters.search}%`
+          );
+        }
       }
 
       if (filters.dateFrom) {
@@ -179,10 +228,42 @@ export const KYCReview = () => {
         query = query.lte("submitted_at", toDate.toISOString());
       }
 
-      // Get total count
-      const { count } = await supabase
+      // Get total count with same filters applied
+      let countQuery = supabase
         .from("kyc_applications")
         .select("id", { count: "exact", head: true });
+
+      if (filters.status !== "all") {
+        countQuery = countQuery.eq(
+          "status",
+          filters.status as "PENDING" | "APPROVED" | "REJECTED"
+        );
+      }
+      if (filters.search) {
+        const { data: countProfiles } = await supabase
+          .from("profiles")
+          .select("id")
+          .ilike("full_name", `%${filters.search}%`);
+        const countUserIds = countProfiles?.map((p) => p.id) || [];
+        if (countUserIds.length > 0) {
+          countQuery = countQuery.or(
+            `business_name.ilike.%${filters.search}%,contact_email.ilike.%${filters.search}%,user_id.in.(${countUserIds.join(",")})`
+          );
+        } else {
+          countQuery = countQuery.or(
+            `business_name.ilike.%${filters.search}%,contact_email.ilike.%${filters.search}%`
+          );
+        }
+      }
+      if (filters.dateFrom) {
+        countQuery = countQuery.gte("submitted_at", filters.dateFrom.toISOString());
+      }
+      if (filters.dateTo) {
+        const toDate2 = new Date(filters.dateTo);
+        toDate2.setHours(23, 59, 59, 999);
+        countQuery = countQuery.lte("submitted_at", toDate2.toISOString());
+      }
+      const { count } = await countQuery;
       setTotalCount(count || 0);
 
       // Get paginated data
@@ -332,6 +413,8 @@ export const KYCReview = () => {
       dateTo: null,
     };
     setFilters(resetFilters);
+    setSearch("");
+    setDebouncedSearch("");
     setCurrentPage(1);
 
     // Set flag to prevent the URL sync effect from running
@@ -354,32 +437,6 @@ export const KYCReview = () => {
     setIsReviewDialogOpen(true);
   };
 
-  // Create audit log entry
-  const createAuditEntry = async (
-    user_id: string,
-    kycId: string,
-    fromStatus: string | null,
-    toStatus: "PENDING" | "APPROVED" | "REJECTED",
-    reason?: string
-  ) => {
-    try {
-      const { error } = await supabase.from("kyc_audit_log").insert([
-        {
-          user_id,
-          kyc_id: kycId,
-          from_status: fromStatus as "PENDING" | "APPROVED" | "REJECTED" | null,
-          to_status: toStatus,
-          reviewed_by: user?.id,
-          reason: reason || null,
-        },
-      ]);
-
-      if (error) throw error;
-    } catch (err) {
-      console.error("Error creating audit entry:", err);
-    }
-  };
-
   // Handle approval
   const handleApprove = async () => {
     if (!selectedKYC || !user) return;
@@ -399,14 +456,20 @@ export const KYCReview = () => {
 
       if (error) throw error;
 
-      // Create audit entry
-      await createAuditEntry(
-        selectedKYC.user_id,
-        selectedKYC.id,
-        selectedKYC.status,
-        "APPROVED",
-        reviewNotes.trim() || undefined
-      );
+      // Log to unified audit_log table
+      await supabase.rpc("log_audit_entry", {
+        p_table_name: "kyc_applications",
+        p_record_id: selectedKYC.id,
+        p_action: "kyc_approved",
+        p_performed_by: user.id,
+        p_from_status: selectedKYC.status,
+        p_to_status: "APPROVED",
+        p_reason: reviewNotes.trim() || null,
+        p_metadata: {
+          business_name: selectedKYC.business_name,
+          vendor_id: selectedKYC.user_id,
+        },
+      });
 
       toast({
         title: "KYC Approved",
@@ -420,7 +483,8 @@ export const KYCReview = () => {
       setReviewNotes("");
 
       // Refresh audit history
-      setAuditHistoryKey((prev) => prev + 1);
+      queryClient.invalidateQueries({ queryKey: ["kyc-audit-history"] });
+      queryClient.invalidateQueries({ queryKey: ["audit-log"] });
     } catch (err) {
       console.error("Error approving KYC:", err);
       toast({
@@ -473,14 +537,20 @@ export const KYCReview = () => {
 
       if (error) throw error;
 
-      // Create audit entry
-      await createAuditEntry(
-        selectedKYC.user_id,
-        selectedKYC.id,
-        selectedKYC.status,
-        "REJECTED",
-        reviewNotes.trim()
-      );
+      // Log to unified audit_log table
+      await supabase.rpc("log_audit_entry", {
+        p_table_name: "kyc_applications",
+        p_record_id: selectedKYC.id,
+        p_action: "kyc_rejected",
+        p_performed_by: user.id,
+        p_from_status: selectedKYC.status,
+        p_to_status: "REJECTED",
+        p_reason: reviewNotes.trim(),
+        p_metadata: {
+          business_name: selectedKYC.business_name,
+          vendor_id: selectedKYC.user_id,
+        },
+      });
 
       toast({
         title: "KYC Rejected",
@@ -494,7 +564,8 @@ export const KYCReview = () => {
       setReviewNotes("");
 
       // Refresh audit history
-      setAuditHistoryKey((prev) => prev + 1);
+      queryClient.invalidateQueries({ queryKey: ["kyc-audit-history"] });
+      queryClient.invalidateQueries({ queryKey: ["audit-log"] });
     } catch (err) {
       console.error("Error rejecting KYC:", err);
       toast({
@@ -604,13 +675,6 @@ export const KYCReview = () => {
         </Card>
       </div>
 
-      {/* Search and Filter */}
-      <KYCSearchFilter
-        filters={filters}
-        onFiltersChange={handleFiltersChange}
-        onReset={handleResetFilters}
-      />
-
       {/* Applications Table */}
       <Card>
         <CardHeader>
@@ -634,6 +698,49 @@ export const KYCReview = () => {
           </div>
         </CardHeader>
         <CardContent>
+          {/* Filters + Top Pagination */}
+          <div className="flex justify-between items-center flex-wrap mb-4">
+            <div className="flex gap-4">
+              <Select
+                value={filters.status}
+                onValueChange={(value) => {
+                  handleFiltersChange({ ...filters, status: value });
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="PENDING">Pending</SelectItem>
+                  <SelectItem value="APPROVED">Approved</SelectItem>
+                  <SelectItem value="REJECTED">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
+              <input
+                ref={searchInputRef}
+                type="text"
+                className="input border rounded px-3 text-sm py-2 w-72"
+                placeholder="Search by business name, vendor name or email"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setCurrentPage(1);
+                }}
+              />
+            </div>
+            <PaginationControls
+              currentPage={currentPage}
+              totalPages={Math.ceil(totalCount / pageSize)}
+              pageSize={pageSize}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={(newSize) => {
+                setPageSize(newSize);
+                setCurrentPage(1);
+              }}
+            />
+          </div>
           {loading ? (
             <div className="space-y-3">
               {Array.from({ length: 5 }).map((_, i) => (
@@ -699,22 +806,19 @@ export const KYCReview = () => {
                 </div>
               )}
 
-              {/* Pagination */}
-              {totalCount > 0 && (
-                <div className="mt-4">
-                  <KYCPagination
-                    currentPage={currentPage}
-                    totalPages={Math.ceil(totalCount / pageSize)}
-                    pageSize={pageSize}
-                    totalCount={totalCount}
-                    onPageChange={setCurrentPage}
-                    onPageSizeChange={(newSize) => {
-                      setPageSize(newSize);
-                      setCurrentPage(1);
-                    }}
-                  />
-                </div>
-              )}
+              {/* Bottom Pagination */}
+              <div className="mt-4">
+                <PaginationControls
+                  currentPage={currentPage}
+                  totalPages={Math.ceil(totalCount / pageSize)}
+                  pageSize={pageSize}
+                  onPageChange={setCurrentPage}
+                  onPageSizeChange={(newSize) => {
+                    setPageSize(newSize);
+                    setCurrentPage(1);
+                  }}
+                />
+              </div>
             </>
           )}
         </CardContent>
@@ -824,7 +928,7 @@ export const KYCReview = () => {
               </div>
 
               <div className="lg:col-span-1">
-                <KYCAuditHistory key={auditHistoryKey} kycId={selectedKYC.id} />
+                <KYCAuditHistory kycId={selectedKYC.id} />
               </div>
             </div>
           )}

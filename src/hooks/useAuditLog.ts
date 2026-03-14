@@ -138,13 +138,16 @@ export const useAllAuditLog = (
         dataQuery = dataQuery.lte("created_at", to);
       }
       if (filters.search) {
-        const term = `%${filters.search}%`;
-        countQuery = countQuery.or(
-          `action.ilike.${term},reason.ilike.${term},record_id.eq.${filters.search}`
-        );
-        dataQuery = dataQuery.or(
-          `action.ilike.${term},reason.ilike.${term},record_id.eq.${filters.search}`
-        );
+        // Split on whitespace and join with % so "kyc appro" matches "kyc_approval"
+        const term = `%${filters.search.trim().split(/\s+/).join("%")}%`;
+        const uuidRegex =
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const isUuid = uuidRegex.test(filters.search.trim());
+        const orFilter = isUuid
+          ? `action.ilike.${term},reason.ilike.${term},table_name.ilike.${term},record_id.eq.${filters.search.trim()}`
+          : `action.ilike.${term},reason.ilike.${term},table_name.ilike.${term}`;
+        countQuery = countQuery.or(orFilter);
+        dataQuery = dataQuery.or(orFilter);
       }
 
       const [{ count, error: countError }, { data, error: dataError }] =

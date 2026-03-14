@@ -2,7 +2,6 @@ import { MetricCard } from "@/components/admin/MetricsCards";
 import { OccupancyChart } from "@/components/admin/OccupancyChart";
 import { RevenueChart } from "@/components/admin/RevenueChart";
 import { KYCMetricsCard } from "@/components/admin/KYCMetricsCard";
-import { ActivityFeed } from "@/components/admin/ActivityFeed";
 import { useAdminAnalytics } from "@/hooks/useAdminAnalytics";
 import { useStallOccupancy } from "@/hooks/useStallOccupancy";
 import { formatCurrency } from "@/lib/utils";
@@ -66,7 +65,6 @@ const AdminDashboard = () => {
       {/* Bottom Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <OccupancyChart />
-        <ActivityFeed />
       </div>
     </div>
   );

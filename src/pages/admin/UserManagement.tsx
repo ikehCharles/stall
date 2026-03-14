@@ -26,6 +26,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Shield, Mail, User, Plus } from "lucide-react";
+import { PaginationControls } from "@/components/shared/PaginationControls";
 import { toast } from "sonner";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PERMISSIONS } from "@/lib/permissions";
@@ -109,7 +110,9 @@ export default function UserManagement() {
         </CardHeader>
         <CardContent>
           {/* Filters */}
-          <div className="flex gap-4 mb-4">
+          <div className="flex justify-between items-center flex-wrap">
+
+          <div className="flex gap-4">
             <Select value={roleFilter} onValueChange={value => { setRoleFilter(value); setCurrentPage(1); }}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Filter by role" />
@@ -130,6 +133,18 @@ export default function UserManagement() {
               onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
             />
           </div>
+          <PaginationControls
+            currentPage={currentPage}
+            totalPages={totalPages}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={(newSize) => {
+              setPageSize(newSize);
+              setCurrentPage(1);
+            }}
+          />
+          </div>
+
 
           <Table>
             <TableHeader>
@@ -214,44 +229,18 @@ export default function UserManagement() {
             </div>
           )}
 
-          {totalPages > 1 && (
-            <div className="flex justify-end mt-6 gap-2 items-center">
-              <select
-                className="border rounded px-2 py-1 ml-4 text-sm"
-                value={pageSize}
-                onChange={e => {
-                  setPageSize(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
-              >
-                {[10, 20, 50, 100].map(size => (
-                  <option key={size} value={size}>{size}</option>
-                ))}
-              </select>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage(currentPage - 1)}
-                aria-label="Previous page"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-              </Button>
-              <span className="px-2 text-sm text-muted-foreground">
-                Page {currentPage} of {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage(currentPage + 1)}
-                aria-label="Next page"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-              </Button>
-              
-            </div>
-          )}
+          <div className="mt-6">
+            <PaginationControls
+              currentPage={currentPage}
+              totalPages={totalPages}
+              pageSize={pageSize}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={(newSize) => {
+                setPageSize(newSize);
+                setCurrentPage(1);
+              }}
+            />
+          </div>
         </CardContent>
       </Card>
     </div>

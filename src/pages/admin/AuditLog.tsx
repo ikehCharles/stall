@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,14 +26,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PaginationControls } from "@/components/shared/PaginationControls";
 import {
   ClipboardList,
   Search,
   Calendar,
-  ChevronLeft,
-  ChevronRight,
   Eye,
   ArrowLeft,
+  Users,
+  RotateCcw,
 } from "lucide-react";
 import {
   useAllAuditLog,
@@ -75,8 +76,6 @@ const getActionBadge = (action: string) => {
   return <Badge variant="outline">{actionLabel(action)}</Badge>;
 };
 
-const PAGE_SIZE = 25;
-
 const AuditLog = () => {
   /* ── Filter state ── */
   const [filters, setFilters] = useState<AuditLogFilters>({
@@ -86,15 +85,29 @@ const AuditLog = () => {
     dateFrom: "",
     dateTo: "",
   });
-  const [page, setPage] = useState(1);
+  const [searchInput, setSearchInput] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [selected, setSelected] = useState<AuditLogEntry | null>(null);
 
-  const { data, isLoading } = useAllAuditLog(filters, page, PAGE_SIZE);
+  // Debounce search input
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setFilters((prev) => {
+        if (prev.search === searchInput) return prev;
+        setCurrentPage(1);
+        return { ...prev, search: searchInput };
+      });
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [searchInput]);
+
+  const { data, isLoading } = useAllAuditLog(filters, currentPage, pageSize);
   const { data: actions = [] } = useAuditLogActions();
 
   const entries = useMemo(() => data?.entries ?? [], [data?.entries]);
   const totalCount = data?.totalCount ?? 0;
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const totalPages = Math.ceil(totalCount / pageSize);
 
   /* ── Derived: unique table names from current page (for filter dropdown) ── */
   const tableNames = useMemo(
@@ -115,10 +128,11 @@ const AuditLog = () => {
 
   const handleFilterChange = (patch: Partial<AuditLogFilters>) => {
     setFilters((prev) => ({ ...prev, ...patch }));
-    setPage(1);
+    setCurrentPage(1);
   };
 
   const resetFilters = () => {
+    setSearchInput("");
     setFilters({
       search: "",
       action: "all",
@@ -126,7 +140,7 @@ const AuditLog = () => {
       dateFrom: "",
       dateTo: "",
     });
-    setPage(1);
+    setCurrentPage(1);
   };
 
   return (
@@ -198,10 +212,8 @@ const AuditLog = () => {
                 <Input
                   placeholder="Action, reason, or record ID…"
                   className="pl-8"
-                  value={filters.search}
-                  onChange={(e) =>
-                    handleFilterChange({ search: e.target.value })
-                  }
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
                 />
               </div>
             </div>
@@ -270,11 +282,12 @@ const AuditLog = () => {
               </div>
               <Button
                 variant="outline"
-                size="sm"
+                size="icon"
                 className="mt-5"
                 onClick={resetFilters}
+                aria-label="Reset filters"
               >
-                Reset
+                <RotateCcw className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -299,6 +312,17 @@ const AuditLog = () => {
             </p>
           ) : (
             <>
+              <PaginationControls
+                currentPage={currentPage}
+                totalPages={totalPages}
+                pageSize={pageSize}
+                onPageChange={setCurrentPage}
+                onPageSizeChange={(newSize) => {
+                  setPageSize(Number(newSize));
+                  setCurrentPage(1);
+                }}
+              />
+
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -355,29 +379,18 @@ const AuditLog = () => {
                 </TableBody>
               </Table>
 
-              {/* Pagination */}
-              <div className="flex items-center justify-between pt-4">
-                <p className="text-sm text-muted-foreground">
-                  Page {page} of {totalPages} · {totalCount} total entries
-                </p>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={page <= 1}
-                    onClick={() => setPage((p) => p - 1)}
-                  >
-                    <ChevronLeft className="h-4 w-4 mr-1" /> Previous
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={page >= totalPages}
-                    onClick={() => setPage((p) => p + 1)}
-                  >
-                    Next <ChevronRight className="h-4 w-4 ml-1" />
-                  </Button>
-                </div>
+              {/* Bottom Pagination */}
+              <div className="mt-6">
+                <PaginationControls
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  pageSize={pageSize}
+                  onPageChange={setCurrentPage}
+                  onPageSizeChange={(newSize) => {
+                    setPageSize(Number(newSize));
+                    setCurrentPage(1);
+                  }}
+                />
               </div>
             </>
           )}

@@ -130,9 +130,11 @@ export const useUsersRoles = (page: number, pageSize: number, roleFilter: string
 
       if (error) throw error;
 
+      const result = data as unknown as { users: UserProfile[]; total: number };
+
       return {
-        users: data.users as User[],
-        total: data.total as number,
+        users: result.users,
+        total: result.total,
       };
     },
   });

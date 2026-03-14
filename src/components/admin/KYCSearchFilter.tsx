@@ -101,7 +101,7 @@ export function KYCSearchFilter({ filters, onFiltersChange, onReset }: KYCSearch
         <div className="relative flex-1">
           <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search by business name or email..."
+            placeholder="Search by business name, vendor name or email..."
             value={searchInput}
             onChange={(e) => handleSearchChange(e.target.value)}
             className="pl-9"
