@@ -97,6 +97,21 @@ function buildEmail(
     app_logo_url: appLogoUrl,
   };
 
+  // Resolve any relative URL variables (e.g. review_url, action_url) to full
+  // URLs using CLIENT_BASEURL so email templates get absolute links.
+  const clientBase = (Deno.env.get("CLIENT_BASEURL") || "").replace(/\/$/, "");
+  if (clientBase) {
+    for (const key of Object.keys(vars)) {
+      if (
+        key.endsWith("_url") &&
+        typeof vars[key] === "string" &&
+        (vars[key] as string).startsWith("/")
+      ) {
+        vars[key] = clientBase + vars[key];
+      }
+    }
+  }
+
   // If selected_dates is an array, join for display
   if (Array.isArray(vars.selected_dates)) {
     vars.selected_dates = (vars.selected_dates as string[]).join(", ");
