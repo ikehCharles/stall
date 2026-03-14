@@ -78,6 +78,7 @@ export const PERMISSIONS = {
     RECEIVE_VENDOR_ONBOARDED: 'notifications.receive.vendor_onboarded',
     RECEIVE_REFUND_REQUESTED: 'notifications.receive.refund_requested',
     RECEIVE_REFUND_RESOLVED: 'notifications.receive.refund_resolved',
+    RECEIVE_KYC_SUBMITTED: 'notifications.receive.kyc_submitted',
     VIEW_ALL: 'notifications.view.all',
     MANAGE: 'notifications.manage',
   },

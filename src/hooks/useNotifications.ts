@@ -17,7 +17,8 @@ export type NotificationType =
   | "booking_rejected"
   | "vendor_checked_in"
   | "refund_requested"
-  | "refund_resolved";
+  | "refund_resolved"
+  | "kyc_submitted";
 
 export type NotificationStatus = "pending" | "sent" | "failed" | "read";
 
