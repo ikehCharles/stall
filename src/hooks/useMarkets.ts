@@ -64,3 +64,33 @@ export const useUpdateMarket = () => {
     },
   });
 };
+
+export const useCloneMarket = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (params: {
+      source_market_id: string;
+      name: string;
+      theme: string;
+      start_at: string;
+      end_at: string;
+      banner_url?: string | null;
+    }) => {
+      const { data, error } = await supabase.rpc('clone_market', {
+        p_source_market_id: params.source_market_id,
+        p_name: params.name,
+        p_theme: params.theme,
+        p_start_at: params.start_at,
+        p_end_at: params.end_at,
+        p_banner_url: params.banner_url ?? null,
+      });
+
+      if (error) throw error;
+      return data as string;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['markets'] });
+    },
+  });
+};

@@ -38,6 +38,8 @@ interface CanvasEditorProps {
   selectedStallId: string | null;
   onStallSelect: (stallId: string | null) => void;
   onSaveLayout: (layout: any) => void;
+  pendingTemplateDrop?: { template: any; clientX: number; clientY: number } | null;
+  onPendingTemplateDropHandled?: () => void;
 }
 
 export const CanvasEditor = ({
@@ -47,6 +49,8 @@ export const CanvasEditor = ({
   selectedStallId,
   onStallSelect,
   onSaveLayout,
+  pendingTemplateDrop,
+  onPendingTemplateDropHandled,
 }: CanvasEditorProps) => {
   const [draggedStall, setDraggedStall] = useState<StallInstance | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -74,36 +78,39 @@ export const CanvasEditor = ({
   const zoomIn = useCallback(() => setZoom((z) => Math.min(MAX_ZOOM, z + ZOOM_STEP)), []);
   const zoomOut = useCallback(() => setZoom((z) => Math.max(MIN_ZOOM, z - ZOOM_STEP)), []);
 
-  // Handle stall drag start
-  const handleStallMouseDown = useCallback((e: React.MouseEvent, stall: StallInstance) => {
+  // Handle stall drag start (pointer events for mouse + touch)
+  const handleStallPointerDown = useCallback((e: React.PointerEvent, stall: StallInstance) => {
     e.preventDefault();
     e.stopPropagation();
+    
+    // Capture pointer to receive events even outside the element
+    (e.target as Element).setPointerCapture(e.pointerId);
     
     const rect = svgRef.current?.getBoundingClientRect();
     if (!rect) return;
 
-    const mouseX = (e.clientX - rect.left) / zoom;
-    const mouseY = (e.clientY - rect.top) / zoom;
+    const pointerX = (e.clientX - rect.left) / zoom;
+    const pointerY = (e.clientY - rect.top) / zoom;
     
     setDraggedStall(stall);
     setDragPosition({ x: stall.x, y: stall.y });
     setDragOffset({
-      x: mouseX - stall.x,
-      y: mouseY - stall.y,
+      x: pointerX - stall.x,
+      y: pointerY - stall.y,
     });
     onStallSelect(stall.id);
   }, [onStallSelect, zoom]);
 
-  // Handle mouse move during drag (update local position only; persist on mouse up)
-  const handleMouseMove = useCallback((e: MouseEvent) => {
+  // Handle pointer move during drag (update local position only; persist on pointer up)
+  const handlePointerMove = useCallback((e: PointerEvent) => {
     if (!draggedStall || !svgRef.current) return;
 
     const rect = svgRef.current.getBoundingClientRect();
-    const mouseX = (e.clientX - rect.left) / zoom;
-    const mouseY = (e.clientY - rect.top) / zoom;
+    const pointerX = (e.clientX - rect.left) / zoom;
+    const pointerY = (e.clientY - rect.top) / zoom;
 
-    let newX = snapToGrid(mouseX - dragOffset.x);
-    let newY = snapToGrid(mouseY - dragOffset.y);
+    let newX = snapToGrid(pointerX - dragOffset.x);
+    let newY = snapToGrid(pointerY - dragOffset.y);
     newX = Math.max(0, Math.min(canvasWidth - draggedStall.width, newX));
     newY = Math.max(0, Math.min(canvasHeight - draggedStall.height, newY));
 
@@ -128,8 +135,8 @@ export const CanvasEditor = ({
     }
   }, [draggedStall, dragOffset, snapToGrid, zoom, canvasWidth, canvasHeight]);
 
-  // Handle mouse up to end drag: persist position, optimistically update cache, then clear so no flicker
-  const handleMouseUp = useCallback(() => {
+  // Handle pointer up to end drag: persist position, optimistically update cache, then clear so no flicker
+  const handlePointerUp = useCallback(() => {
     if (draggedStall && dragPosition) {
       const payload = {
         id: draggedStall.id,
@@ -194,6 +201,40 @@ export const CanvasEditor = ({
     });
   }, [layout?.market_id, snapToGrid, stallCounter, createStall, zoom, canvasWidth, canvasHeight]);
 
+  // Handle pending template drop from touch drag (palette → canvas)
+  useEffect(() => {
+    if (!pendingTemplateDrop || !svgRef.current) return;
+
+    const { template: templateData, clientX, clientY } = pendingTemplateDrop;
+    const rect = svgRef.current.getBoundingClientRect();
+
+    // Check if the drop is within the canvas bounds
+    if (clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom) {
+      let dropX = snapToGrid((clientX - rect.left) / zoom);
+      let dropY = snapToGrid((clientY - rect.top) / zoom);
+      dropX = Math.max(0, Math.min(canvasWidth - templateData.width, dropX));
+      dropY = Math.max(0, Math.min(canvasHeight - templateData.height, dropY));
+
+      const label = `ST-${stallCounter.toString().padStart(3, '0')}`;
+      setStallCounter(prev => prev + 1);
+
+      createStall.mutate({
+        market_id: layout?.market_id,
+        template_id: templateData.id,
+        label,
+        x: dropX,
+        y: dropY,
+        width: templateData.width,
+        height: templateData.height,
+        rotation: 0,
+        price_override: null,
+        status: 'AVAILABLE',
+      });
+    }
+
+    onPendingTemplateDropHandled?.();
+  }, [pendingTemplateDrop]);
+
   // Handle key events for stall manipulation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -250,15 +291,15 @@ export const CanvasEditor = ({
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
     };
-  }, [selectedStallId, stalls, gridSize, canvasWidth, canvasHeight, handleMouseMove, handleMouseUp, updateStall, deleteStall, onStallSelect]);
+  }, [selectedStallId, stalls, gridSize, canvasWidth, canvasHeight, handlePointerMove, handlePointerUp, updateStall, deleteStall, onStallSelect]);
 
   // Render grid
   const renderGrid = () => {
@@ -311,7 +352,7 @@ export const CanvasEditor = ({
     const y = isDragging ? dragPosition!.y : stall.y;
 
     return (
-      <g key={stall.id} className="stall-instance cursor-move">
+      <g key={stall.id} className="stall-instance cursor-move" style={{ touchAction: 'none' }}>
         {/* Stall shape */}
         {template?.shape === 'CIRCLE' ? (
           <circle
@@ -321,7 +362,8 @@ export const CanvasEditor = ({
             fill={template.fill_color}
             stroke={isSelected ? 'hsl(var(--ring))' : template.stroke_color}
             strokeWidth={isSelected ? 3 : 2}
-            onMouseDown={(e) => handleStallMouseDown(e, stall)}
+            onPointerDown={(e) => handleStallPointerDown(e, stall)}
+            style={{ touchAction: 'none' }}
             className="hover:opacity-80"
           />
         ) : (
@@ -334,7 +376,8 @@ export const CanvasEditor = ({
             stroke={isSelected ? 'hsl(var(--ring))' : (template?.stroke_color || '#1e40af')}
             strokeWidth={isSelected ? 3 : 2}
             rx={4}
-            onMouseDown={(e) => handleStallMouseDown(e, stall)}
+            onPointerDown={(e) => handleStallPointerDown(e, stall)}
+            style={{ touchAction: 'none' }}
             className="hover:opacity-80"
           />
         )}
@@ -435,6 +478,7 @@ export const CanvasEditor = ({
               style={{
                 transform: `scale(${zoom})`,
                 transformOrigin: '0 0',
+                touchAction: 'none',
               }}
               className="bg-background cursor-crosshair"
               onClick={(e) => {

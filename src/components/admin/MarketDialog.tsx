@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { useCreateMarket, useUpdateMarket } from '@/hooks/useMarkets';
+import { useCreateMarket, useUpdateMarket, useCloneMarket } from '@/hooks/useMarkets';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -33,25 +33,29 @@ interface MarketDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   market?: any;
+  cloneSource?: any;
   onSuccess: () => void;
 }
 
-export const MarketDialog = ({ open, onOpenChange, market, onSuccess }: MarketDialogProps) => {
-  const [bannerUrl, setBannerUrl] = useState(market?.banner_url || '');
+export const MarketDialog = ({ open, onOpenChange, market, cloneSource, onSuccess }: MarketDialogProps) => {
+  const [bannerUrl, setBannerUrl] = useState(market?.banner_url || cloneSource?.banner_url || '');
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const createMarket = useCreateMarket();
   const updateMarket = useUpdateMarket();
+  const cloneMarket = useCloneMarket();
+
+  const isCloneMode = !!cloneSource;
   
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: market?.name || '',
-      theme: market?.theme || 'default',
+      name: market?.name || (cloneSource ? `${cloneSource.name} (Copy)` : ''),
+      theme: market?.theme || cloneSource?.theme || 'default',
       start_at: market?.start_at ? new Date(market.start_at) : undefined,
       end_at: market?.end_at ? new Date(market.end_at) : undefined,
-      banner_url: market?.banner_url || '',
+      banner_url: market?.banner_url || cloneSource?.banner_url || '',
     },
   });
 
@@ -66,8 +70,17 @@ export const MarketDialog = ({ open, onOpenChange, market, onSuccess }: MarketDi
         banner_url: market.banner_url || '',
       });
       setBannerUrl(market.banner_url || '');
+    } else if (cloneSource) {
+      form.reset({
+        name: `${cloneSource.name} (Copy)`,
+        theme: cloneSource.theme || 'default',
+        start_at: undefined,
+        end_at: undefined,
+        banner_url: cloneSource.banner_url || '',
+      });
+      setBannerUrl(cloneSource.banner_url || '');
     }
-  }, [market, form]);
+  }, [market, cloneSource, form]);
 
   const handleBannerUpload = async (file: File) => {
     try {
@@ -136,6 +149,15 @@ export const MarketDialog = ({ open, onOpenChange, market, onSuccess }: MarketDi
           title: 'Market updated',
           description: 'Market has been updated successfully',
         });
+      } else if (isCloneMode) {
+        await cloneMarket.mutateAsync({
+          source_market_id: cloneSource.id,
+          ...submitData,
+        });
+        toast({
+          title: 'Market duplicated',
+          description: 'Market has been duplicated with all stall configurations',
+        });
       } else {
         await createMarket.mutateAsync(submitData);
         toast({
@@ -147,7 +169,7 @@ export const MarketDialog = ({ open, onOpenChange, market, onSuccess }: MarketDi
     } catch (error) {
       toast({
         title: 'Error',
-        description: market ? 'Failed to update market' : 'Failed to create market',
+        description: market ? 'Failed to update market' : isCloneMode ? 'Failed to duplicate market' : 'Failed to create market',
         variant: 'destructive',
       });
     }
@@ -157,9 +179,9 @@ export const MarketDialog = ({ open, onOpenChange, market, onSuccess }: MarketDi
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>{market ? 'Edit Market' : 'Create New Market'}</DialogTitle>
+          <DialogTitle>{market ? 'Edit Market' : isCloneMode ? 'Duplicate Market' : 'Create New Market'}</DialogTitle>
           <DialogDescription>
-            {market ? 'Update market details and settings' : 'Set up a new marketplace event'}
+            {market ? 'Update market details and settings' : isCloneMode ? 'Duplicate market with all stall configurations. Set new name and dates.' : 'Set up a new marketplace event'}
           </DialogDescription>
         </DialogHeader>
         
@@ -342,8 +364,8 @@ export const MarketDialog = ({ open, onOpenChange, market, onSuccess }: MarketDi
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={createMarket.isPending || updateMarket.isPending}>
-                {market ? 'Update Market' : 'Create Market'}
+              <Button type="submit" disabled={createMarket.isPending || updateMarket.isPending || cloneMarket.isPending}>
+                {market ? 'Update Market' : isCloneMode ? 'Duplicate Market' : 'Create Market'}
               </Button>
             </div>
           </form>

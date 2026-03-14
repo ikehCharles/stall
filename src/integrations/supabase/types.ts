@@ -514,54 +514,6 @@ export type Database = {
           },
         ]
       }
-      kyc_audit_log: {
-        Row: {
-          created_at: string
-          from_status: Database["public"]["Enums"]["kyc_status"] | null
-          id: string
-          kyc_id: string
-          reason: string | null
-          reviewed_by: string | null
-          to_status: Database["public"]["Enums"]["kyc_status"]
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          from_status?: Database["public"]["Enums"]["kyc_status"] | null
-          id?: string
-          kyc_id: string
-          reason?: string | null
-          reviewed_by?: string | null
-          to_status: Database["public"]["Enums"]["kyc_status"]
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          from_status?: Database["public"]["Enums"]["kyc_status"] | null
-          id?: string
-          kyc_id?: string
-          reason?: string | null
-          reviewed_by?: string | null
-          to_status?: Database["public"]["Enums"]["kyc_status"]
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "kyc_audit_log_kyc_id_fkey"
-            columns: ["kyc_id"]
-            isOneToOne: false
-            referencedRelation: "kyc_applications"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "kyc_audit_log_user_id_profiles_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       market_layouts: {
         Row: {
           canvas_height: number
@@ -1447,9 +1399,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      admin_approve_booking: { Args: { p_booking_id: string }; Returns: Json }
-      admin_cancel_booking: { Args: { p_booking_id: string }; Returns: Json }
-      admin_decline_booking: { Args: { p_booking_id: string }; Returns: Json }
+      admin_approve_booking: {
+        Args: { p_booking_id: string }
+        Returns: Json
+      }
+      admin_cancel_booking: {
+        Args: { p_booking_id: string }
+        Returns: Json
+      }
+      admin_decline_booking: {
+        Args: { p_booking_id: string }
+        Returns: Json
+      }
       build_booking_notification_metadata: {
         Args: { p_booking_id: string }
         Returns: Json
@@ -1458,7 +1419,10 @@ export type Database = {
         Args: { p_base_price: number; p_vat_mode: string; p_vat_rate: number }
         Returns: Json
       }
-      cancel_booking: { Args: { p_booking_id: string }; Returns: Json }
+      cancel_booking: {
+        Args: { p_booking_id: string }
+        Returns: Json
+      }
       check_stall_date_availability: {
         Args: { dates: string[]; market_id: string; stall_id: string }
         Returns: boolean
@@ -1471,7 +1435,21 @@ export type Database = {
         Args: { p_booking_date_id: string; p_booking_id: string }
         Returns: Json
       }
-      cleanup_expired_holds: { Args: never; Returns: number }
+      cleanup_expired_holds: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      clone_market: {
+        Args: {
+          p_banner_url?: string
+          p_end_at: string
+          p_name: string
+          p_source_market_id: string
+          p_start_at: string
+          p_theme: string
+        }
+        Returns: string
+      }
       create_credentials: {
         Args: { p_key: string; p_meta: Json; p_source: string; p_value: string }
         Returns: undefined
@@ -1507,11 +1485,26 @@ export type Database = {
         Args: { p_end_date?: string; p_name: string; p_start_date: string }
         Returns: Json
       }
-      create_vat_refund_entry: { Args: { p_booking_id: string }; Returns: Json }
-      delete_vat_period: { Args: { p_period_id: string }; Returns: Json }
-      expire_booking: { Args: { p_booking_id: string }; Returns: Json }
-      generate_invoice_number: { Args: never; Returns: string }
-      generate_stall_label: { Args: { p_market_id: string }; Returns: string }
+      create_vat_refund_entry: {
+        Args: { p_booking_id: string }
+        Returns: Json
+      }
+      delete_vat_period: {
+        Args: { p_period_id: string }
+        Returns: Json
+      }
+      expire_booking: {
+        Args: { p_booking_id: string }
+        Returns: Json
+      }
+      generate_invoice_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      generate_stall_label: {
+        Args: { p_market_id: string }
+        Returns: string
+      }
       get_notification_recipients: {
         Args: {
           p_notification_type: Database["public"]["Enums"]["notification_type"]
@@ -1521,7 +1514,10 @@ export type Database = {
           user_id: string
         }[]
       }
-      get_or_create_open_vat_period: { Args: never; Returns: Json }
+      get_or_create_open_vat_period: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       get_profiles_with_roles: {
         Args: {
           p_page?: number
@@ -1542,13 +1538,22 @@ export type Database = {
           total_amount: number
         }[]
       }
-      get_user_permissions: { Args: { user_uuid: string }; Returns: string[] }
+      get_user_permissions: {
+        Args: { user_uuid: string }
+        Returns: string[]
+      }
       get_user_role: {
         Args: { user_uuid: string }
         Returns: Database["public"]["Enums"]["app_role"]
       }
-      get_user_role_id: { Args: { user_uuid: string }; Returns: string }
-      get_user_role_key: { Args: { user_uuid: string }; Returns: string }
+      get_user_role_id: {
+        Args: { user_uuid: string }
+        Returns: string
+      }
+      get_user_role_key: {
+        Args: { user_uuid: string }
+        Returns: string
+      }
       get_user_role_with_permissions: {
         Args: { user_uuid: string }
         Returns: {
@@ -1607,14 +1612,26 @@ export type Database = {
         Args: { p_email: string; p_market_id: string }
         Returns: Json
       }
-      mark_all_notifications_read: { Args: never; Returns: number }
+      mark_all_notifications_read: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       mark_notification_read: {
         Args: { p_notification_id: string }
         Returns: undefined
       }
-      mark_vat_collected: { Args: { p_booking_id: string }; Returns: Json }
-      profile_checks: { Args: { p_phone: string }; Returns: Json }
-      reconcile_vat_period: { Args: { p_period_id: string }; Returns: Json }
+      mark_vat_collected: {
+        Args: { p_booking_id: string }
+        Returns: Json
+      }
+      profile_checks: {
+        Args: { p_phone: string }
+        Returns: Json
+      }
+      reconcile_vat_period: {
+        Args: { p_period_id: string }
+        Returns: Json
+      }
       record_cash_payment: {
         Args: {
           p_amount: number
@@ -1633,7 +1650,10 @@ export type Database = {
         Args: { p_booking_id: string; p_reason: string }
         Returns: Json
       }
-      reserve_booking: { Args: { p_booking_id: string }; Returns: Json }
+      reserve_booking: {
+        Args: { p_booking_id: string }
+        Returns: Json
+      }
       save_role_with_permissions: {
         Args: {
           p_description: string
@@ -1660,7 +1680,10 @@ export type Database = {
         Args: { p_booking_id: string }
         Returns: Json
       }
-      simulate_payment_refund: { Args: { p_booking_id: string }; Returns: Json }
+      simulate_payment_refund: {
+        Args: { p_booking_id: string }
+        Returns: Json
+      }
       simulate_payment_refund_admin: {
         Args: { p_booking_id: string }
         Returns: Json
@@ -1722,6 +1745,7 @@ export type Database = {
         | "kyc_rejected"
         | "refund_requested"
         | "refund_resolved"
+        | "kyc_submitted"
       payment_status:
         | "pending"
         | "success"
@@ -1887,6 +1911,7 @@ export const Constants = {
         "kyc_rejected",
         "refund_requested",
         "refund_resolved",
+        "kyc_submitted",
       ],
       payment_status: [
         "pending",

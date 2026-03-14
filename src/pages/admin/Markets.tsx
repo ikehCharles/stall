@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Plus, Calendar, Eye, Edit, Archive, Play, Pause } from "lucide-react";
+import { Plus, Calendar, Eye, Edit, Archive, Play, Pause, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -30,6 +30,7 @@ import { PermissionGate } from '@/components/PermissionGate';
 const Markets = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingMarket, setEditingMarket] = useState(null);
+  const [cloningMarket, setCloningMarket] = useState(null);
   const { data: markets, isLoading } = useMarkets();
   const updateMarket = useUpdateMarket();
 
@@ -152,6 +153,18 @@ const Markets = () => {
                           </Tooltip>
                           <Tooltip>
                             <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setCloningMarket(market)}
+                              >
+                                <Copy className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Duplicate market</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
                               <Button variant="ghost" size="sm" asChild>
                                 <Link to={`/admin/markets/${market.id}/canvas`}>
                                   <Eye className="h-4 w-4" />
@@ -252,6 +265,13 @@ const Markets = () => {
         onOpenChange={(open) => !open && setEditingMarket(null)}
         market={editingMarket}
         onSuccess={() => setEditingMarket(null)}
+      />
+
+      <MarketDialog
+        open={!!cloningMarket}
+        onOpenChange={(open) => !open && setCloningMarket(null)}
+        cloneSource={cloningMarket}
+        onSuccess={() => setCloningMarket(null)}
       />
     </div>
   );

@@ -21,6 +21,9 @@ const navigate = useNavigate();
   const [selectedStallId, setSelectedStallId] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showGrid, setShowGrid] = useState(true);
+  // Replace 'StallTemplate' with the actual type used for your templates if different
+  type PendingTemplateDrop = { template: typeof templates extends (infer U)[] ? U : unknown; clientX: number; clientY: number } | null;
+  const [pendingTemplateDrop, setPendingTemplateDrop] = useState<PendingTemplateDrop>(null);
   
   const { data: markets } = useMarkets();
   const { data: layout, isLoading:layoutLoading } = useMarketLayout(marketId!);
@@ -38,7 +41,7 @@ const navigate = useNavigate();
       setShowSettings(true);
     }
   }, [layout, layoutLoading]);
-  const handleSaveLayout = async (layoutData: any, navigateToMarket: boolean = false) => {
+  const handleSaveLayout = async (layoutData, navigateToMarket: boolean = false) => {
     try {
       await upsertLayout.mutateAsync({
         market_id: marketId!,
@@ -115,7 +118,12 @@ const navigate = useNavigate();
               onStallUpdate={refetchStalls}
             />
           ) : (
-            <StallTemplatesPalette templates={templates || []} />
+            <StallTemplatesPalette
+              templates={templates || []}
+              onTemplateTouchDrop={(template, clientX, clientY) =>
+                setPendingTemplateDrop({ template, clientX, clientY })
+              }
+            />
           )}
         </div>
 
@@ -128,6 +136,8 @@ const navigate = useNavigate();
             selectedStallId={selectedStallId}
             onStallSelect={setSelectedStallId}
             onSaveLayout={handleSaveLayout}
+            pendingTemplateDrop={pendingTemplateDrop}
+            onPendingTemplateDropHandled={() => setPendingTemplateDrop(null)}
           />
         </div>
       </div>

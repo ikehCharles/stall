@@ -1,3 +1,4 @@
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Square, Circle, Hexagon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -6,13 +7,57 @@ import type { StallTemplate } from '@/hooks/useStallTemplates';
 
 interface StallTemplatesPaletteProps {
   templates: StallTemplate[];
+  onTemplateTouchDrop?: (template: StallTemplate, clientX: number, clientY: number) => void;
 }
 
-export const StallTemplatesPalette = ({ templates }: StallTemplatesPaletteProps) => {
+export const StallTemplatesPalette = ({ templates, onTemplateTouchDrop }: StallTemplatesPaletteProps) => {
+  const touchTemplateRef = useRef<StallTemplate | null>(null);
+  const [touchDragPos, setTouchDragPos] = useState<{ x: number; y: number } | null>(null);
+
   const handleDragStart = (e: React.DragEvent, template: StallTemplate) => {
     e.dataTransfer.setData('application/json', JSON.stringify(template));
     e.dataTransfer.effectAllowed = 'copy';
   };
+
+  // Touch drag start: store template and initial position
+  const handleTemplateTouchStart = useCallback((e: React.TouchEvent, template: StallTemplate) => {
+    const touch = e.touches[0];
+    touchTemplateRef.current = template;
+    setTouchDragPos({ x: touch.clientX, y: touch.clientY });
+  }, []);
+
+  // Attach window-level touch listeners while a touch drag is in progress
+  useEffect(() => {
+    if (!touchDragPos) return;
+
+    const handleMove = (e: TouchEvent) => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      setTouchDragPos({ x: touch.clientX, y: touch.clientY });
+    };
+
+    const handleEnd = (e: TouchEvent) => {
+      const touch = e.changedTouches[0];
+      if (touchTemplateRef.current && onTemplateTouchDrop) {
+        onTemplateTouchDrop(touchTemplateRef.current, touch.clientX, touch.clientY);
+      }
+      touchTemplateRef.current = null;
+      setTouchDragPos(null);
+    };
+
+    window.addEventListener('touchmove', handleMove, { passive: false });
+    window.addEventListener('touchend', handleEnd);
+
+    return () => {
+      window.removeEventListener('touchmove', handleMove);
+      window.removeEventListener('touchend', handleEnd);
+    };
+    // Only re-attach when drag starts/ends (not on every position update)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [!!touchDragPos, onTemplateTouchDrop]);
+
+  // Read ref during render for floating proxy visual
+  const dragTemplate = touchTemplateRef.current;
 
   const getShapeIcon = (shape: string) => {
     switch (shape) {
@@ -66,7 +111,9 @@ export const StallTemplatesPalette = ({ templates }: StallTemplatesPaletteProps)
               key={template.id}
               draggable
               onDragStart={(e) => handleDragStart(e, template)}
+              onTouchStart={(e) => handleTemplateTouchStart(e, template)}
               className="p-3 border border-border rounded-lg cursor-grab hover:bg-accent/50 transition-colors"
+              style={{ touchAction: 'none' }}
             >
               <div className="flex items-center space-x-3">
                 <TemplatePreview template={template} />
@@ -111,6 +158,25 @@ export const StallTemplatesPalette = ({ templates }: StallTemplatesPaletteProps)
           ))
         )}
       </CardContent>
+
+      {/* Touch drag floating proxy */}
+      {touchDragPos && dragTemplate && (
+        <div
+          className="fixed pointer-events-none z-50 opacity-75"
+          style={{
+            left: touchDragPos.x - 30,
+            top: touchDragPos.y - 30,
+          }}
+        >
+          <svg width={60} height={60}>
+            {dragTemplate.shape === 'CIRCLE' ? (
+              <circle cx={30} cy={30} r={26} fill={dragTemplate.fill_color} stroke={dragTemplate.stroke_color} strokeWidth={2} />
+            ) : (
+              <rect x={4} y={4} width={52} height={52} rx={4} fill={dragTemplate.fill_color} stroke={dragTemplate.stroke_color} strokeWidth={2} />
+            )}
+          </svg>
+        </div>
+      )}
     </Card>
   );
 };
