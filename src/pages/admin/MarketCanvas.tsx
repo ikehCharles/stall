@@ -21,6 +21,7 @@ const navigate = useNavigate();
   const [selectedStallId, setSelectedStallId] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showGrid, setShowGrid] = useState(true);
+  const [touchDragPoint, setTouchDragPoint] = useState<{ clientX: number; clientY: number } | null>(null);
   // Replace 'StallTemplate' with the actual type used for your templates if different
   type PendingTemplateDrop = { template: typeof templates extends (infer U)[] ? U : unknown; clientX: number; clientY: number } | null;
   const [pendingTemplateDrop, setPendingTemplateDrop] = useState<PendingTemplateDrop>(null);
@@ -108,9 +109,9 @@ const navigate = useNavigate();
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         {/* Single Side Panel - Templates or Properties (switches on stall selection) */}
-        <div className="w-80 shrink-0 border-r border-border bg-card overflow-y-auto">
+        <div className="w-full lg:w-80 h-[40vh] lg:h-auto shrink-0 border-b lg:border-b-0 lg:border-r border-border bg-card overflow-y-auto">
           {selectedStallId ? (
             <StallPropertiesPanel
               stallId={selectedStallId}
@@ -120,6 +121,8 @@ const navigate = useNavigate();
           ) : (
             <StallTemplatesPalette
               templates={templates || []}
+              onTemplateTouchMove={(clientX, clientY) => setTouchDragPoint({ clientX, clientY })}
+              onTemplateTouchEnd={() => setTouchDragPoint(null)}
               onTemplateTouchDrop={(template, clientX, clientY) =>
                 setPendingTemplateDrop({ template, clientX, clientY })
               }
@@ -128,7 +131,7 @@ const navigate = useNavigate();
         </div>
 
         {/* Canvas */}
-        <div className="flex-1 min-w-0 bg-muted/20 overflow-hidden relative">
+        <div className="flex-1 min-w-0 min-h-0 bg-muted/20 overflow-hidden relative">
           <CanvasEditor
             layout={layout}
             stalls={stalls || []}
@@ -136,8 +139,12 @@ const navigate = useNavigate();
             selectedStallId={selectedStallId}
             onStallSelect={setSelectedStallId}
             onSaveLayout={handleSaveLayout}
+            touchDragPoint={touchDragPoint}
             pendingTemplateDrop={pendingTemplateDrop}
-            onPendingTemplateDropHandled={() => setPendingTemplateDrop(null)}
+            onPendingTemplateDropHandled={() => {
+              setPendingTemplateDrop(null);
+              setTouchDragPoint(null);
+            }}
           />
         </div>
       </div>

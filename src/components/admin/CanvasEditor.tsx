@@ -31,14 +31,22 @@ interface StallInstance {
   };
 }
 
+interface TemplateDropData {
+  id: string;
+  width?: number;
+  height?: number;
+  radius?: number;
+}
+
 interface CanvasEditorProps {
-  layout: any;
+  layout: unknown;
   stalls: StallInstance[];
   showGrid: boolean;
   selectedStallId: string | null;
   onStallSelect: (stallId: string | null) => void;
-  onSaveLayout: (layout: any) => void;
-  pendingTemplateDrop?: { template: any; clientX: number; clientY: number } | null;
+  onSaveLayout: (layout: unknown) => void;
+  touchDragPoint?: { clientX: number; clientY: number } | null;
+  pendingTemplateDrop?: { template: TemplateDropData; clientX: number; clientY: number } | null;
   onPendingTemplateDropHandled?: () => void;
 }
 
@@ -49,6 +57,7 @@ export const CanvasEditor = ({
   selectedStallId,
   onStallSelect,
   onSaveLayout,
+  touchDragPoint,
   pendingTemplateDrop,
   onPendingTemplateDropHandled,
 }: CanvasEditorProps) => {
@@ -77,6 +86,34 @@ export const CanvasEditor = ({
 
   const zoomIn = useCallback(() => setZoom((z) => Math.min(MAX_ZOOM, z + ZOOM_STEP)), []);
   const zoomOut = useCallback(() => setZoom((z) => Math.max(MIN_ZOOM, z - ZOOM_STEP)), []);
+
+  const getCanvasCoordinatesFromClientPoint = useCallback((clientX: number, clientY: number) => {
+    const scrollEl = scrollContainerRef.current;
+    if (!scrollEl) return null;
+
+    const containerRect = scrollEl.getBoundingClientRect();
+    const isInsideVisibleCanvas =
+      clientX >= containerRect.left &&
+      clientX <= containerRect.right &&
+      clientY >= containerRect.top &&
+      clientY <= containerRect.bottom;
+
+    if (!isInsideVisibleCanvas) return null;
+
+    const rawX = (clientX - containerRect.left + scrollEl.scrollLeft) / zoom;
+    const rawY = (clientY - containerRect.top + scrollEl.scrollTop) / zoom;
+
+    let x = snapToGrid(rawX);
+    let y = snapToGrid(rawY);
+    x = Math.max(0, Math.min(canvasWidth - 1, x));
+    y = Math.max(0, Math.min(canvasHeight - 1, y));
+
+    return { x, y };
+  }, [zoom, snapToGrid, canvasWidth, canvasHeight]);
+
+  const touchDropPreview = touchDragPoint
+    ? getCanvasCoordinatesFromClientPoint(touchDragPoint.clientX, touchDragPoint.clientY)
+    : null;
 
   // Handle stall drag start (pointer events for mouse + touch)
   const handleStallPointerDown = useCallback((e: React.PointerEvent, stall: StallInstance) => {
@@ -172,14 +209,17 @@ export const CanvasEditor = ({
   const handleCanvasDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     const templateData = JSON.parse(e.dataTransfer.getData('application/json'));
-    
-    const rect = svgRef.current?.getBoundingClientRect();
-    if (!rect) return;
 
-    let dropX = snapToGrid((e.clientX - rect.left) / zoom);
-    let dropY = snapToGrid((e.clientY - rect.top) / zoom);
-    dropX = Math.max(0, Math.min(canvasWidth - templateData.width, dropX));
-    dropY = Math.max(0, Math.min(canvasHeight - templateData.height, dropY));
+    const coords = getCanvasCoordinatesFromClientPoint(e.clientX, e.clientY);
+    if (!coords) return;
+
+    const templateWidth = templateData.width ?? (templateData.radius ? templateData.radius * 2 : 80);
+    const templateHeight = templateData.height ?? (templateData.radius ? templateData.radius * 2 : 80);
+
+    let dropX = coords.x;
+    let dropY = coords.y;
+    dropX = Math.max(0, Math.min(canvasWidth - templateWidth, dropX));
+    dropY = Math.max(0, Math.min(canvasHeight - templateHeight, dropY));
 
     // Auto-generate label
     const label = `ST-${stallCounter.toString().padStart(3, '0')}`;
@@ -193,27 +233,29 @@ export const CanvasEditor = ({
       label,
       x: dropX,
       y: dropY,
-      width: templateData.width,
-      height: templateData.height,
+      width: templateWidth,
+      height: templateHeight,
       rotation: 0,
       price_override: null,
       status: 'AVAILABLE',
     });
-  }, [layout?.market_id, snapToGrid, stallCounter, createStall, zoom, canvasWidth, canvasHeight]);
+  }, [layout?.market_id, stallCounter, createStall, canvasWidth, canvasHeight, getCanvasCoordinatesFromClientPoint]);
 
   // Handle pending template drop from touch drag (palette → canvas)
   useEffect(() => {
-    if (!pendingTemplateDrop || !svgRef.current) return;
+    if (!pendingTemplateDrop) return;
 
     const { template: templateData, clientX, clientY } = pendingTemplateDrop;
-    const rect = svgRef.current.getBoundingClientRect();
+    const coords = getCanvasCoordinatesFromClientPoint(clientX, clientY);
 
-    // Check if the drop is within the canvas bounds
-    if (clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom) {
-      let dropX = snapToGrid((clientX - rect.left) / zoom);
-      let dropY = snapToGrid((clientY - rect.top) / zoom);
-      dropX = Math.max(0, Math.min(canvasWidth - templateData.width, dropX));
-      dropY = Math.max(0, Math.min(canvasHeight - templateData.height, dropY));
+    if (coords) {
+      const templateWidth = templateData.width ?? (templateData.radius ? templateData.radius * 2 : 80);
+      const templateHeight = templateData.height ?? (templateData.radius ? templateData.radius * 2 : 80);
+
+      let dropX = coords.x;
+      let dropY = coords.y;
+      dropX = Math.max(0, Math.min(canvasWidth - templateWidth, dropX));
+      dropY = Math.max(0, Math.min(canvasHeight - templateHeight, dropY));
 
       const label = `ST-${stallCounter.toString().padStart(3, '0')}`;
       setStallCounter(prev => prev + 1);
@@ -224,8 +266,8 @@ export const CanvasEditor = ({
         label,
         x: dropX,
         y: dropY,
-        width: templateData.width,
-        height: templateData.height,
+        width: templateWidth,
+        height: templateHeight,
         rotation: 0,
         price_override: null,
         status: 'AVAILABLE',
@@ -233,7 +275,7 @@ export const CanvasEditor = ({
     }
 
     onPendingTemplateDropHandled?.();
-  }, [pendingTemplateDrop]);
+  }, [pendingTemplateDrop, getCanvasCoordinatesFromClientPoint, canvasWidth, canvasHeight, stallCounter, createStall, layout?.market_id, onPendingTemplateDropHandled]);
 
   // Handle key events for stall manipulation
   useEffect(() => {
@@ -454,14 +496,14 @@ export const CanvasEditor = ({
 
   return (
     <div 
-      className="flex-1 h-full flex flex-col items-center justify-center p-4 min-w-0"
+      className="flex-1 h-full flex flex-col items-center justify-center p-2 md:p-4 min-w-0"
       onDragOver={(e) => e.preventDefault()}
       onDrop={handleCanvasDrop}
     >
       <div className="relative w-full h-full flex items-center justify-center">
         <div
           ref={scrollContainerRef}
-          className=" w-[50vw] h-[70vh] bg-background border border-border rounded-lg shadow-lg overflow-auto"
+          className="w-full h-full md:w-[70vw] md:h-[70vh] lg:w-[50vw] bg-background border border-border rounded-lg shadow-lg overflow-auto"
         >
           <div
             style={{
@@ -488,6 +530,18 @@ export const CanvasEditor = ({
               }}
             >
               {renderGrid()}
+              {touchDropPreview && (
+                <g pointerEvents="none">
+                  <circle
+                    cx={touchDropPreview.x}
+                    cy={touchDropPreview.y}
+                    r={12}
+                    fill="hsl(var(--primary) / 0.25)"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={2}
+                  />
+                </g>
+              )}
               {stalls.map(renderStall)}
             </svg>
           </div>

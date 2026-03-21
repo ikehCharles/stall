@@ -8,9 +8,11 @@ import type { StallTemplate } from '@/hooks/useStallTemplates';
 interface StallTemplatesPaletteProps {
   templates: StallTemplate[];
   onTemplateTouchDrop?: (template: StallTemplate, clientX: number, clientY: number) => void;
+  onTemplateTouchMove?: (clientX: number, clientY: number) => void;
+  onTemplateTouchEnd?: () => void;
 }
 
-export const StallTemplatesPalette = ({ templates, onTemplateTouchDrop }: StallTemplatesPaletteProps) => {
+export const StallTemplatesPalette = ({ templates, onTemplateTouchDrop, onTemplateTouchMove, onTemplateTouchEnd }: StallTemplatesPaletteProps) => {
   const touchTemplateRef = useRef<StallTemplate | null>(null);
   const [touchDragPos, setTouchDragPos] = useState<{ x: number; y: number } | null>(null);
 
@@ -21,10 +23,13 @@ export const StallTemplatesPalette = ({ templates, onTemplateTouchDrop }: StallT
 
   // Touch drag start: store template and initial position
   const handleTemplateTouchStart = useCallback((e: React.TouchEvent, template: StallTemplate) => {
+    e.preventDefault();
+    e.stopPropagation();
     const touch = e.touches[0];
     touchTemplateRef.current = template;
     setTouchDragPos({ x: touch.clientX, y: touch.clientY });
-  }, []);
+    onTemplateTouchMove?.(touch.clientX, touch.clientY);
+  }, [onTemplateTouchMove]);
 
   // Attach window-level touch listeners while a touch drag is in progress
   useEffect(() => {
@@ -34,6 +39,7 @@ export const StallTemplatesPalette = ({ templates, onTemplateTouchDrop }: StallT
       e.preventDefault();
       const touch = e.touches[0];
       setTouchDragPos({ x: touch.clientX, y: touch.clientY });
+      onTemplateTouchMove?.(touch.clientX, touch.clientY);
     };
 
     const handleEnd = (e: TouchEvent) => {
@@ -43,18 +49,27 @@ export const StallTemplatesPalette = ({ templates, onTemplateTouchDrop }: StallT
       }
       touchTemplateRef.current = null;
       setTouchDragPos(null);
+      onTemplateTouchEnd?.();
+    };
+
+    const handleCancel = () => {
+      touchTemplateRef.current = null;
+      setTouchDragPos(null);
+      onTemplateTouchEnd?.();
     };
 
     window.addEventListener('touchmove', handleMove, { passive: false });
     window.addEventListener('touchend', handleEnd);
+    window.addEventListener('touchcancel', handleCancel);
 
     return () => {
       window.removeEventListener('touchmove', handleMove);
       window.removeEventListener('touchend', handleEnd);
+      window.removeEventListener('touchcancel', handleCancel);
     };
     // Only re-attach when drag starts/ends (not on every position update)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [!!touchDragPos, onTemplateTouchDrop]);
+  }, [!!touchDragPos, onTemplateTouchDrop, onTemplateTouchMove, onTemplateTouchEnd]);
 
   // Read ref during render for floating proxy visual
   const dragTemplate = touchTemplateRef.current;
