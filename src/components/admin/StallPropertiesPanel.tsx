@@ -61,12 +61,32 @@ export const StallPropertiesPanel = ({ stallId, stalls, onStallUpdate }: StallPr
   const deleteTag = useDeleteTag();
   const { data: instanceTagIds = [] } = useStallInstanceTags(stallId ?? undefined);
   const syncInstanceTags = useSyncStallInstanceTags();
+  const confirm = useConfirm();
 
-  const stall = stalls.find(s => s.id === stallId);
-  const template = stall.stall_templates;
-  const effectivePrice = stall.price_override ?? template?.price ?? 0;
+  const selectedStall = stalls.find(s => s.id === stallId);
 
-  const selectedStall: StallInstance = stall;
+  if (!selectedStall) {
+    return (
+      <Card className="h-full min-h-0 flex flex-col border-none shadow-none rounded-none lg:rounded-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center text-lg">
+            <Tag className="h-5 w-5 mr-2" />
+            Stall Properties
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex-1 overflow-y-auto">
+          <div className="text-center py-8 text-muted-foreground">
+            <Tag className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p>No stall selected</p>
+            <p className="text-sm">Click on a stall to edit its properties</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const template = selectedStall.stall_templates;
+  const effectivePrice = selectedStall.price_override ?? template?.price ?? 0;
   const templateCategoryId = template?.category_id ?? null;
   const templateTagIds = (template?.stall_template_tags ?? []).map((stt) => stt.tag_id);
 
@@ -104,8 +124,6 @@ export const StallPropertiesPanel = ({ stallId, stalls, onStallUpdate }: StallPr
       });
     }
   };
-
-  const confirm = useConfirm();
 
   const handleDelete = async () => {
     if (!selectedStall) return;
@@ -148,28 +166,8 @@ export const StallPropertiesPanel = ({ stallId, stalls, onStallUpdate }: StallPr
     }
   };
 
-  if (!selectedStall) {
-    return (
-      <Card className="h-full">
-        <CardHeader>
-          <CardTitle className="flex items-center text-lg">
-            <Tag className="h-5 w-5 mr-2" />
-            Stall Properties
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            <Tag className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>No stall selected</p>
-            <p className="text-sm">Click on a stall to edit its properties</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
-    <Card className="h-full border-none shadow-none">
+    <Card className="h-full min-h-0 flex flex-col border-none shadow-none rounded-none lg:rounded-lg">
       <CardHeader>
         <CardTitle className="flex items-center justify-between text-lg">
           <div className="flex items-center">
@@ -187,7 +185,7 @@ export const StallPropertiesPanel = ({ stallId, stalls, onStallUpdate }: StallPr
         </CardTitle>
       </CardHeader>
       
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-6 overflow-y-auto flex-1">
         {/* Basic Info */}
         <div className="space-y-4">
           <div>

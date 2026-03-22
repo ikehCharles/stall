@@ -46,6 +46,8 @@ interface CanvasEditorProps {
   onStallSelect: (stallId: string | null) => void;
   onSaveLayout: (layout: unknown) => void;
   touchDragPoint?: { clientX: number; clientY: number } | null;
+  tapToPlaceTemplate?: TemplateDropData | null;
+  onTapToPlaceCompleted?: () => void;
   pendingTemplateDrop?: { template: TemplateDropData; clientX: number; clientY: number } | null;
   onPendingTemplateDropHandled?: () => void;
 }
@@ -58,6 +60,8 @@ export const CanvasEditor = ({
   onStallSelect,
   onSaveLayout,
   touchDragPoint,
+  tapToPlaceTemplate,
+  onTapToPlaceCompleted,
   pendingTemplateDrop,
   onPendingTemplateDropHandled,
 }: CanvasEditorProps) => {
@@ -114,6 +118,37 @@ export const CanvasEditor = ({
   const touchDropPreview = touchDragPoint
     ? getCanvasCoordinatesFromClientPoint(touchDragPoint.clientX, touchDragPoint.clientY)
     : null;
+
+  const createStallFromTemplateAtClientPoint = useCallback((templateData: TemplateDropData, clientX: number, clientY: number) => {
+    const coords = getCanvasCoordinatesFromClientPoint(clientX, clientY);
+    if (!coords) return false;
+
+    const templateWidth = templateData.width ?? (templateData.radius ? templateData.radius * 2 : 80);
+    const templateHeight = templateData.height ?? (templateData.radius ? templateData.radius * 2 : 80);
+
+    let dropX = coords.x;
+    let dropY = coords.y;
+    dropX = Math.max(0, Math.min(canvasWidth - templateWidth, dropX));
+    dropY = Math.max(0, Math.min(canvasHeight - templateHeight, dropY));
+
+    const label = `ST-${stallCounter.toString().padStart(3, '0')}`;
+    setStallCounter(prev => prev + 1);
+
+    createStall.mutate({
+      market_id: layout?.market_id,
+      template_id: templateData.id,
+      label,
+      x: dropX,
+      y: dropY,
+      width: templateWidth,
+      height: templateHeight,
+      rotation: 0,
+      price_override: null,
+      status: 'AVAILABLE',
+    });
+
+    return true;
+  }, [getCanvasCoordinatesFromClientPoint, canvasWidth, canvasHeight, stallCounter, createStall, layout?.market_id]);
 
   // Handle stall drag start (pointer events for mouse + touch)
   const handleStallPointerDown = useCallback((e: React.PointerEvent, stall: StallInstance) => {
@@ -209,73 +244,18 @@ export const CanvasEditor = ({
   const handleCanvasDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     const templateData = JSON.parse(e.dataTransfer.getData('application/json'));
-
-    const coords = getCanvasCoordinatesFromClientPoint(e.clientX, e.clientY);
-    if (!coords) return;
-
-    const templateWidth = templateData.width ?? (templateData.radius ? templateData.radius * 2 : 80);
-    const templateHeight = templateData.height ?? (templateData.radius ? templateData.radius * 2 : 80);
-
-    let dropX = coords.x;
-    let dropY = coords.y;
-    dropX = Math.max(0, Math.min(canvasWidth - templateWidth, dropX));
-    dropY = Math.max(0, Math.min(canvasHeight - templateHeight, dropY));
-
-    // Auto-generate label
-    const label = `ST-${stallCounter.toString().padStart(3, '0')}`;
-    setStallCounter(prev => prev + 1);
-
-
-
-    createStall.mutate({
-      market_id: layout?.market_id,
-      template_id: templateData.id,
-      label,
-      x: dropX,
-      y: dropY,
-      width: templateWidth,
-      height: templateHeight,
-      rotation: 0,
-      price_override: null,
-      status: 'AVAILABLE',
-    });
-  }, [layout?.market_id, stallCounter, createStall, canvasWidth, canvasHeight, getCanvasCoordinatesFromClientPoint]);
+    createStallFromTemplateAtClientPoint(templateData, e.clientX, e.clientY);
+  }, [createStallFromTemplateAtClientPoint]);
 
   // Handle pending template drop from touch drag (palette → canvas)
   useEffect(() => {
     if (!pendingTemplateDrop) return;
 
     const { template: templateData, clientX, clientY } = pendingTemplateDrop;
-    const coords = getCanvasCoordinatesFromClientPoint(clientX, clientY);
-
-    if (coords) {
-      const templateWidth = templateData.width ?? (templateData.radius ? templateData.radius * 2 : 80);
-      const templateHeight = templateData.height ?? (templateData.radius ? templateData.radius * 2 : 80);
-
-      let dropX = coords.x;
-      let dropY = coords.y;
-      dropX = Math.max(0, Math.min(canvasWidth - templateWidth, dropX));
-      dropY = Math.max(0, Math.min(canvasHeight - templateHeight, dropY));
-
-      const label = `ST-${stallCounter.toString().padStart(3, '0')}`;
-      setStallCounter(prev => prev + 1);
-
-      createStall.mutate({
-        market_id: layout?.market_id,
-        template_id: templateData.id,
-        label,
-        x: dropX,
-        y: dropY,
-        width: templateWidth,
-        height: templateHeight,
-        rotation: 0,
-        price_override: null,
-        status: 'AVAILABLE',
-      });
-    }
+    createStallFromTemplateAtClientPoint(templateData, clientX, clientY);
 
     onPendingTemplateDropHandled?.();
-  }, [pendingTemplateDrop, getCanvasCoordinatesFromClientPoint, canvasWidth, canvasHeight, stallCounter, createStall, layout?.market_id, onPendingTemplateDropHandled]);
+  }, [pendingTemplateDrop, createStallFromTemplateAtClientPoint, onPendingTemplateDropHandled]);
 
   // Handle key events for stall manipulation
   useEffect(() => {
@@ -496,7 +476,7 @@ export const CanvasEditor = ({
 
   return (
     <div 
-      className="flex-1 h-full flex flex-col items-center justify-center p-2 md:p-4 min-w-0"
+      className="flex-1 h-full flex flex-col items-center justify-center p-2 md:p-4 min-w-0 min-h-0"
       onDragOver={(e) => e.preventDefault()}
       onDrop={handleCanvasDrop}
     >
@@ -504,6 +484,12 @@ export const CanvasEditor = ({
         <div
           ref={scrollContainerRef}
           className="w-full h-full md:w-[70vw] md:h-[70vh] lg:w-[50vw] bg-background border border-border rounded-lg shadow-lg overflow-auto"
+          onClick={(e) => {
+            // Click on scroll container background (outside the SVG) deselects stall
+            if (e.target === e.currentTarget) {
+              onStallSelect(null);
+            }
+          }}
         >
           <div
             style={{
@@ -523,6 +509,24 @@ export const CanvasEditor = ({
                 touchAction: 'none',
               }}
               className="bg-background cursor-crosshair"
+              onPointerDown={(e) => {
+                if (e.target !== e.currentTarget) return;
+
+                if (tapToPlaceTemplate) {
+                  const placed = createStallFromTemplateAtClientPoint(
+                    tapToPlaceTemplate,
+                    e.clientX,
+                    e.clientY,
+                  );
+
+                  if (placed) {
+                    onTapToPlaceCompleted?.();
+                  }
+                  return;
+                }
+
+                onStallSelect(null);
+              }}
               onClick={(e) => {
                 if (e.target === e.currentTarget) {
                   onStallSelect(null);
@@ -530,6 +534,19 @@ export const CanvasEditor = ({
               }}
             >
               {renderGrid()}
+              {tapToPlaceTemplate && (
+                <rect
+                  x={1}
+                  y={1}
+                  width={canvasWidth - 2}
+                  height={canvasHeight - 2}
+                  fill="hsl(var(--primary) / 0.06)"
+                  stroke="hsl(var(--primary) / 0.8)"
+                  strokeWidth={2}
+                  strokeDasharray="8 6"
+                  pointerEvents="none"
+                />
+              )}
               {touchDropPreview && (
                 <g pointerEvents="none">
                   <circle
@@ -551,7 +568,7 @@ export const CanvasEditor = ({
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8"
+            className="h-9 w-9 md:h-8 md:w-8"
             onClick={zoomOut}
             disabled={zoom <= MIN_ZOOM}
           >
@@ -563,7 +580,7 @@ export const CanvasEditor = ({
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8"
+            className="h-9 w-9 md:h-8 md:w-8"
             onClick={zoomIn}
             disabled={zoom >= MAX_ZOOM}
           >

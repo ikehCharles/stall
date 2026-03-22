@@ -18,6 +18,8 @@ const AdminLayout = () => {
   const appName = platformSettings?.appName || APP_NAME_DEFAULT;
   const appLogoUrl = platformSettings?.appLogoUrl || "";
   const isFCAMode = location.pathname.startsWith('/admin/fca');
+  const isCanvasMode = /\/admin\/markets\/[^/]+\/canvas/.test(location.pathname);
+  // Sidebar is collapsible on mobile & tablet (< lg), static on lg+
 
 
   const navigation = [
@@ -88,21 +90,21 @@ const AdminLayout = () => {
       {/* Only show sidebar if NOT in FCA mode */}
       {!isFCAMode && (
         <>
-          {/* Mobile sidebar overlay */}
+          {/* Sidebar overlay */}
           {sidebarOpen && (
             <div 
-              className="fixed inset-0 z-40 bg-gray-600 bg-opacity-75 md:hidden"
+              className="fixed inset-0 z-40 bg-gray-600 bg-opacity-75 lg:hidden"
               onClick={() => setSidebarOpen(false)}
             />
           )}
 
           {/* Sidebar */}
           <div className={cn(
-            "fixed inset-y-0 left-0 z-50 w-64 transform bg-white shadow-lg transition-transform duration-300 ease-in-out md:translate-x-0 md:static md:z-0",
+            "fixed inset-y-0 left-0 z-50 w-64 transform bg-white shadow-lg transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:z-0",
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
           )}>
             <div className="flex h-full flex-col">
-              <div className="flex h-16 items-center justify-between px-4 md:justify-center">
+              <div className="flex h-16 items-center justify-between px-4 lg:justify-center">
                 <div className="flex justify-between w-full items-center gap-2.5">
                   {appLogoUrl ? (
                     <img src={appLogoUrl} alt={appName} className="h-10 w-10 rounded-xl object-cover shadow-md" />
@@ -115,7 +117,7 @@ const AdminLayout = () => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="md:hidden"
+                  className="lg:hidden"
                   onClick={() => setSidebarOpen(false)}
                 >
                   <X className="h-6 w-6" />
@@ -178,7 +180,7 @@ const AdminLayout = () => {
       <div className="flex flex-1 flex-col">
         {/* Only show mobile header if NOT in FCA mode */}
         {!isFCAMode && (
-          <div className="flex justify-between h-16 items-center border-b border-gray-200 bg-white px-4 md:hidden">
+          <div className="flex justify-between h-16 items-center border-b border-gray-200 bg-white px-4 lg:hidden">
             <Button
               variant="ghost"
               size="sm"
@@ -200,7 +202,7 @@ const AdminLayout = () => {
 
         <main className="flex-1 overflow-y-auto">
           <div className="h-full">
-            <div className="h-full px-4 py-6 sm:px-6 lg:px-8">
+            <div className={cn("h-full", isCanvasMode ? "" : "px-4 py-6 sm:px-6 lg:px-8")}>
               <Outlet />
             </div>
           </div>
