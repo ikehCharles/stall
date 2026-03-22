@@ -91,6 +91,26 @@ export const CanvasEditor = ({
   const zoomIn = useCallback(() => setZoom((z) => Math.min(MAX_ZOOM, z + ZOOM_STEP)), []);
   const zoomOut = useCallback(() => setZoom((z) => Math.max(MIN_ZOOM, z - ZOOM_STEP)), []);
 
+  // Auto-fit canvas to container on mount / resize
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const fitZoom = () => {
+      const { clientWidth, clientHeight } = container;
+      if (!clientWidth || !clientHeight) return;
+      const fitW = clientWidth / canvasWidth;
+      const fitH = clientHeight / canvasHeight;
+      const best = Math.min(fitW, fitH, 1); // never exceed 100 %
+      setZoom(Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Math.round(best / ZOOM_STEP) * ZOOM_STEP || MIN_ZOOM)));
+    };
+
+    fitZoom();
+    const ro = new ResizeObserver(fitZoom);
+    ro.observe(container);
+    return () => ro.disconnect();
+  }, [canvasWidth, canvasHeight]);
+
   const getCanvasCoordinatesFromClientPoint = useCallback((clientX: number, clientY: number) => {
     const scrollEl = scrollContainerRef.current;
     if (!scrollEl) return null;
@@ -483,9 +503,9 @@ export const CanvasEditor = ({
       <div className="relative w-full h-full flex items-center justify-center">
         <div
           ref={scrollContainerRef}
-          className="w-full h-full md:w-[70vw] md:h-[70vh] lg:w-[50vw] bg-background border border-border rounded-lg shadow-lg overflow-auto"
+          className="w-full h-full bg-background border border-border rounded-lg shadow-lg overflow-hidden flex items-center justify-center"
           onClick={(e) => {
-            // Click on scroll container background (outside the SVG) deselects stall
+            // Click on container background (outside the SVG) deselects stall
             if (e.target === e.currentTarget) {
               onStallSelect(null);
             }
@@ -495,8 +515,7 @@ export const CanvasEditor = ({
             style={{
               width: canvasWidth * zoom,
               height: canvasHeight * zoom,
-              minWidth: canvasWidth * zoom,
-              minHeight: canvasHeight * zoom,
+              flexShrink: 0,
             }}
           >
             <svg
