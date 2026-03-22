@@ -152,6 +152,7 @@ export function useUserProfile(userId?: string) {
             ? "vendor"
             : null,
         kyc_status: kycData?.status ?? null,
+        terms_accepted_at: profile?.terms_accepted_at ?? null,
       };
     },
   });

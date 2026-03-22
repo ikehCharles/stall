@@ -27,6 +27,7 @@ import {
 } from "@/hooks/useEmailTemplates";
 import { Save, Plus, Mail, Eye, Code, FileText, Palette, Smartphone } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { sanitizeEditorHtml } from "@/lib/sanitizeHtml";
 
 // ---------------------------------------------------------------------------
 // Phone-frame preview
@@ -52,7 +53,7 @@ function PhonePreview({ html, className }: { html: string; className?: string })
               title="Phone email preview"
               className="w-full border-0"
               style={{ height: 456 }}
-              srcDoc={`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{box-sizing:border-box;max-width:100%}body{margin:0;padding:0;background:#fff;overflow-x:hidden;word-wrap:break-word;overflow-wrap:break-word}.ql-align-center{text-align:center}.ql-align-right{text-align:right}.ql-align-justify{text-align:justify}.ql-indent-1{padding-left:3em}.ql-indent-2{padding-left:6em}table{border-collapse:collapse;max-width:100%}th{border:1px solid #000;padding:2px 5px;background:rgba(0,0,0,.05)}td{border:1px solid #000;padding:2px 5px}</style></head><body>${html}</body></html>`}
+              srcDoc={`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{box-sizing:border-box;max-width:100%}body{margin:0;padding:0;background:#fff;overflow-x:hidden;word-wrap:break-word;overflow-wrap:break-word}.ql-align-center{text-align:center}.ql-align-right{text-align:right}.ql-align-justify{text-align:justify}.ql-indent-1{padding-left:3em}.ql-indent-2{padding-left:6em}table{border-collapse:collapse;max-width:100%}th{border:1px solid #000;padding:2px 5px;background:rgba(0,0,0,.05)}td{border:1px solid #000;padding:2px 5px}</style></head><body>${sanitizeEditorHtml(html)}</body></html>`}
             />
           </div>
           {/* Home bar */}
@@ -64,15 +65,14 @@ function PhonePreview({ html, className }: { html: string; className?: string })
     </div>
   );
 }
-import ReactQuill, { Quill } from "react-quill-new";
-import type QuillType from "quill";
-import "react-quill-new/dist/quill.snow.css";
-import QuillTableBetter from "quill-table-better";
-import "quill-table-better/dist/quill-table-better.css";
+import RichTextEditor from "@/components/shared/RichTextEditor";
+import {
+  Quill,
+  quillTableBetterKeyboardBindings,
+  type RichTextEditorHandle,
+} from "@/components/shared/richTextEditorUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-
-Quill.register({ "modules/table-better": QuillTableBetter }, true);
 
 /**
  * Upload an image file to Supabase Storage and return its public URL.
@@ -91,17 +91,7 @@ async function uploadImageToSupabase(file: File): Promise<string> {
   return data.publicUrl;
 }
 
-/**
- * quill-table-better requires updateContents() instead of setContents()
- * for tables to render. This helper loads HTML into a Quill editor safely.
- */
-function loadHtmlIntoQuill(editor: QuillType, html: string) {
-  editor.setText("");
-  const delta = editor.clipboard.convert({ html });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  editor.updateContents(delta as Parameters<typeof editor.updateContents>[0], (Quill as any).sources.USER);
-  editor.setSelection(0, 0);
-}
+
 
 // ---------------------------------------------------------------------------
 // Wrapper Editor — simplified form for the header/footer template
@@ -455,7 +445,7 @@ const QUILL_TOOLBAR = [
 ];
 
 const QUILL_KEYBOARD_BINDINGS = {
-  ...QuillTableBetter.keyboardBindings,
+  ...quillTableBetterKeyboardBindings,
   variableBackspace: {
     key: "Backspace",
     handler: function (this: unknown, range: { index: number; length: number }, ctx: unknown) {
@@ -489,8 +479,7 @@ function TemplateEditor({
   const [mode, setMode] = useState<"wysiwyg" | "html">("wysiwyg");
   const [htmlSource, setHtmlSource] = useState(template.html_body);
   const [uploading, setUploading] = useState(false);
-  const quillRef = useRef<ReactQuill>(null);
-  const needsLoad = useRef(true);
+  const editorRef = useRef<RichTextEditorHandle>(null);
   const pendingHtml = useRef(template.html_body);
   const { toast } = useToast();
 
@@ -508,7 +497,7 @@ function TemplateEditor({
           input.onchange = async () => {
             const file = input.files?.[0];
             if (!file) return;
-            const editor = quillRef.current?.getEditor();
+            const editor = editorRef.current?.getEditor();
             if (!editor) return;
             const range = editor.getSelection(true);
             try {
@@ -546,38 +535,14 @@ function TemplateEditor({
     setHtmlSource(template.html_body);
     pendingHtml.current = template.html_body;
     setMode("wysiwyg");
-    needsLoad.current = true;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [template.id]);
 
-  // Load HTML into Quill via updateContents (required for table-better).
-  // Runs on initial mount, template switch, AND when switching back from HTML mode.
-  // Uses pendingHtml ref so it's not affected by onChange firing during remount.
-
-  useEffect(() => {
-    if (mode !== "wysiwyg") {
-      needsLoad.current = true;
-      return;
-    }
-    if (!needsLoad.current) return;
-    const timer = setTimeout(() => {
-      const editor = quillRef.current?.getEditor();
-      if (!editor) return;
-      loadHtmlIntoQuill(editor, pendingHtml.current);
-      needsLoad.current = false;
-    }, 50);
-    return () => clearTimeout(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, template.id]);
-
   const switchMode = (next: "wysiwyg" | "html") => {
     if (mode === "wysiwyg" && next === "html") {
-      const editor = quillRef.current?.getEditor();
-      if (editor) {
-        const html = editor.root.innerHTML;
-        setHtmlSource(html);
-        pendingHtml.current = html;
-      }
+      const html = editorRef.current?.getHtml() ?? htmlSource;
+      setHtmlSource(html);
+      pendingHtml.current = html;
     }
     if (mode === "html" && next === "wysiwyg") {
       pendingHtml.current = htmlSource;
@@ -587,8 +552,7 @@ function TemplateEditor({
 
   const getCurrentHtml = () => {
     if (mode === "wysiwyg") {
-      const editor = quillRef.current?.getEditor();
-      return editor ? editor.root.innerHTML : htmlSource;
+      return editorRef.current?.getHtml() ?? htmlSource;
     }
     return htmlSource;
   };
@@ -602,7 +566,7 @@ function TemplateEditor({
 
   const insertVariable = (name: string) => {
     if (mode === "wysiwyg") {
-      const editor = quillRef.current?.getEditor();
+      const editor = editorRef.current?.getEditor();
       if (!editor) return;
       const range = editor.getSelection(true);
       editor.insertText(range.index, `{{${name}}}`);
@@ -683,15 +647,13 @@ function TemplateEditor({
             <CardContent className="p-0 h-full">
               {mode === "wysiwyg" && (
                 <div className="h-full flex flex-col [&_.ql-toolbar]:flex-shrink-0 [&_.ql-container]:flex-1 [&_.ql-container]:overflow-auto [&_.ql-container]:min-h-0">
-                  <ReactQuill
-                    key={template.id}
-                    ref={quillRef}
-                    theme="snow"
+                  <RichTextEditor
+                    ref={editorRef}
+                    initialHtml={template.html_body}
+                    contentKey={template.id}
                     onChange={(content) => {
-                      if (!needsLoad.current) {
-                        setHtmlSource(content);
-                        pendingHtml.current = content;
-                      }
+                      setHtmlSource(content);
+                      pendingHtml.current = content;
                     }}
                     modules={quillModules}
                     className="h-full flex flex-col"

@@ -20,6 +20,7 @@ export interface UserProfile {
   permissions: string[];
   role: string;
   kyc_status: "PENDING" | "APPROVED" | "REJECTED" | null;
+  terms_accepted_at: string | null;
 }
 
 interface AuthContextType {

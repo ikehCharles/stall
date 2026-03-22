@@ -42,6 +42,7 @@ import Reporting from "./pages/admin/Reporting";
 import CashReconciliation from "./pages/admin/CashReconciliation";
 import AuditLog from "./pages/admin/AuditLog";
 import Notifications from "./pages/vendor/Notifications";
+import TermsAcceptanceModal from "./components/auth/TermsAcceptanceModal";
 
 const queryClient = new QueryClient();
 
@@ -77,9 +78,20 @@ const AppContent = () => {
   const needsProfileCompletion =
     userProfile?.role === "vendor" && !isProfileComplete;
 
+  // Check if vendor still needs to accept terms & conditions
+  const needsTermsAcceptance =
+    userProfile?.role === "vendor" &&
+    !userProfile?.terms_accepted_at;
+
+
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       <PageLoader visible={isLoading} />
+
+      {/* Non-dismissable terms modal for vendors who haven't accepted yet */}
+      {needsTermsAcceptance && <TermsAcceptanceModal />}
+
       <Routes>
         {/* Authentication Routes */}
         <Route
@@ -93,6 +105,18 @@ const AppContent = () => {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/unauthorized" element={<AccessDenied showSignOut />} />
+
+        {/* Legacy route — redirect to vendor home (modal handles acceptance now) */}
+        <Route
+          path="/accept-terms"
+          element={
+            user ? (
+              <Navigate to={userProfile?.role === 'admin' ? '/admin' : '/vendor'} replace />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
 
         {/* Vendor Routes */}
         <Route

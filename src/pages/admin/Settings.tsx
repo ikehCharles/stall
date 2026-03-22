@@ -1,18 +1,144 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
 import { useCreateCred, usePlatformSettings, useSaveSingleSetting, PlatformSettings } from "@/hooks/useSettings";
 import { useConfirm } from "@/components/ui/confirmDialog";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, X as XIcon, Loader2 } from "lucide-react";
+import { Upload, X as XIcon, Loader2, Pencil } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import RichTextEditor from "@/components/shared/RichTextEditor";
+import type { RichTextEditorHandle } from "@/components/shared/richTextEditorUtils";
+import { sanitizeEditorHtml } from "@/lib/sanitizeHtml";
+
+// Policy toolbar with table support
+const POLICY_TOOLBAR = [
+  [{ header: [1, 2, 3, false] }],
+  ["bold", "italic", "underline", "strike"],
+  ["table-better"],
+  [{ list: "ordered" }, { list: "bullet" }],
+  [{ indent: "-1" }, { indent: "+1" }],
+  ["link"],
+  ["clean"],
+];
+
+// ── Isolated Policy editor using shared RichTextEditor ───────────────────────
+function PolicyQuillEditor({
+  initialHtml,
+  minHeight = 160,
+  onSave,
+  onCancel,
+  isSaving,
+}: {
+  initialHtml: string;
+  minHeight?: number;
+  onSave: (html: string) => void;
+  onCancel: () => void;
+  isSaving: boolean;
+}) {
+  const editorRef = useRef<RichTextEditorHandle>(null);
+
+  const modules = useMemo(() => ({
+    toolbar: { container: POLICY_TOOLBAR },
+    "table-better": {
+      language: "en_US",
+      menus: ["column", "row", "merge", "table", "cell", "wrap", "delete"],
+      toolbarTable: true,
+    },
+    table: false,
+  }), []);
+
+  const handleSave = () => {
+    onSave(editorRef.current?.getHtml() ?? initialHtml);
+  };
+
+  return (
+    <div className="space-y-3">
+      <div
+        className="border rounded-md overflow-hidden [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-container]:border-0"
+        style={{ ['--ql-min' as string]: `${minHeight}px` }}
+      >
+        <RichTextEditor
+          ref={editorRef}
+          initialHtml={initialHtml}
+          modules={modules}
+          className="[&_.ql-editor]:min-h-[var(--ql-min)] [&_.ql-editor]:font-[inherit] [&_.ql-editor]:text-sm"
+        />
+      </div>
+      <div className="flex items-center gap-2 justify-end">
+        <Button variant="outline" size="sm" onClick={onCancel} disabled={isSaving}>
+          Cancel
+        </Button>
+        <Button size="sm" onClick={handleSave} disabled={isSaving}>
+          {isSaving ? "Saving…" : "Save"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ── Iframe-based preview so Tailwind resets don't affect policy HTML ─────────
+function PolicyPreview({
+  html,
+  placeholder,
+  onClick,
+}: {
+  html: string;
+  placeholder: string;
+  onClick: () => void;
+}) {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  const safeHtml = html ? sanitizeEditorHtml(html) : "";
+
+  const srcdoc = `<!DOCTYPE html>
+<html><head><style>
+  html,body{margin:0;padding:0;font-family:system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.5;color:#1a1a1a;}
+  body{padding:16px;}
+  h1{font-size:1.25em;font-weight:700;margin:.4em 0}
+  h2{font-size:1.1em;font-weight:600;margin:.4em 0}
+  h3{font-size:1em;font-weight:600;margin:.3em 0}
+  p{margin:.35em 0}
+  ul,ol{margin:.35em 0;padding-left:1.5em}
+  li{margin:.15em 0}
+  a{color:#2563eb;text-decoration:underline}
+  table{border-collapse:collapse;width:100%;margin:.5em 0}
+  th,td{border:1px solid #d1d5db;padding:6px 10px;text-align:left}
+  th{background:#f3f4f6;font-weight:600}
+  blockquote{border-left:3px solid #d1d5db;margin:.5em 0;padding:.25em .75em;color:#4b5563}
+  .empty-placeholder{color:#9ca3af;font-style:italic}
+</style></head><body>${safeHtml || `<p class="empty-placeholder">${placeholder}</p>`}</body></html>`;
+
+  // Auto-resize iframe height to fit content
+  const handleLoad = () => {
+    const iframe = iframeRef.current;
+    if (!iframe?.contentDocument?.body) return;
+    const height = iframe.contentDocument.body.scrollHeight;
+    iframe.style.height = `${Math.max(60, height)}px`;
+  };
+
+  return (
+    <div className="relative cursor-pointer group" onClick={onClick}>
+      <iframe
+        ref={iframeRef}
+        srcDoc={srcdoc}
+        onLoad={handleLoad}
+        title="Policy preview"
+        className="w-full rounded-md border bg-muted/30 pointer-events-none"
+        style={{ minHeight: 60, border: "1px solid hsl(var(--border))" }}
+      />
+      {/* Transparent overlay to capture clicks since iframes swallow them */}
+      <div className="absolute inset-0 rounded-md hover:bg-muted/20 transition-colors" />
+    </div>
+  );
+}
 
 const Settings = () => {
+  const queryClient = useQueryClient();
   const { data: settingsData, isLoading, error } = usePlatformSettings();
   const saveSingleSetting = useSaveSingleSetting();
   const createCredentials = useCreateCred();
@@ -49,6 +175,49 @@ const Settings = () => {
 
   // Track original settings to detect changes
   const originalSettingsRef = useRef<PlatformSettings>({ ...settings });
+
+
+
+  // ── Policy edit mode ──────────────────────────────────────────────
+  const [editingPolicy, setEditingPolicy] = useState<"refundPolicy" | "termsAndConditions" | null>(null);
+  const [isSavingPolicy, setIsSavingPolicy] = useState(false);
+
+  const startEditingPolicy = (field: "refundPolicy" | "termsAndConditions") => {
+    setEditingPolicy(field);
+  };
+
+  const cancelEditingPolicy = () => setEditingPolicy(null);
+
+  const savePolicy = async (html: string) => {
+    if (!editingPolicy) return;
+    const field = editingPolicy;          // capture before any state change
+    setIsSavingPolicy(true);
+    try {
+      await saveSingleSetting.mutateAsync({ key: field, value: html });
+
+      // Optimistically update the React-Query cache so the useEffect that
+      // syncs settingsData → local state won't overwrite with stale data.
+      queryClient.setQueryData<PlatformSettings>(["platform-settings"], (old) =>
+        old ? { ...old, [field]: html } : old,
+      );
+
+      setSettings((prev) => ({ ...prev, [field]: html }));
+      originalSettingsRef.current = { ...originalSettingsRef.current, [field]: html };
+      toast({
+        title: "Setting Updated",
+        description: `${field === "refundPolicy" ? "Refund Policy" : "Terms and Conditions"} has been saved.`,
+      });
+      setEditingPolicy(null);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to save.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingPolicy(false);
+    }
+  };
 
   // Update local state when data is fetched
   useEffect(() => {
@@ -343,6 +512,7 @@ const Settings = () => {
     }
   };
 
+
   const saveZettleWebhook = async () => {
     if(!zettleWebhookUrl) return;
     const webhookUrlRegex = /^https?:\/\/[^\s/$.?#].[^\s]*$/i;
@@ -412,7 +582,7 @@ const Settings = () => {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-10">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
         <p className="text-gray-600 mt-1">
@@ -689,7 +859,7 @@ const Settings = () => {
           </CardContent>
         </Card>
 
-        {/* Notification Settings */}
+        {/* Notification Settings - hidden
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center">
@@ -731,6 +901,7 @@ const Settings = () => {
             </div>
           </CardContent>
         </Card>
+        */}
 
         {/* VAT Configuration */}
         <Card className="shadow-lg">
@@ -819,56 +990,21 @@ const Settings = () => {
           </CardContent>
         </Card>
 
-        {/* Policy Settings */}
-        <Card className="shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <span className="mr-2">📋</span>
-              Policies
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="refundPolicy">Refund Policy</Label>
-              <Textarea
-                id="refundPolicy"
-                value={settings.refundPolicy}
-                onChange={(e) => handleChange("refundPolicy", e.target.value)}
-                onBlur={() => handleBlur("refundPolicy")}
-                rows={4}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="termsAndConditions">Terms and Conditions</Label>
-              <Textarea
-                id="termsAndConditions"
-                value={settings.termsAndConditions}
-                onChange={(e) =>
-                  handleChange("termsAndConditions", e.target.value)
-                }
-                onBlur={() => handleBlur("termsAndConditions")}
-                rows={4}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Integration Settings */}
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center">
-              <span className="mr-2">📋</span>
+              <span className="mr-2">🔗</span>
               Integration Settings
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-2">
               <div className="flex flex-col gap-2 w-full">
-              <Label htmlFor="refundPolicy">Zettle Webhook Url</Label>
+              <Label htmlFor="zettleWebhook">Zettle Webhook Url</Label>
               <Input
-              className="w-full"
-                id="maxStalls"
+                className="w-full"
+                id="zettleWebhook"
                 value={zettleWebhookUrl}
                 onChange={(e) => {
                   setZettleWebhookUrl(e.target.value);
@@ -877,8 +1013,90 @@ const Settings = () => {
               />
               </div>
             </div>
+          </CardContent>
+        </Card>
 
-            
+        {/* Policy Settings — full width */}
+        <Card className="shadow-lg lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <span className="mr-2">📋</span>
+              Policies
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-8">
+            {/* Refund Policy */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Refund Policy</Label>
+                {editingPolicy !== "refundPolicy" && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 gap-1.5 text-xs"
+                    onClick={() => startEditingPolicy("refundPolicy")}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                    Edit
+                  </Button>
+                )}
+              </div>
+
+              {editingPolicy === "refundPolicy" ? (
+                <PolicyQuillEditor
+                  key="refundPolicy"
+                  initialHtml={settings.refundPolicy}
+                  minHeight={160}
+                  onSave={savePolicy}
+                  onCancel={cancelEditingPolicy}
+                  isSaving={isSavingPolicy}
+                />
+              ) : (
+                <PolicyPreview
+                  html={settings.refundPolicy}
+                  placeholder="No refund policy set. Click to add one."
+                  onClick={() => startEditingPolicy("refundPolicy")}
+                />
+              )}
+            </div>
+
+            {/* Terms and Conditions */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Terms and Conditions</Label>
+                {editingPolicy !== "termsAndConditions" && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 gap-1.5 text-xs"
+                    onClick={() => startEditingPolicy("termsAndConditions")}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                    Edit
+                  </Button>
+                )}
+              </div>
+
+              {editingPolicy === "termsAndConditions" ? (
+                <PolicyQuillEditor
+                  key="termsAndConditions"
+                  initialHtml={settings.termsAndConditions}
+                  minHeight={200}
+                  onSave={savePolicy}
+                  onCancel={cancelEditingPolicy}
+                  isSaving={isSavingPolicy}
+                />
+              ) : (
+                <PolicyPreview
+                  html={settings.termsAndConditions}
+                  placeholder="No terms set. Click to add them."
+                  onClick={() => startEditingPolicy("termsAndConditions")}
+                />
+              )}
+              <p className="text-sm text-gray-600">
+                Vendors must accept these terms when they first sign up.
+              </p>
+            </div>
           </CardContent>
         </Card>
       </div>
