@@ -50,7 +50,7 @@ const Login = () => {
   }, [userProfile, navigate]);
 
   if (magicLinkSent) {
-    return <EmailVerificationPending email={email} />;
+    return <EmailVerificationPending email={email} onBack={() => setMagicLinkSent(false)} />;
   }
 
   return (

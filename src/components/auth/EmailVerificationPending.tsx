@@ -4,13 +4,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Mail, RefreshCw, ArrowLeft, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Link } from "react-router-dom";
 
 interface EmailVerificationPendingProps {
   email: string;
+  onBack?: () => void;
 }
 
-export const EmailVerificationPending = ({ email }: EmailVerificationPendingProps) => {
+export const EmailVerificationPending = ({ email, onBack }: EmailVerificationPendingProps) => {
   const [isResending, setIsResending] = useState(false);
   const [resendCount, setResendCount] = useState(0);
 
@@ -104,13 +104,14 @@ export const EmailVerificationPending = ({ email }: EmailVerificationPendingProp
 
           {/* Back link */}
           <div className="mt-6 text-center">
-            <Link
-              to="/login"
+            <button
+              type="button"
+              onClick={onBack}
               className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
               Back to sign in
-            </Link>
+            </button>
           </div>
         </div>
       </div>
