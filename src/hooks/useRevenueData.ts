@@ -1,17 +1,25 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-export const useRevenueData = (days: number = 30) => {
-  return useQuery({
-    queryKey: ['revenue-data', days],
-    queryFn: async () => {
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - days);
+interface DateRange {
+  start: Date;
+  end: Date;
+}
 
+export const useRevenueData = (dateRange?: DateRange) => {
+  const fallbackStart = new Date();
+  fallbackStart.setDate(fallbackStart.getDate() - 30);
+  const start = dateRange?.start ?? fallbackStart;
+  const end = dateRange?.end ?? new Date();
+
+  return useQuery({
+    queryKey: ['revenue-data', start.toISOString(), end.toISOString()],
+    queryFn: async () => {
       const { data: bookings, error } = await supabase
         .from('bookings')
         .select('created_at, paid_amount, payment_status, vat_amount, net_amount')
-        .gte('created_at', startDate.toISOString())
+        .gte('created_at', start.toISOString())
+        .lte('created_at', end.toISOString())
         .eq('payment_status', 'success')
         .order('created_at', { ascending: true });
 

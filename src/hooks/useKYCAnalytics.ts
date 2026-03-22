@@ -4,13 +4,27 @@ import { Database } from "@/integrations/supabase/types";
 
 export type KYCApplication = Database['public']['Tables']['kyc_applications']['Row']
 
-export const useKYCAnalytics = () => {
+interface DateRange {
+  start: Date;
+  end: Date;
+}
+
+export const useKYCAnalytics = (dateRange?: DateRange) => {
   return useQuery({
-    queryKey: ['kyc-analytics'],
+    queryKey: ['kyc-analytics', dateRange?.start?.toISOString(), dateRange?.end?.toISOString()],
     queryFn: async () => {
-      const { data: applications, error } = await supabase
+      let query = supabase
         .from('kyc_applications')
-        .select('status');
+        .select('status, created_at');
+
+      if (dateRange?.start) {
+        query = query.gte('created_at', dateRange.start.toISOString());
+      }
+      if (dateRange?.end) {
+        query = query.lte('created_at', dateRange.end.toISOString());
+      }
+
+      const { data: applications, error } = await query;
 
       if (error) {
         console.error('Error fetching KYC applications:', error);

@@ -2,8 +2,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useKYCAnalytics } from "@/hooks/useKYCAnalytics";
 
-export const KYCMetricsCard = () => {
-  const { data, isLoading } = useKYCAnalytics();
+interface DateRange {
+  start: Date;
+  end: Date;
+}
+
+interface KYCMetricsCardProps {
+  dateRange?: DateRange;
+}
+
+export const KYCMetricsCard = ({ dateRange }: KYCMetricsCardProps) => {
+  const { data, isLoading } = useKYCAnalytics(dateRange);
 
   if (isLoading) {
     return (

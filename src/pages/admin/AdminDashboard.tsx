@@ -1,13 +1,22 @@
+import { useState } from "react";
+import { subDays, startOfDay, endOfDay } from "date-fns";
 import { MetricCard } from "@/components/admin/MetricsCards";
 import { OccupancyChart } from "@/components/admin/OccupancyChart";
 import { RevenueChart } from "@/components/admin/RevenueChart";
 import { KYCMetricsCard } from "@/components/admin/KYCMetricsCard";
+import { DateRangeFilter, type DateRangeValue } from "@/components/admin/DateRangeFilter";
 import { useAdminAnalytics } from "@/hooks/useAdminAnalytics";
 import { useStallOccupancy } from "@/hooks/useStallOccupancy";
 import { formatCurrency } from "@/lib/utils";
 
 const AdminDashboard = () => {
-  const { data: analytics, isLoading: analyticsLoading } = useAdminAnalytics();
+  const [dateRange, setDateRange] = useState<DateRangeValue>({
+    start: startOfDay(subDays(new Date(), 29)),
+    end: endOfDay(new Date()),
+  });
+  const [activePreset, setActivePreset] = useState("Last 30 Days");
+
+  const { data: analytics, isLoading: analyticsLoading } = useAdminAnalytics(dateRange);
   const { data: occupancy, isLoading: occupancyLoading } = useStallOccupancy();
 
   const metrics = [
@@ -43,10 +52,19 @@ const AdminDashboard = () => {
   ];
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>
-        <p className="text-muted-foreground mt-1">Real-time overview of marketplace operations</p>
+    <div className="space-y-6 pb-10">
+      {/* Header + Date Filter */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>
+          <p className="text-muted-foreground mt-1">Real-time overview of marketplace operations</p>
+        </div>
+        <DateRangeFilter
+          value={dateRange}
+          onChange={setDateRange}
+          activePreset={activePreset}
+          onPresetChange={setActivePreset}
+        />
       </div>
 
       {/* Metrics Grid */}
@@ -56,14 +74,12 @@ const AdminDashboard = () => {
         ))}
       </div>
 
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <RevenueChart />
-        <KYCMetricsCard />
-      </div>
+      {/* Revenue Chart — Full Width */}
+      <RevenueChart dateRange={dateRange} />
 
       {/* Bottom Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <KYCMetricsCard dateRange={dateRange} />
         <OccupancyChart />
       </div>
     </div>

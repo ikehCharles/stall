@@ -5,8 +5,17 @@ import { useRevenueData } from "@/hooks/useRevenueData";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
 import { formatCurrency } from "@/lib/utils";
 
-export const RevenueChart = () => {
-  const { data, isLoading } = useRevenueData(30);
+interface DateRange {
+  start: Date;
+  end: Date;
+}
+
+interface RevenueChartProps {
+  dateRange?: DateRange;
+}
+
+export const RevenueChart = ({ dateRange }: RevenueChartProps) => {
+  const { data, isLoading } = useRevenueData(dateRange);
 
   if (isLoading) {
     return (
@@ -26,7 +35,7 @@ export const RevenueChart = () => {
       <CardHeader>
         <CardTitle className="flex items-center">
           <span className="mr-2">💰</span>
-          Revenue Trends (Last 30 Days)
+          Revenue Trends
         </CardTitle>
       </CardHeader>
       <CardContent>
