@@ -151,13 +151,13 @@ const ConfirmDialog = ({
       </DialogTrigger>
       <DialogPortal>
         <DialogOverlay className="fixed inset-0 bg-black/50" />
-        <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white p-6 rounded-lg shadow-lg">
-          <DialogTitle className="text-lg font-bold">{title}</DialogTitle>
-          <DialogDescription className="mt-2">{description}</DialogDescription>
+        <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-background text-foreground border border-border p-6 rounded-lg shadow-lg">
+          <DialogTitle className="text-lg font-bold text-foreground">{title}</DialogTitle>
+          <DialogDescription className="mt-2 text-muted-foreground">{description}</DialogDescription>
 
           <div className="mt-4 flex justify-end gap-2">
-            <button onClick={handleCancel}>{cancelText}</button>
-            <button onClick={handleConfirm} className="bg-red-500 text-white px-4 py-1 rounded">
+            <button onClick={handleCancel} className="px-4 py-1 rounded bg-secondary text-secondary-foreground hover:bg-secondary/80">{cancelText}</button>
+            <button onClick={handleConfirm} className="bg-destructive text-destructive-foreground px-4 py-1 rounded hover:bg-destructive/90">
               {confirmText}
             </button>
           </div>

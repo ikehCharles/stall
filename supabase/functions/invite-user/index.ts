@@ -99,6 +99,19 @@ Deno.serve(async (req) => {
       SUPABASE_SERVICE_ROLE_KEY ?? ""
     );
 
+    // Pre-check for duplicate phone number (catches race conditions the client-side check may miss)
+    const { data: existingPhone } = await supabaseAdmin
+      .from("profiles")
+      .select("id")
+      .eq("phone_number", phoneNumber)
+      .maybeSingle();
+
+    if (existingPhone) {
+      return responseJSON(200, {
+        success: false,
+        message: "This phone number is already registered.",
+      });
+    }
 
     let data, error;
     if (confirmEmail && password) {
@@ -129,9 +142,24 @@ Deno.serve(async (req) => {
 
 
     if (error) {
+      let message = error.message || "Failed to create user";
+
+      // Map raw DB constraint violations to user-friendly messages
+      if (
+        message.includes("profiles_phone_number_unique") ||
+        (message.includes("duplicate") && message.includes("phone"))
+      ) {
+        message = "This phone number is already registered.";
+      } else if (
+        message.includes("profiles_email_unique") ||
+        message.includes("already been registered")
+      ) {
+        message = "This email is already registered.";
+      }
+
       return responseJSON(200, {
         success: false,
-        message: error.message
+        message,
       });
     }
 

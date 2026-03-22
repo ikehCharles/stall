@@ -16,6 +16,7 @@ import { useRoles } from "@/hooks/useRolesAndPermissions";
 import { UserPayload, useUsers } from "@/hooks/useUsers";
 import { supabase } from "@/integrations/supabase/client";
 import { useLoading } from "@/contexts/LoadingContext";
+import { toast } from "@/hooks/use-toast";
 import { User } from "@supabase/supabase-js";
 import { UserPayloadSchema, ValidatePayload } from "@/lib/schemaValidation";
 
@@ -99,7 +100,14 @@ const UserRegister: React.FC<UserRegisterProps> = (props) => {
     );
 
     if (profileCheckError) {
-      setError(profileCheckError.message);
+      const friendlyMsg = profileCheckError.message?.includes("phone") || profileCheckError.details === "phone_taken"
+        ? "This phone number is already registered."
+        : profileCheckError.message;
+      setError(friendlyMsg);
+      toast({
+        title: friendlyMsg,
+        variant: "destructive",
+      });
       stopLoading();
       return;
     }
@@ -121,7 +129,22 @@ const UserRegister: React.FC<UserRegisterProps> = (props) => {
       },
       onError: (err) => {
         console.error(err, "error creating user");
-        setError(err.message);
+        const msg = err?.message || "";
+        if (
+          msg.includes("profiles_phone_number_unique") ||
+          msg.includes("phone number is already registered") ||
+          (msg.includes("duplicate") && msg.includes("phone"))
+        ) {
+          setError("This phone number is already registered.");
+        } else if (
+          msg.includes("profiles_email_unique") ||
+          msg.includes("email is already registered") ||
+          (msg.includes("duplicate") && msg.includes("email"))
+        ) {
+          setError("This email is already registered.");
+        } else {
+          setError(msg);
+        }
       },
     });
   };

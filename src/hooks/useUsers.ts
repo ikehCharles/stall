@@ -41,32 +41,33 @@ export const useUsers = () => {
         variant: "default",
       });
     },
-    onError(error) {
+    onError(error: any) {
 
       stopLoading();
-      // Handle unique constraint violations
+      const msg = error?.message || "";
+
+      // Handle unique constraint violations (raw DB errors or user-friendly messages from edge fn)
       if (
-        error.message.includes("profiles_email_unique") ||
-        (error.message.includes("duplicate") && error.message.includes("email"))
-      ) {
-        toast({
-          title: "This email is already registered.",
-          // description: 'User can ',
-          variant: "destructive",
-        });
-      } else if (
-        error.message.includes("profiles_phone_number_unique") ||
-        (error.message.includes("duplicate") && error.message.includes("phone"))
+        msg.includes("profiles_phone_number_unique") ||
+        msg.includes("phone number is already registered") ||
+        (msg.includes("duplicate") && msg.includes("phone"))
       ) {
         toast({
           title: "This phone number is already registered.",
-          // description: 'User can ',
+          variant: "destructive",
+        });
+      } else if (
+        msg.includes("profiles_email_unique") ||
+        msg.includes("email is already registered") ||
+        (msg.includes("duplicate") && msg.includes("email"))
+      ) {
+        toast({
+          title: "This email is already registered.",
           variant: "destructive",
         });
       } else {
         toast({
-          title: "Registration failed: " + error.message,
-          // description: 'User can ',
+          title: "Registration failed: " + (msg || "Unknown error"),
           variant: "destructive",
         });
       }
@@ -102,12 +103,34 @@ export const useUpdateUser = () => {
         variant: "default",
       });
     },
-    onError(error) {
+    onError(error: any) {
       stopLoading();
-      toast({
-        title: "Update failed: " + error.message,
-        variant: "destructive",
-      });
+      const msg = error?.message || "";
+
+      if (
+        msg.includes("profiles_phone_number_unique") ||
+        msg.includes("phone number is already registered") ||
+        (msg.includes("duplicate") && msg.includes("phone"))
+      ) {
+        toast({
+          title: "This phone number is already registered.",
+          variant: "destructive",
+        });
+      } else if (
+        msg.includes("profiles_email_unique") ||
+        msg.includes("email is already registered") ||
+        (msg.includes("duplicate") && msg.includes("email"))
+      ) {
+        toast({
+          title: "This email is already registered.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Update failed: " + (msg || "Unknown error"),
+          variant: "destructive",
+        });
+      }
     },
   });
 };

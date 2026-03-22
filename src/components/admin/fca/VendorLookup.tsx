@@ -20,6 +20,7 @@ import { useSearchParams } from "react-router-dom";
 interface VendorLookupProps {
   onVendorFound: (bookingsWithProfile: UserBookingsResponse) => void;
   onVendorLookupError: (err: PostgrestError) => void;
+  onVendorCleared?: () => void;
   market: Market;
   onViewBookings: () => void;
 }
@@ -27,6 +28,7 @@ interface VendorLookupProps {
 export const VendorLookup = ({
   onVendorFound,
   onVendorLookupError,
+  onVendorCleared,
   market,
   onViewBookings,
 }: VendorLookupProps) => {
@@ -106,6 +108,7 @@ export const VendorLookup = ({
                 setSearchParams(new URLSearchParams(), { replace: true });
               }
               vendorLookup.reset();
+              onVendorCleared?.();
               setEmail(e.target.value);
             }}
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}

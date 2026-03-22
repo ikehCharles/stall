@@ -3,7 +3,7 @@ import { Outlet, Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Menu, X, BarChart3, Map, FileText, Settings, ShieldCheck, Square, Briefcase, Users, Shield, ClipboardList } from "lucide-react";
 import { PermissionGate } from "@/components/PermissionGate";
 import { PERMISSIONS } from "@/lib/permissions";
@@ -19,6 +19,17 @@ const AdminLayout = () => {
   const appLogoUrl = platformSettings?.appLogoUrl || "";
   const isFCAMode = location.pathname.startsWith('/admin/fca');
   const isCanvasMode = /\/admin\/markets\/[^/]+\/canvas/.test(location.pathname);
+
+  // Toggle fca-dark on <html> so portaled Dialog/Sheet components also inherit the theme
+  useEffect(() => {
+    const root = document.documentElement;
+    if (isFCAMode) {
+      root.classList.add('fca-dark');
+    } else {
+      root.classList.remove('fca-dark');
+    }
+    return () => root.classList.remove('fca-dark');
+  }, [isFCAMode]);
   // Sidebar is collapsible on mobile & tablet (< lg), static on lg+
 
 
@@ -86,7 +97,7 @@ const AdminLayout = () => {
   ];
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className={cn("flex h-screen", isFCAMode ? "fca-dark bg-background text-foreground" : "bg-gray-50")}>
       {/* Only show sidebar if NOT in FCA mode */}
       {!isFCAMode && (
         <>

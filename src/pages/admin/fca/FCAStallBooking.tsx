@@ -108,6 +108,10 @@ const FCAStallBooking = () => {
   const handleVendorLookupError = (err) => {
     setVendorLookupError(err);
   };
+  const handleVendorCleared = () => {
+    setBookingsWithProfile(null);
+    setVendorLookupError(null);
+  };
 
   const refreshBookings = useCallback(() => {
     const email = searchParams.get("vendorEmail");
@@ -327,6 +331,7 @@ const FCAStallBooking = () => {
         market={currentMarket}
         onVendorFound={handleVendorFound}
         onVendorLookupError={handleVendorLookupError}
+        onVendorCleared={handleVendorCleared}
         onViewBookings={onViewBookings}
       />
       </div>

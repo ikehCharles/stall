@@ -152,7 +152,7 @@ const VendorCheckinBooking: React.FC<VendorCheckinBookingProps> = ({
             </div>
 
             {/* Vendor Info */}
-            <div className="space-y-3 text-sm bg-white/80 rounded-xl p-4 mb-4">
+            <div className="space-y-3 text-sm bg-background/80 rounded-xl p-4 mb-4">
               <div className="flex items-center gap-3">
                 <Mail className="h-4 w-4 text-amber-600 flex-shrink-0" />
                 <span className="font-medium truncate">{profile.email}</span>
@@ -218,7 +218,7 @@ const VendorCheckinBooking: React.FC<VendorCheckinBookingProps> = ({
             </div>
 
             {/* Vendor Info – Vertical stack on mobile */}
-            <div className="space-y-3 text-sm bg-white/80 rounded-xl p-4">
+            <div className="space-y-3 text-sm bg-background/80 rounded-xl p-4">
               <div className="flex items-center gap-3">
                 <Mail className="h-4 w-4 text-orange-600 flex-shrink-0" />
                 <span className="font-medium truncate">{profile.email}</span>
@@ -343,7 +343,7 @@ const VendorCheckinBooking: React.FC<VendorCheckinBookingProps> = ({
             </div>
 
             {/* Vendor Info */}
-            <div className="space-y-3 text-sm bg-white/90 rounded-xl p-4">
+            <div className="space-y-3 text-sm bg-background/90 rounded-xl p-4">
               <div className="flex items-center gap-3">
                 <Mail className="h-4 w-4 text-green-700 flex-shrink-0" />
                 <span className="font-medium truncate">{profile.email}</span>
@@ -366,7 +366,7 @@ const VendorCheckinBooking: React.FC<VendorCheckinBookingProps> = ({
                 <div className="flex items-start gap-3">
                   <Calendar className="h-5 w-5 text-green-700 mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="font-medium text-foreground text-sm sm:text-base">
+                    <p className="font-medium text-green text-sm sm:text-base">
                       Vendor already has assigned stall(s)
                     </p>
                     <p className="text-xs sm:text-sm text-green-800 mt-1 font-medium">

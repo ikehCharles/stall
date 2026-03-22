@@ -42,7 +42,11 @@ export function ScanModal({
           return;
         }
 
-        const deviceId = devices[0].deviceId;
+        // Prefer rear/back camera — look for keywords in the device label
+        const rearCamera = devices.find((d) =>
+          /back|rear|environment/i.test(d.label)
+        );
+        const deviceId = rearCamera?.deviceId ?? devices[devices.length - 1].deviceId;
 
         // Start scanner
         const controls = await reader.decodeFromVideoDevice(
@@ -86,8 +90,8 @@ export function ScanModal({
       <DialogContent className="p-4 max-w-sm flex items-center justify-center">
         {loading && (
           <div className="flex flex-col items-center gap-2">
-            <Loader2 className="animate-spin h-8 w-8 text-gray-500" />
-            <span className="text-gray-600 text-sm">Initializing camera...</span>
+            <Loader2 className="animate-spin h-8 w-8 text-muted-foreground" />
+            <span className="text-muted-foreground text-sm">Initializing camera...</span>
           </div>
         )}
         <video

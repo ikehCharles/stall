@@ -51,16 +51,16 @@ const ConfirmContext = createContext<ConfirmContextType | null>(null);
     <Dialog.Overlay className="fixed inset-0 bg-black/50 z-[9999]" />
 
     {/* Content with higher z-index */}
-    <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white p-6 rounded-lg shadow-lg z-[10000]">
-      <Dialog.Title className="text-lg font-bold">
+    <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-background text-foreground border border-border p-6 rounded-lg shadow-lg z-[10000] max-w-md w-[calc(100%-2rem)]">
+      <Dialog.Title className="text-lg font-bold text-foreground">
         {state.options?.title || "Are you sure?"}
       </Dialog.Title>
-      <Dialog.Description className="mt-2">
+      <Dialog.Description className="mt-2 text-muted-foreground">
         {state.options?.description || "This action cannot be undone."}
       </Dialog.Description>
       <div className="mt-4 flex justify-end gap-2">
         <button
-          className={"px-4 py-1 rounded " + state.options?.cancelClassName}
+          className={"px-4 py-1 rounded bg-secondary text-secondary-foreground hover:bg-secondary/80 " + (state.options?.cancelClassName || "")}
           onClick={() => handleClose(false)}
         >
           {state.options?.cancelText || "Cancel"}
@@ -70,7 +70,7 @@ const ConfirmContext = createContext<ConfirmContextType | null>(null);
           className={
             state.options?.confirmClassName
               ? "px-4 py-1 rounded " + state.options?.confirmClassName
-              : "px-4 py-1 rounded bg-green-500 text-white"
+              : "px-4 py-1 rounded bg-primary text-primary-foreground"
           }
         >
           {state.options?.confirmText || "Confirm"}

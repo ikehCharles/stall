@@ -269,7 +269,7 @@ const CheckingBookingByQR: React.FC<CheckingBookingByQRProps> = (props) => {
 
           {/* Status + Payment badges */}
           {booking && (
-            <Card className="border-gray-300">
+            <Card className="border-border">
               <CardContent className="pt-4 flex justify-between flex-wrap gap-2 items-center space-y-2">
                 <div className="flex items-center gap-2 justify-between">
                   <span className="text-sm font-medium text-muted-foreground">

@@ -180,11 +180,19 @@ const VendorProfile = () => {
       if (isProfileIncomplete && profile.full_name.trim() && profile.phone_number.trim()) {
         navigate("/vendor/profile?tab=verification");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating profile:', error);
+      const msg = error?.message || "";
+      const isPhoneTaken =
+        msg.includes("profiles_phone_number_unique") ||
+        msg.includes("phone number is already registered") ||
+        (msg.includes("duplicate") && msg.includes("phone"));
+
       toast({
-        title: "Error",
-        description: "Failed to update profile. Please try again.",
+        title: isPhoneTaken ? "Phone number already taken" : "Error",
+        description: isPhoneTaken
+          ? "This phone number is already registered to another account."
+          : "Failed to update profile. Please try again.",
         variant: "destructive"
       });
     } finally {
