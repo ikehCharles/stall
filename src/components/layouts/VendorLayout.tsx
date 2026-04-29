@@ -28,6 +28,8 @@ import {
   CheckCircle2,
   XCircle,
   ClipboardCheck,
+  RotateCcw,
+  ShieldCheck,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
@@ -43,6 +45,9 @@ const ICON_MAP: Record<NotificationType, React.ElementType> = {
   booking_approved: CheckCircle2,
   booking_rejected: XCircle,
   vendor_checked_in: ClipboardCheck,
+  refund_requested: RotateCcw,
+  refund_resolved: RotateCcw,
+  kyc_submitted: ShieldCheck,
 };
 
 const COLOR_MAP: Record<NotificationType, string> = {
@@ -53,6 +58,9 @@ const COLOR_MAP: Record<NotificationType, string> = {
   booking_approved: "text-green-600 bg-green-50",
   booking_rejected: "text-red-600 bg-red-50",
   vendor_checked_in: "text-sky-600 bg-sky-50",
+  refund_requested: "text-orange-600 bg-orange-50",
+  refund_resolved: "text-teal-600 bg-teal-50",
+  kyc_submitted: "text-indigo-600 bg-indigo-50",
 };
 
 // ---------------------------------------------------------------------------
@@ -233,7 +241,7 @@ const VendorLayout = () => {
                   className={cn(
                     "group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-all duration-200",
                     isActive
-                      ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-md"
+                      ? "bg-black text-white shadow-md"
                       : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                   )}
                 >

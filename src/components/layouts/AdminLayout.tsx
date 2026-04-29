@@ -150,7 +150,7 @@ const AdminLayout = () => {
                         className={cn(
                           "group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-all duration-200",
                           isActive
-                            ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-md"
+                            ? "bg-black text-white shadow-md"
                             : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                         )}
                       >
