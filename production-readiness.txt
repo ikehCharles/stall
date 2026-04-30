@@ -1,0 +1,230 @@
+PRODUCTION READINESS CHECKLIST
+================================
+Event Stall Navigator App
+Generated: 2026-04-29
+================================
+
+Items are ordered by priority. Fix CRITICAL items before going live.
+
+
+================================================================
+CRITICAL
+================================================================
+
+1. FIX OTP GENERATION (cryptographic weakness)
+   File: supabase/functions/send-otp-email/index.ts:42
+   Problem: OTP is generated with Math.random() which is not cryptographically
+            secure and can be predicted or brute-forced.
+   Fix: Replace with:
+        const arr = new Uint32Array(1);
+        crypto.getRandomValues(arr);
+        const otpCode = (100000 + (arr[0] % 900000)).toString();
+
+2. REMOVE HARDCODED EMAIL ADDRESS
+   File: supabase/functions/create-cred/index.ts:121
+   Problem: The email elpapielpapi10@gmail.com is hardcoded in the Zettle
+            webhook subscription code. This is in version control.
+   Fix: Move it to a Supabase secret env variable (ADMIN_CONTACT_EMAIL)
+        and read it with Deno.env.get("ADMIN_CONTACT_EMAIL").
+
+3. REMOVE "EXAMPLE INC" BRANDING FROM PAYPAL
+   File: supabase/functions/create-paypal-order/index.ts:96
+   Problem: PayPal checkout shows "Example Inc." as the brand name.
+   Fix: Pull the brand name from the platform settings table the same way
+        other functions already do (usePlatformSettings / settings query).
+
+4. REMOVE ALL CONSOLE.WARN / CONSOLE.LOG FROM EDGE FUNCTIONS
+   Problem: Raw webhook payloads, booking IDs, payment data, and PII are
+            being written to server logs. This is a data exposure risk.
+   Files to clean up:
+     - supabase/functions/paypal-webhook/index.ts:186 (logs full raw body)
+     - supabase/functions/zettle-paypal-webhook/index.ts:73,78,79
+     - supabase/functions/sync-offline-orders/index.ts (multiple)
+     - supabase/functions/capture-paypal-order/index.ts:106,126
+     - supabase/functions/decline-booking/index.ts:273,338,418,560
+   Fix: Remove console.log/warn entirely, keep console.error only for
+        genuine unexpected failures, and never log raw payment payloads.
+
+
+================================================================
+HIGH
+================================================================
+
+5. RESTRICT CORS TO YOUR DOMAIN
+   Problem: Every edge function has "Access-Control-Allow-Origin": "*"
+            which allows any website to call your API.
+   Files: All files under supabase/functions/
+   Fix: Create a ALLOWED_ORIGIN env var in Supabase secrets set to your
+        production frontend URL (e.g. https://yourapp.com).
+        Replace the wildcard with:
+          const origin = req.headers.get("origin") ?? "";
+          const allowed = Deno.env.get("ALLOWED_ORIGIN") ?? "";
+          const corsHeaders = {
+            "Access-Control-Allow-Origin": origin === allowed ? origin : "",
+            ...
+          };
+
+6. MOVE HARDCODED EMAIL SENDER TO ENV VARIABLE
+   Problem: The sender email contact@contact.geekgrin.com is hardcoded
+            in three edge functions. If the domain changes, code breaks.
+   Files:
+     - supabase/functions/send-otp-email/index.ts:114
+     - supabase/functions/send-notification/index.ts:253
+     - supabase/functions/invite-user/index.ts:234
+   Fix: Add a SENDER_EMAIL Supabase secret and read it with
+        Deno.env.get("SENDER_EMAIL").
+
+7. ADD INPUT VALIDATION TO ALL PUBLIC EDGE FUNCTIONS
+   Problem: Edge functions accept raw JSON with no format validation.
+            Invalid emails, negative amounts, and malformed IDs are not rejected.
+   Files:
+     - supabase/functions/send-otp-email/index.ts (no email format check)
+     - supabase/functions/verify-otp/index.ts (no email format check)
+     - supabase/functions/create-paypal-order/index.ts (no amount bounds check)
+     - supabase/functions/authorize-paypal-order/index.ts
+     - supabase/functions/capture-paypal-order/index.ts
+   Fix: Add explicit checks at the top of each handler — validate that
+        required fields are present, emails match a basic regex, amounts
+        are positive numbers, and UUIDs match the expected format.
+
+8. FIX IDEMPOTENCY KEYS USING Date.now()
+   File: supabase/functions/decline-booking/index.ts:265,332,532
+   Problem: Idempotency keys are built as `${bookingId}:${Date.now()}`.
+            Two requests within the same millisecond get the same key.
+   Fix: Use crypto.randomUUID() as the unique part of the key:
+        idempotency_key: `refund_requested:${bookingId}:${crypto.randomUUID()}`
+
+9. ADD RATE LIMITING TO OTP AND AUTH ENDPOINTS
+   Problem: /send-otp-email and /verify-otp have no rate limiting.
+            An attacker can spam OTP requests or brute-force the 6-digit code.
+   Fix: Use the Supabase rate limiting feature in the dashboard (Edge Function
+        settings) or track attempt counts in a Redis/DB table keyed by IP + email
+        with a TTL. Block after 5 failed verify-otp attempts per 15 minutes.
+
+10. REMOVE CONSOLE.LOG FROM FRONTEND
+    Problem: console.warn left in src/pages/admin/fca/FCAStallBooking.tsx
+    Fix: Search the entire src/ directory for console.log/warn and remove them:
+         grep -r "console\." src/ --include="*.tsx" --include="*.ts"
+
+
+================================================================
+MEDIUM
+================================================================
+
+11. REVIEW AND TIGHTEN RLS POLICIES
+    File: supabase/migrations/20260215000000_notifications_system.sql:94-96
+    Problem: The "System can insert notifications" policy uses WITH CHECK (true)
+             which allows any insert into the notifications table without restriction.
+    Fix: Review all RLS policies across all tables. For each table, verify:
+         - Anonymous users can only read what they are supposed to read.
+         - Insert/update/delete policies scope to the authenticated user's own rows.
+         - Service role access is intentional and documented.
+    Run: SELECT * FROM pg_policies; in Supabase SQL editor to list all policies.
+
+12. FIX localStorage.clear() ON SIGN OUT
+    File: src/contexts/AuthContext.tsx:118
+    Problem: Calling localStorage.clear() on sign out wipes all stored data,
+             including any non-auth state (user preferences, cached layout, etc.)
+    Fix: Only remove the specific auth keys:
+         localStorage.removeItem("supabase.auth.token");
+         (or whatever keys your app stores for auth)
+
+13. ADD A REACT ERROR BOUNDARY
+    Problem: No top-level React Error Boundary exists. If any component throws
+             an unhandled error, the entire app goes blank with no recovery UI.
+    Fix: Create a simple ErrorBoundary class component wrapping your router
+         in main.tsx / App.tsx that shows a friendly "Something went wrong" screen
+         with a reload button instead of a white screen.
+
+14. VERIFY dangerouslySetInnerHTML IS ALWAYS SANITIZED
+    Files:
+      - src/pages/auth/AcceptTerms.tsx (uses DOMPurify — good)
+      - src/components/auth/TermsAcceptanceModal.tsx (uses DOMPurify — good)
+      - src/components/shared/RichTextEditor.tsx (verify sanitization present)
+    Fix: Do a global search for dangerouslySetInnerHTML in src/ and confirm
+         every usage is wrapped with DOMPurify.sanitize() before rendering.
+
+15. REMOVE DUPLICATE SUPABASE CLIENT IN CAPTURE FUNCTION
+    File: supabase/functions/capture-paypal-order/index.ts:79,152
+    Problem: Two separate Supabase clients are created in the same request handler.
+    Fix: Create a single admin client once and pass the user's JWT as a header
+         override only for the specific RPC calls that need user context.
+
+16. CREATE A .env.example FILE
+    Problem: There is no .env.example in the repo. New developers have no
+             template showing which environment variables are required.
+    Fix: Create .env.example at the project root listing every required variable
+         with placeholder values but no real secrets. Commit this file.
+         Do NOT commit the actual .env or .env.local files.
+
+
+================================================================
+BEFORE GO-LIVE OPERATIONS
+================================================================
+
+17. RUN npm audit AND RESOLVE HIGH/CRITICAL VULNERABILITIES
+    Command: npm audit
+    Fix any high or critical severity packages before deploying.
+
+18. ENABLE SUPABASE DATABASE BACKUPS
+    Go to Supabase dashboard > Project Settings > Database > Backups.
+    Enable Point-in-Time Recovery (PITR) for production.
+
+19. SET UP SUPABASE EDGE FUNCTION SECRETS PROPERLY
+    Go through every Deno.env.get() call across all edge functions and make sure:
+    - Every secret is added in Supabase dashboard > Settings > Edge Functions > Secrets
+    - Nothing sensitive exists in source code or committed config files
+    - PAYPAL_API_CLIENT, PAYPAL_API_SECRET, PAYPAL_WEBHOOK_ID, RESEND_API_KEY,
+      SUPABASE_SERVICE_ROLE_KEY are all set as secrets, not hardcoded
+
+20. CONFIGURE CUSTOM SMTP / EMAIL DOMAIN
+    Problem: All emails come from contact@contact.geekgrin.com.
+             Make sure this domain has SPF, DKIM, and DMARC records configured
+             or emails will land in spam.
+    Fix: In your DNS provider, add:
+         - SPF record for your sending provider (Resend)
+         - DKIM records (Resend provides these in their dashboard)
+         - DMARC policy record
+
+21. SET UP MONITORING AND ALERTING
+    - Enable Supabase logging in the dashboard and set up log drain to a
+      service like Datadog, Logtail, or Axiom.
+    - Set up uptime monitoring (UptimeRobot, Better Uptime, etc.) on your
+      frontend URL and key edge function endpoints.
+    - Create alerts for: payment failures, OTP send failures, and 5xx errors.
+
+22. VERIFY PAYPAL WEBHOOK ENDPOINT IS REGISTERED WITH CORRECT EVENTS
+    In PayPal developer dashboard, confirm the webhook URL points to your
+    production Supabase function URL and is subscribed to:
+      - CHECKOUT.ORDER.APPROVED
+      - PAYMENT.AUTHORIZATION.CREATED
+      - PAYMENT.CAPTURE.COMPLETED
+      - PAYMENT.AUTHORIZATION.VOIDED
+      - PAYMENT.CAPTURE.DENIED
+      - PAYMENT.CAPTURE.REVERSED
+    Also confirm PAYPAL_WEBHOOK_ID secret matches the registered webhook ID.
+
+23. TEST THE FULL PAYMENT FLOW END TO END IN PAYPAL SANDBOX BEFORE SWITCHING
+    TO LIVE CREDENTIALS
+    - Create a booking, go through PayPal checkout, confirm booking status
+      updates to approved.
+    - Test an expired booking — confirm the capture is rejected.
+    - Test a cancelled booking — same.
+    - Test a refund flow.
+    Then switch PAYPAL_API to the live endpoint and update credentials.
+
+24. ENABLE HTTPS ONLY
+    Confirm your hosting provider (Vercel, Netlify, etc.) enforces HTTPS
+    redirects. Do not serve the app over plain HTTP in production.
+
+25. RUN A FINAL SECURITY REVIEW OF ALL RLS POLICIES USING SUPABASE'S
+    BUILT-IN POLICY EDITOR
+    Test as an anonymous user and as a regular vendor that they cannot:
+    - Read other vendors' bookings
+    - Read other users' payment records
+    - Access admin-only tables
+    Use Supabase's "Test policies" feature in the Table Editor.
+
+================================================================
+END OF CHECKLIST
+================================================================

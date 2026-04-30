@@ -342,7 +342,7 @@ export const KYCReview = () => {
     }
 
     const contactEmail = searchParams.get("contactEmail") || "";
-    const status = searchParams.get("status") || "pending";
+    const status = searchParams.get("status") || "PENDING";
     const dateFromParam = searchParams.get("dateFrom");
     const dateToParam = searchParams.get("dateTo");
 
@@ -416,7 +416,7 @@ export const KYCReview = () => {
     // Reset filters state immediately so UI reflects changes
     const resetFilters: KYCFilters = {
       search: "",
-      status: "pending",
+      status: "PENDING",
       dateFrom: null,
       dateTo: null,
     };
