@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 const PAYPAL_CLIENT_ID = Deno.env.get("PAYPAL_API_CLIENT");
 const PAYPAL_SECRET = Deno.env.get("PAYPAL_API_SECRET");
@@ -6,18 +7,6 @@ const PAYPAL_BASE = Deno.env.get("PAYPAL_API");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
-
-const jsonResponse = (status: number, data: Record<string, unknown>) =>
-  new Response(JSON.stringify(data), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
 
 // ── PayPal helpers ──────────────────────────────────────────
 
@@ -81,6 +70,12 @@ async function voidPayPalAuthorization(
 type Action = "cancel" | "request_refund" | "approve_refund" | "reject_refund";
 
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+  const jsonResponse = (status: number, data: Record<string, unknown>) =>
+    new Response(JSON.stringify(data), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }

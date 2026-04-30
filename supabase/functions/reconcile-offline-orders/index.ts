@@ -1,6 +1,7 @@
-// supabase/functions/sync-zettle-payments/index.ts
+// supabase/functions/reconcile-offline-orders/index.ts
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
@@ -10,17 +11,12 @@ const supabase = createClient(
 const PROVIDER = 'POS'
 const ZETTLE_CLIENT_ID = Deno.env.get("ZETTLE_CLIENT_ID");
 const ZETTLE_CLIENT_SECRET = Deno.env.get("ZETTLE_CLIENT_SECRET");
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
-
-const responseJSON = (status: number, data: Record<string, unknown>) =>
-  new Response(JSON.stringify(data), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
+const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
+// Best practice: use a dedicated CRON_SECRET rather than relying on
+// x-supabase-trigger, which any caller can spoof. Set this secret in
+// Supabase secrets and include it as `Authorization: Bearer <CRON_SECRET>`
+// in the pg_cron / Supabase Scheduler job definition.
+const CRON_SECRET = Deno.env.get("CRON_SECRET");
 
 const cached = {
   token: null as string | null,
@@ -63,7 +59,48 @@ export async function getZettleAccessToken(): Promise<string> {
   return cached.token!;
 }
 
-Deno.serve(async () => {
+Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+  const responseJSON = (status: number, data: Record<string, unknown>) =>
+    new Response(JSON.stringify(data), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  const authHeader = req.headers.get("authorization") ?? "";
+  const token = authHeader.replace("Bearer ", "");
+
+  // If CRON_SECRET is configured, validate the bearer token against it.
+  // Fall back to the x-supabase-trigger header for local dev where the
+  // secret is not set.
+  const isCron = CRON_SECRET
+    ? token === CRON_SECRET
+    : req.headers.get("x-supabase-trigger") === "cron";
+
+  if (!isCron) {
+    // Non-cron callers must be authenticated users with payments.manage
+    if (!token) return responseJSON(401, { error: "Unauthorized" });
+
+    const userClient = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      SUPABASE_ANON_KEY,
+      { global: { headers: { Authorization: `Bearer ${token}` } } }
+    );
+
+    const { data: { user }, error: userError } = await userClient.auth.getUser();
+    if (userError || !user) return responseJSON(401, { error: "Unauthorized" });
+
+    const { data: hasPerms } = await supabase.rpc("has_permission", {
+      user_uuid: user.id,
+      permission: "payments.manage",
+    });
+    if (!hasPerms) return responseJSON(403, { error: "Forbidden" });
+  }
+
   try {
     // 1. Get last sync time
     const { data: state } = await supabase

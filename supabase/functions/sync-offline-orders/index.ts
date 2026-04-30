@@ -1,7 +1,8 @@
-// supabase/functions/sync-offline-bookings-to-zettle/index.ts
+// supabase/functions/sync-offline-orders/index.ts
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { v1 as uuidv1 } from "https://esm.sh/uuid@9";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -11,18 +12,7 @@ const supabase = createClient(
 const CLIENT_BASEURL = Deno.env.get("CLIENT_BASEURL")!;
 const ZETTLE_CLIENT_ID = Deno.env.get("ZETTLE_CLIENT_ID")!;
 const ZETTLE_CLIENT_SECRET = Deno.env.get("ZETTLE_CLIENT_SECRET")!;
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
-
-const jsonResponse = (status: number, body) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
+const CRON_SECRET = Deno.env.get("CRON_SECRET");
 
 // Simple in-memory token cache
 const tokenCache = { token: "", expiresAt: 0 };
@@ -57,51 +47,42 @@ async function getZettleAccessToken(): Promise<string> {
 }
 
 Deno.serve(async (req) => {
-
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  const isCron = req.headers.get("x-supabase-trigger") === "cron";
+  const authHeader = req.headers.get("authorization") ?? "";
+  const token = authHeader.replace("Bearer ", "");
 
-  // If this is NOT cron, we must authenticate the user
+  // Validate against CRON_SECRET when set; fall back to x-supabase-trigger
+  // for local dev where the secret is not configured.
+  const isCron = CRON_SECRET
+    ? token === CRON_SECRET
+    : req.headers.get("x-supabase-trigger") === "cron";
+
   if (!isCron) {
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader) {
-      return new Response("Unauthorized", { status: 401 });
-    }
+    if (!token) return new Response("Unauthorized", { status: 401 });
 
-    const token = authHeader.replace("Bearer ", "");
-
-    const supabase = createClient(
+    const userClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
-      {
-        global: {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      }
+      { global: { headers: { Authorization: `Bearer ${token}` } } }
     );
 
-    const {
-      data: { user },
-      error,
-    } = await supabase.auth.getUser();
-    if (error || !user) {
-      return new Response("Unauthorized", { status: 401 });
-    }
+    const { data: { user }, error } = await userClient.auth.getUser();
+    if (error || !user) return new Response("Unauthorized", { status: 401 });
 
-    // user is authenticated – continue with your logic
+    const { data: hasPerms } = await supabase.rpc("has_permission", {
+      user_uuid: user.id,
+      permission: "payments.manage",
+    });
+    if (!hasPerms) return new Response("Forbidden", { status: 403 });
+
     return handleRequest("user", user, req);
   }
 
-  // If CRON, authenticate using SERVICE ROLE (no JWT needed)
-  const supabaseAdmin = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-  );
-
-  return handleRequest("cron", supabaseAdmin, req);
+  return handleRequest("cron", supabase, req);
 });
 
 async function handleRequest(
@@ -109,6 +90,12 @@ async function handleRequest(
   supabaseUser,
   req: Request
 ) {
+  const corsHeaders = getCorsHeaders(req);
+  const jsonResponse = (status: number, body: Record<string, unknown>) =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   if (type === "user") {
     if (req.method === "OPTIONS") {
       return new Response(null, { headers: corsHeaders });

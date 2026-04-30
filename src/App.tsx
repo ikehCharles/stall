@@ -37,6 +37,7 @@ import { PERMISSIONS } from "./lib/permissions";
 import { AccessDenied } from "./pages/auth/unAuthorized";
 import { PermissionGate } from "./components/PermissionGate";
 import { ConfirmProvider } from "./components/ui/confirmDialog";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import VATReporting from "./pages/admin/VATReporting";
 import Reporting from "./pages/admin/Reporting";
 import CashReconciliation from "./pages/admin/CashReconciliation";
@@ -449,7 +450,9 @@ const App = () => {
         <BrowserRouter>
           <LoadingProvider>
             <AuthProvider>
-              <AppContent />
+              <ErrorBoundary>
+                <AppContent />
+              </ErrorBoundary>
             </AuthProvider>
           </LoadingProvider>
         </BrowserRouter>

@@ -1,25 +1,19 @@
 // supabase/functions/create-user/index.ts
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getCorsHeaders } from "../_shared/cors.ts";
 const SUPABASEURL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const SENDER_EMAIL = Deno.env.get("SENDER_EMAIL") ?? "contact@contact.geekgrin.com";
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
-
-const responseJSON = (status: number, data: Record<string, unknown>) =>
-  new Response(JSON.stringify(data), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, {
-      headers: corsHeaders,
+  const corsHeaders = getCorsHeaders(req);
+  const responseJSON = (status: number, data: Record<string, unknown>) =>
+    new Response(JSON.stringify(data), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
   }
 
   const access_token = req.headers.get("Authorization")?.replace("Bearer ", "");

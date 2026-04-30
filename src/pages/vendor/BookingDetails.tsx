@@ -382,7 +382,7 @@ const BookingDetails = () => {
                 Cancel Booking
               </Button>
             )}
-            {isAdminView && canShowActions(booking) && (
+            {isAdminView && canManageBookings && canShowActions(booking) && (
               <>
                 <Button
                   onClick={() => handleApprove(booking.id)}
@@ -415,7 +415,7 @@ const BookingDetails = () => {
             )}
 
             {/* Reject for non-cancelled bookings without the approve flow */}
-            {isAdminView && !canShowActions(booking) && booking.status !== "cancelled" && booking.status !== "expired" && canManageBookings && (
+            {isAdminView && !canShowActions(booking) && !["cancelled", "expired", "approved"].includes(booking.status) && canManageBookings && (
               <Button
                 variant="destructive"
                 onClick={() => {

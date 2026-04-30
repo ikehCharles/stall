@@ -2,6 +2,7 @@ export const config = { auth: false };
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -9,18 +10,6 @@ const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: { persistSession: false },
 });
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
-
-const responseJSON = (status: number, data: Record<string, unknown>) =>
-  new Response(JSON.stringify(data), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
 
 function timingSafeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
@@ -67,6 +56,13 @@ export async function verifyZettleWebhook(
 }
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+  const responseJSON = (status: number, data: Record<string, unknown>) =>
+    new Response(JSON.stringify(data), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+
   const rawBody = await req.text();
   const payload = JSON.parse(rawBody);
 

@@ -140,7 +140,7 @@ export const KYCReview = () => {
   // Initialize filters from URL params on mount
   const getInitialFilters = (): KYCFilters => {
     const contactEmail = searchParams.get("contactEmail") || "";
-    const status = searchParams.get("status") || "all";
+    const status = searchParams.get("status") || "pending";
     const dateFromParam = searchParams.get("dateFrom");
     const dateToParam = searchParams.get("dateTo");
 
@@ -301,20 +301,29 @@ export const KYCReview = () => {
   // Load statistics
   const loadStats = async () => {
     try {
-      const { data, error } = await supabase
-        .from("kyc_applications")
-        .select("status");
+      const base = () =>
+        supabase.from("kyc_applications").select("id", { count: "exact", head: true });
 
-      if (error) throw error;
+      const [pendingRes, approvedRes, rejectedAuditRes] = await Promise.all([
+        base().eq("status", "PENDING"),
+        base().eq("status", "APPROVED"),
+        // Count distinct applications ever rejected via audit_log.
+        // status = 'REJECTED' misses apps that were rejected then resubmitted.
+        supabase
+          .from("audit_log")
+          .select("record_id", { count: "exact", head: true })
+          .eq("table_name", "kyc_applications")
+          .eq("action", "kyc_rejected"),
+      ]);
 
-      const stats = {
-        total: data.length,
-        pending: data.filter((item) => item.status === "PENDING").length,
-        approved: data.filter((item) => item.status === "APPROVED").length,
-        rejected: data.filter((item) => item.status === "REJECTED").length,
-      };
 
-      setStats(stats);
+
+      setStats({
+        total: pendingRes.count + approvedRes.count + rejectedAuditRes.count,
+        pending: pendingRes.count,
+        approved: approvedRes.count,
+        rejected: rejectedAuditRes.count,
+      });
     } catch (_err) {
       // stats are non-critical, ignore failures
     }
@@ -333,7 +342,7 @@ export const KYCReview = () => {
     }
 
     const contactEmail = searchParams.get("contactEmail") || "";
-    const status = searchParams.get("status") || "all";
+    const status = searchParams.get("status") || "pending";
     const dateFromParam = searchParams.get("dateFrom");
     const dateToParam = searchParams.get("dateTo");
 
@@ -407,7 +416,7 @@ export const KYCReview = () => {
     // Reset filters state immediately so UI reflects changes
     const resetFilters: KYCFilters = {
       search: "",
-      status: "all",
+      status: "pending",
       dateFrom: null,
       dateTo: null,
     };
@@ -709,7 +718,6 @@ export const KYCReview = () => {
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="PENDING">Pending</SelectItem>
                   <SelectItem value="APPROVED">Approved</SelectItem>
                   <SelectItem value="REJECTED">Rejected</SelectItem>
@@ -859,7 +867,7 @@ export const KYCReview = () => {
                     <p className="text-sm text-muted-foreground">
                       {(() => {
                         if (!selectedKYC?.business_type_id) return "Not specified";
-                        if(categoriesLoading) return "Loading categories...";
+                        if (categoriesLoading) return "Loading categories...";
                         if (!categories || categories.length === 0) return "No categories available";
                         const cat = categories.find(c => c.id === selectedKYC.business_type_id);
                         return cat ? cat.name : "Unknown";

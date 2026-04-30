@@ -1,17 +1,12 @@
 // supabase/functions/create-paypal-order/index.ts
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getCorsHeaders } from "../_shared/cors.ts";
 const PAYPAL_CLIENT_ID = Deno.env.get("PAYPAL_API_CLIENT");
 const PAYPAL_SECRET = Deno.env.get("PAYPAL_API_SECRET");
 const PAYPAL_BASE = Deno.env.get("PAYPAL_API");
 const CLIENT_BASEURL = Deno.env.get("CLIENT_BASEURL");
 const SUPABASEURL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type"
-};
-
-
 enum INTENT {
   AUTHORIZE,
   CAPTURE,
@@ -33,6 +28,7 @@ async function getAccessToken() {
   return data.access_token;
 }
 Deno.serve(async (req)=>{
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
     return new Response(null, {
       headers: corsHeaders

@@ -1,18 +1,13 @@
 // supabase/functions/capture-paypal-order/index.ts
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 const PAYPAL_CLIENT_ID = Deno.env.get("PAYPAL_API_CLIENT");
 const PAYPAL_SECRET = Deno.env.get("PAYPAL_API_SECRET");
 const PAYPAL_BASE = Deno.env.get("PAYPAL_API");
 const SUPABASEURL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
 
 const TERMINAL_BOOKING_STATUSES = ["cancelled", "expired"];
 
@@ -71,6 +66,7 @@ async function insertPayment(event: PayPalOrderResponse, supabase: ReturnType<ty
 }
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -150,32 +146,25 @@ serve(async (req) => {
 
     const data = await res.json() as PayPalOrderResponse;
 
-    const access_token = req.headers.get("Authorization")?.replace("Bearer ", "");
-    const supabaseClient = createClient(SUPABASEURL ?? "", SUPABASE_SERVICE_ROLE_KEY ?? "", {
-      global: { headers: { Authorization: `Bearer ${access_token}` } },
-    });
-
     if (bookingId) {
       await insertPayment(data, supabase);
 
       if (data.status === "COMPLETED") {
-        const { error } = await supabaseClient.rpc("simulate_payment_success", {
+        const { error } = await supabase.rpc("simulate_payment_success_admin", {
           p_booking_id: bookingId,
         });
 
         if (error) {
-          console.error("Error simulating payment success for payment capture", error);
           return new Response(
             JSON.stringify({ message: "Error simulating payment success" }),
             { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
       } else {
-        const { error } = await supabaseClient.rpc("simulate_payment_failure", {
+        const { error } = await supabase.rpc("simulate_payment_failure_admin", {
           p_booking_id: bookingId,
         });
         if (error) {
-          console.error("Error simulating payment cancelled", error);
           return new Response(
             JSON.stringify({ error: "Error simulating payment cancelled" }),
             { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -193,8 +182,7 @@ serve(async (req) => {
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (err) {
-    console.error("Error verifying payment", err);
+  } catch (_err) {
     return new Response(
       JSON.stringify({ error: "Failed to verify payment" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

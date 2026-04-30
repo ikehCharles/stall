@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { v1 as uuidv1 } from "npm:uuid";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 const CLIENT_BASEURL = Deno.env.get("CLIENT_BASEURL");
 const SUPABASEURL = Deno.env.get("SUPABASE_URL");
@@ -7,18 +8,6 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const ZETTLE_CLIENT_ID = Deno.env.get("ZETTLE_CLIENT_ID");
 const ZETTLE_CLIENT_SECRET = Deno.env.get("ZETTLE_CLIENT_SECRET");
 const ZETTLE_CONTACT_EMAIL = Deno.env.get("ZETTLE_CONTACT_EMAIL");
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
-
-const responseJSON = (status: number, data: Record<string, unknown>) =>
-  new Response(JSON.stringify(data), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-
 const cached = {
   token: null as string | null,
   expiresAt: 0,
@@ -104,6 +93,13 @@ const deleteSubs = async (accessToken) => {
 };
 
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+  const responseJSON = (status: number, data: Record<string, unknown>) =>
+    new Response(JSON.stringify(data), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+
   if (req.method === "OPTIONS") {
     return new Response(null, {
       headers: corsHeaders,
