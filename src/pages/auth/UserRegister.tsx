@@ -128,7 +128,6 @@ const UserRegister: React.FC<UserRegisterProps> = (props) => {
         props.onUserCreated(data);
       },
       onError: (err) => {
-        console.error(err, "error creating user");
         const msg = err?.message || "";
         if (
           msg.includes("profiles_phone_number_unique") ||

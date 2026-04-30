@@ -291,8 +291,7 @@ export const KYCReview = () => {
 
       // Calculate stats
       await loadStats();
-    } catch (err) {
-      console.error("Error loading KYC applications:", err);
+    } catch (_err) {
       setError("Failed to load KYC applications. Please try again.");
     } finally {
       setLoading(false);
@@ -316,8 +315,8 @@ export const KYCReview = () => {
       };
 
       setStats(stats);
-    } catch (err) {
-      console.error("Error loading stats:", err);
+    } catch (_err) {
+      // stats are non-critical, ignore failures
     }
   };
 
@@ -485,8 +484,7 @@ export const KYCReview = () => {
       // Refresh audit history
       queryClient.invalidateQueries({ queryKey: ["kyc-audit-history"] });
       queryClient.invalidateQueries({ queryKey: ["audit-log"] });
-    } catch (err) {
-      console.error("Error approving KYC:", err);
+    } catch (_err) {
       toast({
         title: "Error",
         description: "Failed to approve KYC application. Please try again.",
@@ -566,8 +564,7 @@ export const KYCReview = () => {
       // Refresh audit history
       queryClient.invalidateQueries({ queryKey: ["kyc-audit-history"] });
       queryClient.invalidateQueries({ queryKey: ["audit-log"] });
-    } catch (err) {
-      console.error("Error rejecting KYC:", err);
+    } catch (_err) {
       toast({
         title: "Error",
         description: "Failed to reject KYC application. Please try again.",

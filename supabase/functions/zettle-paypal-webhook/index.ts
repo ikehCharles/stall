@@ -70,13 +70,7 @@ serve(async (req) => {
   const rawBody = await req.text();
   const payload = JSON.parse(rawBody);
 
-  console.warn(payload, "Payload")
-
   if (payload.eventName !== "PurchaseCreated") return responseJSON(200, {message: 'Success'});
-
-
-  console.warn("Zettle webhook received", rawBody);
-  console.warn("Raw body", JSON.parse(rawBody));
 
   const {
     data: { signing_key },

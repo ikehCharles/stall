@@ -13,7 +13,6 @@ export const useActivityFeed = (limit: number = 20) => {
         .limit(limit);
 
       if (bookingsError) {
-        console.error('Error fetching bookings for activity feed:', bookingsError);
       }
 
       // Get user profiles for bookings
@@ -38,7 +37,6 @@ export const useActivityFeed = (limit: number = 20) => {
         .limit(limit);
 
       if (kycError) {
-        console.error('Error fetching KYC audits for activity feed:', kycError);
       }
 
       // Get reviewer profiles

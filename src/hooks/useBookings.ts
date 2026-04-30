@@ -296,8 +296,7 @@ export const useCreateBooking = () => {
           p_vat_rate: vatRate,
           p_vat_mode: vatMode,
         });
-      } catch (vatError) {
-        console.error("Failed to create VAT ledger entry:", vatError);
+      } catch (_vatError) {
         // Non-blocking: booking proceeds even if VAT ledger fails
       }
 

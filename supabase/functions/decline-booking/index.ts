@@ -262,7 +262,7 @@ Deno.serve(async (req) => {
                 reason,
                 requested_by: user.id,
               },
-              idempotency_key: `refund_requested:${bookingId}:${Date.now()}`,
+              idempotency_key: `refund_requested:${bookingId}:${new Date().toISOString()}:${crypto.randomUUID()}`,
             })
           );
 
@@ -329,7 +329,7 @@ Deno.serve(async (req) => {
                 reason: reason || "No reason provided",
                 resolved_by: user.id,
               },
-              idempotency_key: `refund_resolved:${bookingId}:rejected:${Date.now()}`,
+              idempotency_key: `refund_resolved:${bookingId}:rejected:${new Date().toISOString()}:${crypto.randomUUID()}`,
             })
           );
           await supabase.from("notifications").insert(notifications);
@@ -529,7 +529,7 @@ Deno.serve(async (req) => {
                 reason,
                 resolved_by: user.id,
               },
-              idempotency_key: `refund_resolved:${bookingId}:approved:${Date.now()}`,
+              idempotency_key: `refund_resolved:${bookingId}:approved:${new Date().toISOString()}:${crypto.randomUUID()}`,
             })
           );
           await supabase.from("notifications").insert(notifications);

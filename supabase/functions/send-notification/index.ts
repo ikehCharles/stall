@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+const SENDER_EMAIL = Deno.env.get("SENDER_EMAIL") ?? "contact@contact.geekgrin.com";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -250,7 +252,7 @@ serve(async (req) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            from: `${appName} <contact@contact.geekgrin.com>`,
+            from: `${appName} <${SENDER_EMAIL}>`,
             to: [notification.recipient_email],
             subject,
             html,

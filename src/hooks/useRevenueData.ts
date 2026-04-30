@@ -24,7 +24,6 @@ export const useRevenueData = (dateRange?: DateRange) => {
         .order('created_at', { ascending: true });
 
       if (error) {
-        console.error('Error fetching revenue data:', error);
         throw error;
       }
 

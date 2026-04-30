@@ -183,8 +183,6 @@ serve(async (req) => {
     const rawBody = await req.text();
     const headers = req.headers;
 
-    console.warn("Received PayPal webhook:", rawBody, 'parsed-->', JSON.parse(rawBody));
-
     // Validate webhook
     const valid = await verifyPaypalWebhook(rawBody, headers);
     if (!valid)
@@ -210,9 +208,6 @@ serve(async (req) => {
         .single();
 
       if (booking && TERMINAL_BOOKING_STATUSES.includes(booking.status)) {
-        console.warn(
-          `Ignoring webhook for booking ${bookingId}: booking status is "${booking.status}"`
-        );
         return new Response(
           JSON.stringify({ ok: true, skipped: true, reason: `booking is ${booking.status}` }),
           { status: 200, headers: corsHeaders }

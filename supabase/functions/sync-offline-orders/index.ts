@@ -191,8 +191,6 @@ async function handleRequest(
           }
         );
 
-        console.log(`Zettle response for booking ${booking.id}:`, resp.status);
-
         if (!resp.ok) {
           const err = await resp.text();
           console.error(
@@ -205,11 +203,6 @@ async function handleRequest(
         }
 
         const result = await resp.json();
-
-        console.log(
-          `Zettle created product for booking ${booking.id}:`,
-          result
-        );
 
         // Mark as synced
         const { error: updateErr } = await supabase
@@ -226,9 +219,6 @@ async function handleRequest(
           failCount++;
         } else {
           successCount++;
-          console.log(
-            `Synced: ${booking.invoice_number} → Zettle UUID ${result.uuid}`
-          );
         }
 
         await new Promise((r) => setTimeout(r, 150)); // ~6 req/s

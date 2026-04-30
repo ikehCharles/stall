@@ -339,7 +339,6 @@ const FCAStallBooking = () => {
       {viewMode === "list" ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {enrichedStalls.map((stall) => {
-            console.warn(stall, "stall enriched with eligibility");
             const available = isStallAvailable(stall);
             const isIneligible = !!stall.isIneligible;
             const statusVariant = isIneligible ? "secondary" : available ? "default" : "destructive";

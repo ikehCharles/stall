@@ -2,6 +2,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const SUPABASEURL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+const SENDER_EMAIL = Deno.env.get("SENDER_EMAIL") ?? "contact@contact.geekgrin.com";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -231,7 +232,7 @@ Deno.serve(async (req) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            from: `${appName} <contact@contact.geekgrin.com>`,
+            from: `${appName} <${SENDER_EMAIL}>`,
             to: [email],
             subject: welcomeSubject,
             html: welcomeBody,

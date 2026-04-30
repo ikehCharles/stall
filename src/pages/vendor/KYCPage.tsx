@@ -37,15 +37,13 @@ export const KYCPage = () => {
         .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('Error loading KYC data:', error);
         toast.error('Failed to load verification status');
         return;
       }
 
       setKycData(data);
       setShowForm(!data);
-    } catch (error) {
-      console.error('Error loading KYC data:', error);
+    } catch (_error) {
       toast.error('Failed to load verification status');
     } finally {
       setLoading(false);

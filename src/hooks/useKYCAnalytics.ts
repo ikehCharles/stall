@@ -27,7 +27,6 @@ export const useKYCAnalytics = (dateRange?: DateRange) => {
       const { data: applications, error } = await query;
 
       if (error) {
-        console.error('Error fetching KYC applications:', error);
         throw error;
       }
 

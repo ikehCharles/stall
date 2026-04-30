@@ -73,7 +73,6 @@ export default function ModalUserActions({ user, roles }: ModalUserActionsProps)
       ...payload,
       tags: selectedTagIds,
     }
-    console.error(user, "here user")
     // Update user profile and tags
     await updateUser.mutateAsync(user);
 

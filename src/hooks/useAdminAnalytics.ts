@@ -24,7 +24,6 @@ export const useAdminAnalytics = (dateRange?: DateRange) => {
       const { data: bookings, error } = await query;
 
       if (error) {
-        console.error('Error fetching admin analytics:', error);
         throw error;
       }
 

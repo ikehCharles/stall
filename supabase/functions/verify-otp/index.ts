@@ -18,12 +18,47 @@ serve(async (req) => {
 
   try {
     const { email, otpCode }: VerifyOTPRequest = await req.json();
-    
+
+    if (!email || !otpCode) {
+      return new Response(
+        JSON.stringify({ error: "Missing required fields: email, otpCode" }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid email format" }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    if (!/^\d{6}$/.test(otpCode)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid OTP format" }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Create Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
+
+    // Rate limit: max 5 verify attempts per email per 15 minutes
+    const rateLimitKey = `otp_verify:${email}`;
+    const windowStart = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+    const { count: attemptCount } = await supabaseClient
+      .from('rate_limits')
+      .select('id', { count: 'exact', head: true })
+      .eq('key', rateLimitKey)
+      .gte('created_at', windowStart);
+    if ((attemptCount ?? 0) >= 5) {
+      return new Response(
+        JSON.stringify({ error: 'Too many verification attempts. Please request a new OTP.' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    await supabaseClient.from('rate_limits').insert({ key: rateLimitKey });
 
     // Get current user
     const authHeader = req.headers.get('Authorization');

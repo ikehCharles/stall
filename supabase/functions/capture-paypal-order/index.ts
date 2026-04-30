@@ -85,6 +85,12 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+    if (typeof token !== "string" || !/^[A-Z0-9]{8,20}$/.test(token)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid token format" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     const auth = btoa(`${PAYPAL_CLIENT_ID}:${PAYPAL_SECRET}`);
 
@@ -103,9 +109,6 @@ serve(async (req) => {
         .single();
 
       if (booking && TERMINAL_BOOKING_STATUSES.includes(booking.status)) {
-        console.warn(
-          `Capture attempted for booking ${bookingId} with status "${booking.status}"`
-        );
         return new Response(
           JSON.stringify({
             error: `Cannot capture payment: booking is ${booking.status}`,
@@ -123,7 +126,6 @@ serve(async (req) => {
         .maybeSingle();
 
       if (existingPayment) {
-        console.warn(`Payment for order ${orderDetails.id} already completed, skipping capture`);
         return new Response(
           JSON.stringify({ message: "Payment already processed" }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }

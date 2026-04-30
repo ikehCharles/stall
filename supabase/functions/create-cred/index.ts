@@ -6,6 +6,7 @@ const SUPABASEURL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const ZETTLE_CLIENT_ID = Deno.env.get("ZETTLE_CLIENT_ID");
 const ZETTLE_CLIENT_SECRET = Deno.env.get("ZETTLE_CLIENT_SECRET");
+const ZETTLE_CONTACT_EMAIL = Deno.env.get("ZETTLE_CONTACT_EMAIL");
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -118,7 +119,7 @@ Deno.serve(async (req) => {
       transportName: "WEBHOOK",
       eventNames: ["PurchaseCreated"],
       destination: meta.url,
-      contactEmail: "elpapielpapi10@gmail.com",
+      contactEmail: ZETTLE_CONTACT_EMAIL,
     };
 
     const accessToken = await getZettleAccessToken();

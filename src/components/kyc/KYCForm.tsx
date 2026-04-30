@@ -111,7 +111,6 @@ export const KYCForm = ({ onSubmit, existingKYC, externalUserId }: KYCFormProps)
         .maybeSingle();
 
       if (fetchError && fetchError.code !== 'PGRST116') {
-        console.error('Error checking existing KYC:', fetchError);
         throw new Error('Failed to check existing verification data');
       }
 
@@ -131,7 +130,6 @@ export const KYCForm = ({ onSubmit, existingKYC, externalUserId }: KYCFormProps)
           .eq('id', existingKYCData.id);
 
         if (updateError) {
-          console.error('Error updating KYC data:', updateError);
           throw new Error('Failed to update verification data');
         }
       } else {
@@ -150,7 +148,6 @@ export const KYCForm = ({ onSubmit, existingKYC, externalUserId }: KYCFormProps)
           });
 
         if (insertError) {
-          console.error('Error inserting KYC data:', insertError);
           throw new Error('Failed to submit verification data');
         }
       }

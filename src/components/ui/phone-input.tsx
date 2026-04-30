@@ -93,8 +93,8 @@ export const PhoneInput = ({
             return;
           }
         }
-      } catch (error) {
-        console.error('Could not parse phone number:', value);
+      } catch (_error) {
+        // invalid phone number format — ignore silently
       }
     }
     

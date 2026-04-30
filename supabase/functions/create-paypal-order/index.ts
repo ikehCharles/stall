@@ -42,18 +42,37 @@ Deno.serve(async (req)=>{
     const supabaseClient = createClient(SUPABASEURL ?? '', SUPABASE_SERVICE_ROLE_KEY ?? '');
     const { amount, bookingId, intent } = await req.json();
     if (!amount || !bookingId) {
-      return new Response(JSON.stringify({
-        error: "Missing fields"
-      }), {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        },
-        status: 400
+      return new Response(JSON.stringify({ error: "Missing fields" }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
       });
     }
-    // get access token to create order
-    const accessToken = await getAccessToken();
+    if (typeof amount !== "number" || amount <= 0) {
+      return new Response(JSON.stringify({ error: "amount must be a positive number" }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      });
+    }
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(bookingId)) {
+      return new Response(JSON.stringify({ error: "Invalid bookingId" }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      });
+    }
+    // get access token and branding in parallel
+    const [accessToken, brandingRows] = await Promise.all([
+      getAccessToken(),
+      supabaseClient
+        .from('settings')
+        .select('key, value')
+        .eq('source', 'platform')
+        .in('key', ['app_name'])
+        .then(({ data }) => data ?? []),
+    ]);
+    const brandingMap = Object.fromEntries(
+      (brandingRows as { key: string; value: string }[]).map((r) => [r.key, r.value])
+    );
+    const appName = brandingMap['app_name'] || 'Stall Inc';
 
     // get actual amount from booking
     const { data, error } = await supabaseClient.from('bookings').select(`gross_amount`).eq('id', bookingId).single();
@@ -93,7 +112,7 @@ Deno.serve(async (req)=>{
         payment_source: {
           paypal: {
             experience_context: {
-              brand_name: "Example Inc.",
+              brand_name: appName,
               landing_page: "NO_PREFERENCE",
               // user_action: "PAY_NOW",
               return_url: `${CLIENT_BASEURL}/vendor/bookings/${bookingId}/confirmation?intent=${intent}`,

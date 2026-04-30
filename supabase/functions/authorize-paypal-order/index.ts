@@ -66,6 +66,9 @@ Deno.serve(async (req) => {
     // grab token on redirect after payment
     const { orderID } = await req.json();
     if (!orderID) return responseJSON(400, { error: "Missing order ID" });
+    if (typeof orderID !== "string" || !/^[A-Z0-9]{8,20}$/.test(orderID)) {
+      return responseJSON(400, { error: "Invalid order ID format" });
+    }
 
     // verify payment against paypal API using token and credentials
     const auth = btoa(`${PAYPAL_CLIENT_ID}:${PAYPAL_SECRET}`);

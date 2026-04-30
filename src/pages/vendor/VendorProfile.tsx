@@ -84,8 +84,7 @@ const VendorProfile = () => {
 
       if (error) throw error;
       setKycData(data);
-    } catch (error) {
-      console.error('Error loading KYC data:', error);
+    } catch (_error) {
     } finally {
       setKycLoading(false);
     }
@@ -181,7 +180,6 @@ const VendorProfile = () => {
         navigate("/vendor/profile?tab=verification");
       }
     } catch (error: any) {
-      console.error('Error updating profile:', error);
       const msg = error?.message || "";
       const isPhoneTaken =
         msg.includes("profiles_phone_number_unique") ||

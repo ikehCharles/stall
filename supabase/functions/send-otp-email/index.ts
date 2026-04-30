@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+const SENDER_EMAIL = Deno.env.get("SENDER_EMAIL") ?? "contact@contact.geekgrin.com";
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -19,12 +21,39 @@ serve(async (req) => {
 
   try {
     const { email, fullName, phoneNumber }: SendOTPRequest = await req.json();
-    
+
+    if (!email || !fullName || !phoneNumber) {
+      return new Response(
+        JSON.stringify({ error: "Missing required fields: email, fullName, phoneNumber" }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid email format" }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Create Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
+
+    // Rate limit: max 3 OTP sends per email per 15 minutes
+    const windowStart = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+    const { count: recentOtpCount } = await supabaseClient
+      .from('email_verifications')
+      .select('id', { count: 'exact', head: true })
+      .eq('email', email)
+      .gte('created_at', windowStart);
+    if ((recentOtpCount ?? 0) >= 3) {
+      return new Response(
+        JSON.stringify({ error: 'Too many OTP requests. Please wait before requesting another.' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Fetch configured branding from settings
     const { data: brandingRows } = await supabaseClient
@@ -38,8 +67,10 @@ serve(async (req) => {
     const appName = brandingMap['app_name'] || 'Stall Inc';
     const appLogoUrl = brandingMap['app_logo_url'] || '';
 
-    // Generate 6-digit OTP
-    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    // Generate 6-digit OTP using cryptographically secure random values
+    const arr = new Uint32Array(1);
+    crypto.getRandomValues(arr);
+    const otpCode = (100000 + (arr[0] % 900000)).toString();
     
     // Get current user (this function should be called after signup)
     const authHeader = req.headers.get('Authorization');
@@ -111,7 +142,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: `${appName} <contact@contact.geekgrin.com>`,
+        from: `${appName} <${SENDER_EMAIL}>`,
         to: [email],
         subject: emailSubject,
         html: emailBody,

@@ -21,7 +21,6 @@ const AuthCallback = () => {
         const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
 
         if (sessionError || !sessionData.session) {
-          console.error("Auth callback error:", sessionError);
           toast.error("Authentication failed. Please try again.");
           navigate("/login");
           return;
@@ -89,7 +88,6 @@ const AuthCallback = () => {
         toast.success("Welcome back!");
         navigate("/vendor");
       } catch (error) {
-        console.error("Auth callback error:", error);
         toast.error("Something went wrong. Please try again.");
         navigate("/login");
       }

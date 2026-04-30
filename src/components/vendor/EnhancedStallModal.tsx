@@ -130,8 +130,6 @@ export function EnhancedStallModal({
           description: response.days ? `Stall ${stall.label} is held for 5 minutes. Total: ${formatCurrency(response.total || 0)}` : `All Hold on stall ${stall.label} has been released.`,
         });
       } catch (error) {
-        console.error('Hold creation error:', error);
-        
         // Provide specific error messages based on the error
         let errorMessage = "Could not reserve this stall for the selected dates.";
         

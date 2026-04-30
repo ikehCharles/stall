@@ -268,7 +268,6 @@ const BookingDetails = () => {
       navigate("/vendor/bookings");
     } catch (error) {
       toast.error(error.message || "Failed to cancel booking");
-      console.error("Error cancelling booking:", error);
     }
   };
 
@@ -280,7 +279,6 @@ const BookingDetails = () => {
       setCancelDialogOpen(false);
     } catch (error) {
       toast.error(error.message || "Failed to reserve booking");
-      console.error("Error reserving booking:", error);
     }
   };
 

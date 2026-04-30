@@ -16,7 +16,6 @@ export const useStallOccupancy = (marketId?: string) => {
       const { data: stalls, error: stallsError } = await stallQuery;
 
       if (stallsError) {
-        console.error('Error fetching stalls:', stallsError);
         throw stallsError;
       }
 
@@ -28,7 +27,6 @@ export const useStallOccupancy = (marketId?: string) => {
         .gte('booking_date', new Date().toISOString().split('T')[0]); // Only current/future bookings
 
       if (bookedError) {
-        console.error('Error fetching booked dates:', bookedError);
         throw bookedError;
       }
 

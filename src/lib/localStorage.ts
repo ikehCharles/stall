@@ -64,8 +64,7 @@ class LocalStorageManager {
     try {
       const data = localStorage.getItem(this.getKey(type));
       return data ? JSON.parse(data) : [];
-    } catch (error) {
-      console.error(`Error getting ${type} from localStorage:`, error);
+    } catch (_error) {
       return [];
     }
   }
@@ -73,8 +72,7 @@ class LocalStorageManager {
   set<T>(type: string, data: T[]): void {
     try {
       localStorage.setItem(this.getKey(type), JSON.stringify(data));
-    } catch (error) {
-      console.error(`Error setting ${type} to localStorage:`, error);
+    } catch (_error) {
     }
   }
 
