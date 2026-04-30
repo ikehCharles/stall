@@ -140,7 +140,7 @@ export const KYCReview = () => {
   // Initialize filters from URL params on mount
   const getInitialFilters = (): KYCFilters => {
     const contactEmail = searchParams.get("contactEmail") || "";
-    const status = searchParams.get("status") || "pending";
+    const status = searchParams.get("status") || "PENDING";
     const dateFromParam = searchParams.get("dateFrom");
     const dateToParam = searchParams.get("dateTo");
 
