@@ -93,6 +93,11 @@ export const KYCForm = ({ onSubmit, existingKYC, externalUserId }: KYCFormProps)
       return;
     }
 
+    if (!formData.businessTypeId) {
+      setError("Please select a business type");
+      return;
+    }
+
     // Check if KYC is approved (view-only mode)
     if (existingKYC?.status === 'APPROVED') {
       setError("Your KYC is already approved and cannot be modified");
@@ -238,11 +243,12 @@ export const KYCForm = ({ onSubmit, existingKYC, externalUserId }: KYCFormProps)
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="businessType">Business Type</Label>
+              <Label htmlFor="businessType">Business Type *</Label>
               <Select
                 value={formData.businessTypeId}
                 onValueChange={(value) => handleInputChange('businessTypeId', value)}
                 disabled={categoriesLoading}
+                required
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select business type" />
